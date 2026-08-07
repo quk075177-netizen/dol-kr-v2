@@ -29,6 +29,24 @@ value-kind의 원래 목적은 추후 번역 힌트로 활용하는 것이다. �
 
 evidence 분포: `definition` 845, `call` 288, `llm` 189.
 
+## I2(위젯 opaque 해제) 후 변화
+
+I2로 위젯 본문이 스캔되면서 `unclassified_argument`가 18 → 9,072로
+증가했다. 상위 매크로:
+
+```text
+numberStepper 2,396   numberslider 1,033   option[1] 303
+sex[2] 280            brat 244             their 188
+shopHuntActorName 204 rangeslider 186      radiovar 156
+hisselect 155         actionstentacleadvcheckbox 135
+case 109              combat-set-hand-target 102
+money 96              shopHuntLocName 91   generateCombatAction 90
+machine_damage 85     foldout 82           meek 78
+```
+
+이 residual은 `docs/worker-value-kind-audit.md`의 Part A에서 처리한다.
+그 다음 P1~P5(Part B)로 이어진다.
+
 ## 검수 우선순위
 
 ### P1. kind 없는 223개 항목 정리

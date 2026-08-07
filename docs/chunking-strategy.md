@@ -1,7 +1,7 @@
-# 번역 유닛 분할(청킹) 전략 초안
+# 번역 유닛 분할(청킹) 전략
 
 기준일: 2026-08-07
-상태: 초안 (설계 단계, 구현 전)
+상태: 구현 완료 (`pretranslation_cst/chunking.py`, 2026-08-07 검증)
 
 ## 문제
 
@@ -174,39 +174,45 @@ class TranslateUnit:
     following_context: str        # 뒤 유닛의 첫 문장
 ```
 
-## 구현 순서
+## 구현 완료 (2026-08-07)
 
-### C1. 청킹 모듈 설계
+`pretranslation_cst/chunking.py` 구현. API:
 
-`pretranslation_cst/chunking.py` 새 모듈. `MaskArtifact`를 입력받아
-`list[TranslateUnit]`을 반환. `Passage`의 tree에서 ancestor 경로를
-추출.
+```python
+from pretranslation_cst import chunk_passage
+units = chunk_passage(passage, artifact, data, threshold=1000, max_chars=2000, min_chars=200)
+```
 
-### C2. 분할 알고리즘 구현
+- `passage`: `Passage` (tree 포함)
+- `artifact`: `MaskArtifact` (mask_passage 결과)
+- `data`: 원본 파일 bytes
+- 반환: `list[TranslateUnit]`
 
-3단계 분할 알고리즘 구현. placeholder 경계 처리 포함.
+핵심 설계:
 
-### C3. 메타데이터 부착
+- 유닛 span을 CST container/branch 경계로 생성하고, 재귀적으로
+  threshold 이하까지 분할한다.
+- 각 segment/placeholder는 **시작 offset이 속한 span**에 배정되어,
+  placeholder가 유닛 경계에 걸쳐도 정확히 한 유닛에 속한다.
+- span을 정렬 후 시작을 이전 span의 end로 클램프해 겹침을 방지한다.
+- container 열기 tag(`<<widget>>` 등)는 첫 자식 span에 흡수하고,
+  닫기 tag는 마지막 자식 span에 흡수한다 (`start_override`/`end_override`).
+- opaque passage는 유닛 없음.
 
-ancestor 경로, preceding/following context 추출. tree의
-`get_ancestors` / `get_siblings` API 활용.
+검증 결과 (전체 corpus 16,132 passage, 66,547 → 129,926 유닛):
 
-### C4. 분할 검증
+- join 불변식 failures 0
+- placeholder 누락 0
+- 2,000자 초과 25건 (leaf macro가 실제로 커서 분할 불가능한 극소수)
 
-- 모든 유닛을 합치면 원 passage의 masked 텍스트와 정확히 일치.
-- placeholder가 유닛 경계에 걸치지 않음.
-- 각 유닛의 char_count가 상한(2,000자) 이하.
-- 유닛 수가 passage 크기에 비례하여 합리적.
+### C4~C5 검증 상태
 
-### C5. corpus 전수 분할 테스트
+- 유닛 테스트 6개: `tests/test_chunking.py`
+- 전체 테스트 120개 통과
+- 분할 전후 masked 텍스트 일치 확인 (join 불변식)
+- placeholder가 유닛 경계에 걸치지 않음
 
-16,135개 passage 전체에 분할을 돌려서:
-- 분할 실패 0건.
-- 유닛 수 분포.
-- 유닛 크기 분포 (상한 초과 0건).
-- 분할 전후 masked 텍스트 일치.
-
-### C6. 번역 API 인터페이스 설계
+### C6. 번역 API 인터페이스
 
 `TranslateUnit`을 번역 API 입력으로 변환하는 방식 설계.
 `ancestors`와 `preceding/following_context`를 어떻게 system prompt에
