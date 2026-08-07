@@ -7,6 +7,27 @@
 매크로별 예외 추가가 아니라, `boundary scan -> grammar dispatch -> CST -> exposure`
 계약을 다시 세우는 것이 목표다.
 
+## 구현 상태
+
+2026-08-07 현재 핵심 parser 작업은 다음까지 반영됐다.
+
+- versioned `MacroSpec` registry와 `raw | parsed | none` argument dispatch
+- registry 기반 container/branch tree
+- `set/run/print/if/elseif/for/unset` 계열 raw expression 처리
+- `addinlineevent`, `foldout`, `linkreplace` container 처리
+- `checkbox`, `radiobutton` leaf 처리
+- macro 내부 square-link label의 CST leaf 및 masking 노출
+- division과 regex literal의 macro boundary 구분
+
+전체 `game/**/*.twee` 642개 파일, 16,135개 passage에서 restore 실패 0,
+tree invariant 실패 0, `malformed_args` 0, `mismatched_close` 0을 확인했다.
+`unclosed_container` 2건은
+`game/overworld-forest/loc-forestshop/gwylan-clothes.twee`의 malformed `case`
+인자가 뒤 구조를 닫지 못하게 만드는 동일 source 결함에서 발생한다.
+
+남은 병렬 작업은 [parser-followup-agent-tasks.md](parser-followup-agent-tasks.md)에
+분리했다.
+
 ## 결론
 
 현재 splitter와 원본 byte/span 보존 계층은 유지할 수 있다. 구조적으로 다시

@@ -1,0 +1,104 @@
+{
+  "macros": {
+    "-": {"arg_mode": "raw", "source": "sugarcube"},
+    "=": {"arg_mode": "raw", "source": "sugarcube"},
+    "action": {"arg_mode": "parsed", "source": "sugarcube"},
+    "addinlineevent": {"arg_mode": "parsed", "body_kind": "container", "source": "game_js"},
+    "append": {"arg_mode": "parsed", "body_kind": "container", "source": "sugarcube"},
+    "button": {
+      "arg_mode": "parsed",
+      "body_kind": "container",
+      "source": "game_override",
+      "square_label_args": [0]
+    },
+    "capture": {"arg_mode": "raw", "body_kind": "container", "source": "sugarcube"},
+    "case": {"arg_mode": "parsed", "source": "sugarcube"},
+    "checkbox": {"arg_mode": "parsed", "source": "sugarcube"},
+    "compute": {"arg_mode": "parsed", "body_kind": "container", "source": "game_js"},
+    "condition": {"arg_mode": "parsed", "body_kind": "container", "source": "game_js"},
+    "cycle": {
+      "arg_mode": "parsed",
+      "body_kind": "container",
+      "source": "sugarcube",
+      "tags": {"option": "parsed", "optionsfrom": "raw"}
+    },
+    "default": {"arg_mode": "none", "source": "sugarcube"},
+    "dialog": {
+      "arg_mode": "parsed",
+      "body_kind": "container",
+      "source": "game_js",
+      "tags": {"onclose": "none", "onopen": "none"}
+    },
+    "do": {"arg_mode": "parsed", "body_kind": "container", "source": "sugarcube"},
+    "done": {"arg_mode": "raw", "body_kind": "container", "source": "sugarcube"},
+    "else": {"arg_mode": "none", "source": "sugarcube"},
+    "elseif": {"arg_mode": "raw", "source": "sugarcube"},
+    "foldout": {"arg_mode": "parsed", "body_kind": "container", "source": "game_js"},
+    "for": {"arg_mode": "raw", "body_kind": "container", "source": "sugarcube"},
+    "if": {
+      "arg_mode": "raw",
+      "body_kind": "container",
+      "implicit_branch": true,
+      "source": "sugarcube",
+      "tags": {"else": "none", "elseif": "raw"}
+    },
+    "link": {
+      "arg_mode": "parsed",
+      "body_kind": "container",
+      "source": "game_override",
+      "square_label_args": [0]
+    },
+    "linkappend": {"arg_mode": "parsed", "body_kind": "container", "source": "sugarcube"},
+    "linkprepend": {"arg_mode": "parsed", "body_kind": "container", "source": "sugarcube"},
+    "linkreplace": {"arg_mode": "parsed", "body_kind": "container", "source": "sugarcube"},
+    "listbox": {
+      "arg_mode": "parsed",
+      "body_kind": "container",
+      "source": "sugarcube",
+      "tags": {"option": "parsed", "optionsfrom": "raw"}
+    },
+    "next": {"arg_mode": "parsed", "source": "sugarcube"},
+    "nobr": {"arg_mode": "raw", "body_kind": "container", "source": "sugarcube"},
+    "onclose": {"arg_mode": "none", "source": "game_js"},
+    "onopen": {"arg_mode": "none", "source": "game_js"},
+    "option": {"arg_mode": "parsed", "source": "sugarcube"},
+    "optionsfrom": {"arg_mode": "raw", "source": "sugarcube"},
+    "prepend": {"arg_mode": "parsed", "body_kind": "container", "source": "sugarcube"},
+    "print": {"arg_mode": "raw", "source": "sugarcube"},
+    "radiobutton": {"arg_mode": "parsed", "source": "sugarcube"},
+    "repeat": {"arg_mode": "parsed", "body_kind": "container", "source": "sugarcube"},
+    "replace": {"arg_mode": "parsed", "body_kind": "container", "source": "sugarcube"},
+    "run": {"arg_mode": "raw", "source": "sugarcube"},
+    "safereplace": {"arg_mode": "parsed", "body_kind": "container", "source": "game_js"},
+    "script": {"arg_mode": "parsed", "body_kind": "container", "source": "sugarcube"},
+    "set": {"arg_mode": "raw", "source": "sugarcube"},
+    "silent": {"arg_mode": "raw", "body_kind": "container", "source": "sugarcube"},
+    "silently": {"arg_mode": "raw", "body_kind": "container", "source": "sugarcube"},
+    "stop": {"arg_mode": "raw", "source": "sugarcube"},
+    "style": {"arg_mode": "parsed", "body_kind": "container", "source": "sugarcube"},
+    "switch": {
+      "arg_mode": "raw",
+      "body_kind": "container",
+      "source": "sugarcube",
+      "tags": {"case": "parsed", "default": "none"}
+    },
+    "timed": {
+      "arg_mode": "parsed",
+      "body_kind": "container",
+      "source": "sugarcube",
+      "tags": {"next": "parsed"}
+    },
+    "twinescript": {"arg_mode": "raw", "body_kind": "container", "source": "game_js"},
+    "type": {"arg_mode": "parsed", "body_kind": "container", "source": "sugarcube"},
+    "unless": {
+      "arg_mode": "raw",
+      "body_kind": "container",
+      "implicit_branch": true,
+      "source": "sugarcube_deprecated",
+      "tags": {"else": "none", "elseif": "raw"}
+    },
+    "unset": {"arg_mode": "raw", "source": "sugarcube"},
+    "widget": {"arg_mode": "parsed", "body_kind": "container", "source": "sugarcube"},
+    "dynamicblock": {"arg_mode": "parsed", "body_kind": "container", "source": "game_js"}
+  }
+}

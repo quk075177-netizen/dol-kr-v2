@@ -88,6 +88,9 @@ class CstNode:
     name_span: Span | None = None
     raw_args_span: Span | None = None
     args: list[ArgNode] = field(default_factory=list)
+    arg_mode: str = "parsed"
+    expression_span: Span | None = None
+    grammar_source: str | None = None
     closing_span: Span | None = None
     body_span: Span | None = None
     malformed: bool = False
@@ -112,6 +115,7 @@ class CstNode:
             "name": self.name,
             "role": self.role,
             "args": [arg.to_dict() for arg in self.args],
+            "arg_mode": self.arg_mode,
             "malformed": self.malformed,
             "children": [child.to_dict() for child in self.children] if include_children else [],
         }
@@ -119,6 +123,10 @@ class CstNode:
             result["name_span"] = self.name_span.to_dict()
         if self.raw_args_span is not None:
             result["raw_args_span"] = self.raw_args_span.to_dict()
+        if self.expression_span is not None:
+            result["expression_span"] = self.expression_span.to_dict()
+        if self.grammar_source is not None:
+            result["grammar_source"] = self.grammar_source
         if self.closing_span is not None:
             result["closing_span"] = self.closing_span.to_dict()
         if self.body_span is not None:

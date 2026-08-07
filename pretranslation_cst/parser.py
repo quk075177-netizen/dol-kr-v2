@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
+from .grammar import MacroRegistry, MacroSpec, load_macro_registry
 from .model import ArgNode, CstNode, Diagnostic, Passage, SourceFile, Span
 
 
@@ -28,14 +29,6 @@ SPECIAL_PASSAGES = {
     "StoryMenu",
     "StoryShare",
 }
-CONTAINER_NAMES = {
-    "if", "unless", "for", "switch", "capture", "silently", "link", "button",
-    "checkbox", "radiobutton", "listbox", "cycle", "dialog", "replace", "append",
-    "prepend", "timed", "repeat", "back", "script", "style", "widget",
-}
-BRANCH_NAMES = {"else", "elseif", "case", "default"}
-
-
 class TextSource:
     """One UTF-8 decode and its shared character-to-byte lookup table."""
 
@@ -148,6 +141,15 @@ def _consume_regex(text: str, start: int, limit: int) -> int | None:
     return None
 
 
+def _can_start_regex(text: str, start: int, body_start: int) -> bool:
+    pos = start - 1
+    while pos >= body_start and _is_space(text[pos]):
+        pos -= 1
+    if pos < body_start:
+        return True
+    return text[pos] in "([{:;,=!?&|+-*%^~<>"
+
+
 def _consume_square(text: str, start: int, limit: int | None = None) -> int | None:
     """Consume [[...]] or image square markup, including nested [[...]]."""
     limit = len(text) if limit is None else limit
@@ -234,7 +236,7 @@ def _consume_macro_body(text: str, start: int, limit: int) -> tuple[int | None, 
             if end is not None:
                 pos = end
                 continue
-        if text[pos] == "/":
+        if text[pos] == "/" and _can_start_regex(text, pos, start):
             end = _consume_regex(text, pos, limit)
             if end is not None:
                 pos = end
@@ -307,7 +309,6 @@ def _parse_macro(source: TextSource, start: int, limit: int) -> MacroScan:
     if body_end is None:
         return MacroScan(None, limit, Diagnostic("malformed_macro", body_error or "malformed macro", source.span(start, limit)))
     close_start = body_end - 2
-    args, arg_error = _lex_args(source, args_start, close_start)
     node = CstNode(
         span=source.span(start, body_end),
         node_type="macro_call",
@@ -315,11 +316,59 @@ def _parse_macro(source: TextSource, start: int, limit: int) -> MacroScan:
         role="call",
         name_span=source.span(name_start - (1 if closing else 0), name_end),
         raw_args_span=source.span(args_start, close_start),
-        args=args,
-        malformed=arg_error is not None,
     )
-    diagnostic = Diagnostic("malformed_args", arg_error, node.span, node.name) if arg_error else None
-    return MacroScan(node, body_end, diagnostic)
+    return MacroScan(node, body_end)
+
+
+def _raw_args_text(source: TextSource, node: CstNode) -> str:
+    if node.raw_args_span is None:
+        return ""
+    start = source.char_start(node.raw_args_span.start)
+    end = source.char_start(node.raw_args_span.end)
+    return source.text[start:end]
+
+
+def _decode_macro_args(
+    source: TextSource,
+    node: CstNode,
+    spec: MacroSpec,
+    diagnostics: list[Diagnostic],
+) -> None:
+    node.arg_mode = spec.arg_mode
+    node.grammar_source = spec.source
+    raw_text = _raw_args_text(source, node)
+    if node.name.startswith("/"):
+        node.arg_mode = "none"
+        if raw_text.strip():
+            node.malformed = True
+            diagnostics.append(Diagnostic(
+                "closing_macro_args", "closing macro must not have arguments",
+                node.raw_args_span, node.name,
+            ))
+        return
+    if spec.arg_mode == "raw":
+        if node.raw_args_span is not None and raw_text:
+            node.expression_span = node.raw_args_span
+            node.children.append(CstNode(
+                node.raw_args_span, "protected_markup", name="raw_expression", role="expression",
+            ))
+        return
+    if spec.arg_mode == "none":
+        if raw_text.strip():
+            node.malformed = True
+            diagnostics.append(Diagnostic(
+                "unexpected_macro_args", "macro does not accept arguments",
+                node.raw_args_span, node.name,
+            ))
+        return
+    if node.raw_args_span is None:
+        return
+    start = source.char_start(node.raw_args_span.start)
+    end = source.char_start(node.raw_args_span.end)
+    node.args, arg_error = _lex_args(source, start, end)
+    if arg_error:
+        node.malformed = True
+        diagnostics.append(Diagnostic("malformed_args", arg_error, node.span, node.name))
 
 
 def _next_macro(source: TextSource, start: int, limit: int) -> MacroScan | None:
@@ -407,8 +456,6 @@ def _widget_definitions(source: TextSource, start: int, end: int) -> tuple[list[
         scan = _next_macro(source, pos, end)
         if scan is None:
             break
-        if scan.diagnostic:
-            diagnostics.append(scan.diagnostic)
         if scan.node is None:
             pos = max(scan.end, pos + 1)
             continue
@@ -544,6 +591,38 @@ def _link_label(source: TextSource, start: int, end: int) -> Span | None:
     return source.span(label_start, label_end)
 
 
+def _attach_argument_nodes(source: TextSource, node: CstNode, spec: MacroSpec) -> None:
+    for arg in node.args:
+        if arg.disposition == "expose" and arg.content_span is not None:
+            node.children.append(CstNode(
+                arg.content_span, "prose_text", name="macro_arg", role="argument",
+            ))
+        if arg.lexeme_kind != "square_bracket" or not arg.raw_text.startswith("[["):
+            continue
+        start = source.char_start(arg.raw_span.start)
+        end = source.char_start(arg.raw_span.end)
+        markup = CstNode(arg.raw_span, "protected_markup", name="link", role="markup")
+        label = _link_label(source, start, end) if arg.index in spec.square_label_args else None
+        if label is not None:
+            markup.children.append(CstNode(
+                label, "prose_text", name="link_label", role="label",
+            ))
+        node.children.append(markup)
+
+
+def _collect_tree_exposure(passage: Passage) -> None:
+    if passage.root is None:
+        return
+
+    def visit(node: CstNode) -> None:
+        if node.node_type == "prose_text":
+            passage.exposed_candidates.append((node.span, node.name or "prose_text"))
+        for child in node.children:
+            visit(child)
+
+    visit(passage.root)
+
+
 def _collect_markup(source: TextSource, passage: Passage, start: int, end: int, ignored: list[Span]) -> None:
     text = source.text
     pos = start
@@ -629,7 +708,13 @@ def _assign_tree_metadata(passage: Passage) -> None:
     visit(passage.root, None, 0, 0)
 
 
-def _build_tree(passage: Passage, macros: list[CstNode], definitions: list[CstNode], source: TextSource) -> None:
+def _build_tree(
+    passage: Passage,
+    macros: list[CstNode],
+    definitions: list[CstNode],
+    source: TextSource,
+    registry: MacroRegistry,
+) -> None:
     root = CstNode(passage.body_span, "passage_root", role="root")
     passage.root = root
     all_events = sorted([*macros, *definitions], key=lambda node: (node.span.start, node.span.end))
@@ -666,30 +751,62 @@ def _build_tree(passage: Passage, macros: list[CstNode], definitions: list[CstNo
             last = node.span.end
             continue
         lower = node.name.lower()
-        if lower in BRANCH_NAMES and len(stack) > 1:
-            parent = stack[-2] if stack[-1].node_type == "macro_branch" else stack[-1]
-            branch = CstNode(node.span, "macro_branch", name=node.name, role="branch", args=node.args)
-            parent.children.append(branch)
+        active_container = (
+            stack[-2] if stack[-1].node_type == "macro_branch" and len(stack) > 1
+            else stack[-1] if stack[-1].node_type == "macro_container"
+            else None
+        )
+        active_spec = registry.get(active_container.name) if active_container is not None else None
+        if active_spec is not None and lower in active_spec.tags:
             if stack[-1].node_type == "macro_branch":
                 stack[-1].span = Span(stack[-1].span.start, node.span.start)
                 stack.pop()
-            stack.append(branch)
-        elif lower in CONTAINER_NAMES:
+            node.node_type = "macro_branch"
+            node.role = "branch"
+            stack[-1].children.append(node)
+            stack.append(node)
+        else:
+            if registry.is_branch_name(lower):
+                passage.diagnostics.append(Diagnostic(
+                    "unexpected_branch", "branch macro is not valid for the active container",
+                    node.span, node.name,
+                ))
+            spec = registry.get(lower)
+            if spec.body_kind != "container":
+                stack[-1].children.append(node)
+                last = node.span.end
+                continue
             node.node_type = "macro_container"
             stack[-1].children.append(node)
             stack.append(node)
-            if lower in {"if", "unless"}:
-                branch = CstNode(node.span, "macro_branch", name=node.name, role="branch", args=node.args)
+            if spec.implicit_branch:
+                branch = CstNode(
+                    node.span,
+                    "macro_branch",
+                    name=node.name,
+                    role="branch",
+                    raw_args_span=node.raw_args_span,
+                    args=node.args,
+                    arg_mode=node.arg_mode,
+                    expression_span=node.expression_span,
+                    grammar_source=node.grammar_source,
+                    children=node.children,
+                )
+                node.children = []
                 node.children.append(branch)
                 stack.append(branch)
-        else:
-            stack[-1].children.append(node)
         last = node.span.end
     add_text(last, passage.body_span.end, stack[-1])
     for open_node in stack[1:]:
         if open_node.node_type == "macro_branch":
             open_node.span = Span(open_node.span.start, passage.body_span.end)
+            continue
         open_node.malformed = True
+        open_node.body_span = Span(
+            open_node.raw_args_span.end + 2 if open_node.raw_args_span else open_node.span.end,
+            passage.body_span.end,
+        )
+        open_node.span = Span(open_node.span.start, passage.body_span.end)
         passage.protected_spans.append(Span(open_node.span.start, passage.body_span.end))
         passage.diagnostics.append(Diagnostic("unclosed_container", "container has no closing tag", open_node.span, open_node.name))
     _assign_tree_metadata(passage)
@@ -700,9 +817,12 @@ def parse_passage(
     data: bytes,
     value_kind_path: str | Path | dict[str, Any] | None = None,
     *,
+    grammar_path: str | Path | dict[str, Any] | None = None,
     _source: TextSource | None = None,
+    _registry: MacroRegistry | None = None,
 ) -> Passage:
     source = _source or TextSource(data)
+    registry = _registry or load_macro_registry(grammar_path)
     start, end = source.char_start(passage.body_span.start), source.char_start(passage.body_span.end)
     opaque_reason = _opaque_reason(passage)
     if opaque_reason is not None:
@@ -734,25 +854,40 @@ def parse_passage(
             pos = scan.end
             continue
         node = scan.node
+        spec = registry.get(node.name)
+        _decode_macro_args(source, node, spec, passage.diagnostics)
         _classify_args(node, value_kinds, passage.diagnostics)
+        _attach_argument_nodes(source, node, spec)
         macros.append(node)
         passage.nodes.append(node)
         passage.protected_spans.append(node.span)
-        for arg in node.args:
-            if arg.disposition == "expose" and arg.content_span is not None:
-                passage.exposed_candidates.append((arg.content_span, "macro_arg"))
         pos = scan.end
     passage.nodes.extend(definitions)
     _collect_markup(source, passage, start, end, [*definition_spans, *(node.span for node in macros)])
-    _build_tree(passage, macros, definitions, source)
+    _build_tree(passage, macros, definitions, source, registry)
+    _collect_tree_exposure(passage)
     passage.protected_spans = _merge_spans(passage.protected_spans)
     passage.nodes.sort(key=lambda node: (node.span.start, node.span.end))
     return passage
 
 
-def parse_file(data: bytes, source_path: str = "<memory>", value_kind_path: str | Path | dict[str, Any] | None = None) -> SourceFile:
+def parse_file(
+    data: bytes,
+    source_path: str = "<memory>",
+    value_kind_path: str | Path | dict[str, Any] | None = None,
+    *,
+    grammar_path: str | Path | dict[str, Any] | None = None,
+) -> SourceFile:
     source = TextSource(data)
+    registry = load_macro_registry(grammar_path)
     result = _split_source(source, source_path)
     for passage in result.passages:
-        parse_passage(passage, data, value_kind_path, _source=source)
+        parse_passage(
+            passage,
+            data,
+            value_kind_path,
+            grammar_path=grammar_path,
+            _source=source,
+            _registry=registry,
+        )
     return result

@@ -130,7 +130,83 @@ class PretranslationCstTests(unittest.TestCase):
         names = [node.name for node in source.passages[0].nodes if node.role == "call"]
         self.assertEqual(names, ["link", "/link", "print"])
         print_node = next(node for node in source.passages[0].nodes if node.name == "print")
-        self.assertEqual(print_node.args[0].lexeme_kind, "bareword")
+        self.assertEqual(print_node.arg_mode, "raw")
+        self.assertFalse(print_node.args)
+        self.assertEqual(
+            body[print_node.expression_span.start:print_node.expression_span.end],
+            b"/a[>]b\\/c/",
+        )
+
+    def test_skip_args_macros_keep_one_raw_expression_span(self) -> None:
+        body = (
+            b':: Expressions\n'
+            b'<<set _anusaction["Straddle " + $NPCList[0].penisdesc] to "anustopenisdouble">>\n'
+            b'<<print _full.join(" and ")>>\n'
+            b'<<if $a and $b>>yes<</if>>\n'
+        )
+        source = parse_file(body, "expressions.twee", VALUE_KINDS)
+        passage = source.passages[0]
+        for name in ("set", "print", "if"):
+            node = next(item for item in passage.nodes if item.name == name)
+            self.assertEqual(node.arg_mode, "raw")
+            self.assertFalse(node.args)
+            self.assertIsNotNone(node.expression_span)
+        self.assertFalse(any(item.code == "malformed_args" for item in passage.diagnostics))
+        self.assertFalse(any(
+            item.code == "unclassified_argument" and item.macro_name in {"set", "print", "if"}
+            for item in passage.diagnostics
+        ))
+
+    def test_division_is_not_scanned_as_a_regex_literal(self) -> None:
+        body = b':: Division\n<<if 3/7 lt 1>>yes<</if>> <<print /a[>]b\\/c/>>\n'
+        source = parse_file(body, "division.twee", VALUE_KINDS)
+        passage = source.passages[0]
+        self.assertEqual([node.name for node in passage.nodes], ["if", "/if", "print"])
+        container = passage.nodes[0]
+        self.assertEqual(body[container.span.start:container.span.end], b"<<if 3/7 lt 1>>yes<</if>>")
+        self.assertFalse(any(item.code == "malformed_macro" for item in passage.diagnostics))
+
+    def test_registry_distinguishes_containers_from_leaf_controls(self) -> None:
+        body = (
+            b':: Registry\n'
+            b'<<addinlineevent "event">>Event prose<</addinlineevent>>\n'
+            b'<<foldout false "_fold">>Fold prose<</foldout>>\n'
+            b'<<linkreplace "Open">>Replacement prose<</linkreplace>>\n'
+            b'<<radiobutton "$radio" "value">>Radio prose\n'
+            b'<<checkbox "$check" 0 1>>Checkbox prose\n'
+        )
+        source = parse_file(body, "registry.twee", VALUE_KINDS)
+        passage = source.passages[0]
+        by_name = {node.name: node for node in passage.nodes if not node.name.startswith("/")}
+        for name in ("addinlineevent", "foldout", "linkreplace"):
+            self.assertEqual(by_name[name].node_type, "macro_container")
+        for name in ("radiobutton", "checkbox"):
+            self.assertEqual(by_name[name].node_type, "macro_call")
+        self.assertFalse(any(item.code in {"mismatched_close", "unclosed_container"} for item in passage.diagnostics))
+        artifact = mask_passage(body, passage)
+        self.assertIn("Radio prose", artifact.masked_text)
+        self.assertIn("Checkbox prose", artifact.masked_text)
+
+    def test_link_macro_square_label_is_a_cst_exposed_leaf(self) -> None:
+        body = b':: Links\n<<link [[Next|Tutorial Finish]]>><</link>>\n'
+        source = parse_file(body, "link-macro.twee", VALUE_KINDS)
+        passage = source.passages[0]
+        link = next(node for node in passage.nodes if node.name == "link")
+        markup = next(child for child in link.children if child.node_type == "protected_markup")
+        label = next(child for child in markup.children if child.node_type == "prose_text")
+        self.assertEqual(label.name, "link_label")
+        self.assertIn(link, passage.get_ancestors(label.node_id))
+        artifact = mask_passage(body, passage)
+        self.assertIn("Next", artifact.masked_text)
+        self.assertTrue(any(segment.kind == "link_label" for segment in artifact.segments))
+        self.assertEqual(restore_mask(artifact), body[passage.body_span.start:passage.body_span.end])
+
+    def test_square_label_exposure_is_limited_by_macro_grammar(self) -> None:
+        body = b':: Square\n<<include [[Not a display label|Target]]>>\n'
+        source = parse_file(body, "square-structural.twee", VALUE_KINDS)
+        artifact = mask_passage(body, source.passages[0])
+        self.assertNotIn("Not a display label", artifact.masked_text)
+        self.assertFalse(any(segment.kind == "link_label" for segment in artifact.segments))
 
 
 if __name__ == "__main__":
