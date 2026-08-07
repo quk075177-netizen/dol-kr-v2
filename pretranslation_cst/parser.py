@@ -849,6 +849,7 @@ def parse_passage(
     grammar_path: str | Path | dict[str, Any] | None = None,
     _source: TextSource | None = None,
     _registry: MacroRegistry | None = None,
+    _widget_names: frozenset[str] | None = None,
 ) -> Passage:
     source = _source or TextSource(data)
     registry = _registry or load_macro_registry(grammar_path)
@@ -876,6 +877,12 @@ def parse_passage(
             pos = max(scan.end, pos + 1)
             continue
         node = scan.node
+        if not node.name.startswith("/") and not registry.is_known(node.name) and (
+            _widget_names is None or node.name not in _widget_names
+        ):
+            passage.diagnostics.append(Diagnostic(
+                "unknown_macro", "macro is not registered in macro-grammar.json",
+                node.name_span or node.span, node.name))
         spec = registry.get(node.name)
         _decode_macro_args(source, node, spec, passage.diagnostics)
         _classify_args(node, value_kinds, passage.diagnostics)
@@ -894,15 +901,29 @@ def parse_passage(
     return passage
 
 
+WIDGET_NAME_RE = re.compile(r"<<widget\s+\"([^\"]+)\"")
+
+
+def _collect_widget_names(source: TextSource) -> frozenset[str]:
+    """Collect widget definition names so their call sites are not reported
+    as unknown macros."""
+    return frozenset(WIDGET_NAME_RE.findall(source.text))
+
+
 def parse_file(
     data: bytes,
     source_path: str = "<memory>",
     value_kind_path: str | Path | dict[str, Any] | None = None,
     *,
     grammar_path: str | Path | dict[str, Any] | None = None,
+    _widget_names: frozenset[str] | None = None,
 ) -> SourceFile:
     source = TextSource(data)
     registry = load_macro_registry(grammar_path)
+    if _widget_names is None:
+        widget_names = _collect_widget_names(source)
+    else:
+        widget_names = _widget_names | _collect_widget_names(source)
     result = _split_source(source, source_path)
     for passage in result.passages:
         parse_passage(
@@ -912,5 +933,6 @@ def parse_file(
             grammar_path=grammar_path,
             _source=source,
             _registry=registry,
+            _widget_names=widget_names,
         )
     return result

@@ -36,6 +36,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -43,7 +44,7 @@ from typing import Any
 
 from .masking import mask_passage, restore_mask
 from .model import Passage, SourceFile
-from .parser import parse_file, split_twee
+from .parser import WIDGET_NAME_RE, parse_file, split_twee
 from .paths import DEFAULT_VALUE_KIND_PATH
 
 MODULE_DIR = Path(__file__).parent
@@ -54,8 +55,11 @@ DEFAULT_BASELINE = DATA_DIR / "corpus-baseline-v1.json"
 REPORT_VERSION = 1
 
 # Diagnostics that are expected to exist without an allowlist entry.  These are
-# value-kind coverage gaps, not parser defects.
-NON_STRUCTURAL_CODES = frozenset({"unclassified_argument"})
+# coverage gaps, not parser defects: value-kind schema gaps and macros that are
+# legitimately defined at runtime (widgets/game JS) but not in the grammar
+# registry.  They are counted in the baseline but never trigger a structural
+# regression by themselves.
+NON_STRUCTURAL_CODES = frozenset({"unclassified_argument", "unknown_macro"})
 
 # Codes that signal parser or source-structure defects.  An increase over the
 # baseline, or any occurrence without an allowlist entry, is a regression.
@@ -340,10 +344,15 @@ def analyze_passage(data: bytes, passage: Passage) -> dict[str, Any]:
     }
 
 
-def analyze_file(path: Path, value_kind_path: Path, source_path: str | None = None) -> dict[str, Any]:
+def analyze_file(
+    path: Path,
+    value_kind_path: Path,
+    source_path: str | None = None,
+    widget_names: frozenset[str] | None = None,
+) -> dict[str, Any]:
     data = path.read_bytes()
     resolved = source_path or path.as_posix()
-    source = parse_file(data, resolved, value_kind_path)
+    source = parse_file(data, resolved, value_kind_path, _widget_names=widget_names)
     split_source = split_twee(data, resolved)
     reassembly_error = check_split_round_trip(data, split_source)
     return {
@@ -355,12 +364,26 @@ def analyze_file(path: Path, value_kind_path: Path, source_path: str | None = No
     }
 
 
-def _analyze_one(args: tuple[Path, Path, Path]) -> tuple[str, dict[str, Any] | None, str | None]:
+def collect_known_macro_names(root: Path) -> frozenset[str]:
+    """Collect widget definition names and game-JS macro names so their call
+    sites are not reported as unknown macros.  Cheap whole-corpus regex scan;
+    run once before the per-file pass."""
+    names: set[str] = set()
+    for path in root.rglob("*.twee"):
+        names.update(WIDGET_NAME_RE.findall(path.read_bytes().decode("utf-8", errors="replace")))
+    for path in root.rglob("*.js"):
+        text = path.read_bytes().decode("utf-8", errors="replace")
+        names.update(re.findall(r'Macro\.add\(\s*["\']([^"\']+)["\']', text))
+        names.update(re.findall(r'DefineMacroS?\(\s*["\']([^"\']+)["\']', text))
+    return frozenset(names)
+
+
+def _analyze_one(args: tuple[Path, Path, Path, frozenset[str] | None]) -> tuple[str, dict[str, Any] | None, str | None]:
     """Worker for ProcessPoolExecutor: analyze one file, return (rel, result, error)."""
-    path, root_path, value_kind_path = args
+    path, root_path, value_kind_path, widget_names = args
     rel = path.relative_to(root_path).as_posix()
     try:
-        return rel, analyze_file(path, value_kind_path, source_path=rel), None
+        return rel, analyze_file(path, value_kind_path, source_path=rel, widget_names=widget_names), None
     except Exception as exc:
         return rel, None, f"{type(exc).__name__}: {exc}"
 
@@ -476,6 +499,7 @@ def verify_corpus(
     """
     root_path = Path(root)
     files = sorted(root_path.rglob("*.twee"))
+    widget_names = collect_known_macro_names(root_path)
     allowlist = _load_allowlist(Path(allowlist_path))
     allowlist_index = _index_allowlist(allowlist)
     matched_entry_ids: set[int] = set()
@@ -583,11 +607,11 @@ def verify_corpus(
         for path in files:
             relative_path = path.relative_to(root_path).as_posix()
             try:
-                consume(relative_path, analyze_file(path, Path(value_kind_path), source_path=relative_path), None)
+                consume(relative_path, analyze_file(path, Path(value_kind_path), source_path=relative_path, widget_names=widget_names), None)
             except Exception as exc:
                 consume(relative_path, None, f"{type(exc).__name__}: {exc}")
     else:
-        tasks = [(path, root_path, Path(value_kind_path)) for path in files]
+        tasks = [(path, root_path, Path(value_kind_path), widget_names) for path in files]
         worker_count = max(1, min(workers or os.cpu_count() or 1, 16))
         with ProcessPoolExecutor(max_workers=worker_count) as executor:
             for relative_path, file_analysis, error in executor.map(_analyze_one, tasks):

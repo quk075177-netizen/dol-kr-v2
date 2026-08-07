@@ -133,6 +133,10 @@ consistency check 추가 (어긋남 조용히 무시 방지).
   consistency check 추가 (불일치 시 ValueError).
 - **F7**: `_neighbour_context`가 완전한 placeholder 토큰 경계까지 자름.
 - **F8**: `chunk_passage` docstring에 max_chars가 soft ceiling임을 명시.
-- **F5** (unknown_macro diagnostic): 미적용 — 새 diagnostic은 corpus
-  수치/baseline을 바꾸므로 별도 결정 필요. `MacroRegistry.is_known`이
-  이미 있어 진단 추가는 쉬움.
+- **F5** (unknown_macro diagnostic): **적용 완료**.
+  - `parse_passage`가 미등록 매크로에 `unknown_macro` 진단 생성
+  - 위젯 정의 이름(전역) + game JS 매크로(Macro.add/DefineMacroS)를
+    known으로 등록 (`collect_known_macro_names`, corpus_verify 전처리)
+  - `NON_STRUCTURAL_CODES`에 추가 (unexpected 회귀에서 제외, baseline 기록)
+  - 결과: 325,882 → **24,704** (92.4% 감소), 남은 항목은 g/l 접두사
+    런타임 매크로 추정 (gstress, lstress 등 — 별도 조사 대상)
