@@ -12,6 +12,8 @@
 | [parser-remediation-roadmap.md](parser-remediation-roadmap.md) | 검수 결과의 구조적 원인과 파서 개선 순서 |
 | [parser-followup-agent-tasks.md](parser-followup-agent-tasks.md) | 병렬 후속 작업의 파일 범위와 완료 조건 |
 | [cst-completion-plan.md](cst-completion-plan.md) | CST 완성 잔여 작업(T1~T3), 실행 순서, 워커 지시문 양식 |
+| [worker-t2-value-kind-residual.md](worker-t2-value-kind-residual.md) | T2 워커 지시문: value-kind schema residual 정리 |
+| [test-perf-analysis.md](test-perf-analysis.md) | 테스트 소요 시간 분석과 경량화 방안 |
 
 `research/`는 vanilla/KO 대조, 호출부 분류, glossary 조사 같은 근거 자료와
 생성 데이터셋을 보관한다. 정책이 과거 조사 문서와 다르면 이 디렉터리의

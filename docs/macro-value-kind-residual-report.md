@@ -1,119 +1,204 @@
 # Value-Kind Residual Report
 
 Generated 2026-08-07 from the current parser and the canonical `game/**/*.twee`
-corpus. Existing JSONL artifacts were not overwritten.
+corpus. Batch 2 (T2 value-kind schema residual cleanup) applied on top of the
+T1 + batch 1 baseline (commit 8098f0c).
 
 ## Corpus Metrics
 
-| Metric | Before | After |
+| Metric | Batch 1 | Batch 2 |
 |---|---:|---:|
-| files | 639 | 639 |
+| files | 642 | 642 |
 | passages/rows | 16,135 | 16,135 |
-| unclassified arguments | 44,240 | 23,206 |
-| residual macro count | 612 | 598 |
-| residual macro/index count | 919 | 891 |
-| exposed segments | 529,674 | 529,674 |
+| unclassified arguments | 20,855 | 18 |
+| residual macro/index count | 870 | 16 |
+| exposed segments | 529,932 | 530,281 |
+| placeholders | 527,987 | 528,336 |
 | lossless restorations | 16,135/16,135 | 16,135/16,135 |
 
-Diagnostic counts were unchanged except for the intended residual reduction:
+Note: the `link_label` increase (32,796 -> 32,908) comes from the concurrent
+square-markup dynamic-label parser change; the `macro_arg` increase
+(715 -> 952) comes from the batch 2 `prose_text` string-literal
+classifications. `plain_text` is unchanged (496,421).
+
+Diagnostic counts:
 
 | Diagnostic | Before | After |
 |---|---:|---:|
-| `unclassified_argument` | 44,240 | 23,206 |
+| `unclassified_argument` | 20,855 | 18 |
 | `invalid_macro_name` | 5 | 5 |
 | `malformed_macro` | 1 | 1 |
 | `unclosed_container` | 2 | 2 |
 | `unterminated_comment` | 2 | 2 |
 
 The raw-expression exclusion set (`set`, `run`, `print`, `=`, `-`, `if`,
-`elseif`, `for`, `unset`) had zero unclassified diagnostics before and after.
-The stale positional `if[0]` mapping entry was also removed; all raw macros now
-have no value-kind positional entries.
-The after verification had zero schema violations and zero malformed JSONL rows.
+`elseif`, `for`, `unset`) has zero unclassified diagnostics before and after.
 
-## Follow-up Batch 1
+## Batch 2 Classifications
 
-After the initial schema migration, an evidence-backed batch classified only
-structural arguments and one player-facing explanation:
+854 of 870 residual macro/index entries were classified with
+`definition` (JS `DefineMacro`/`Macro.add` signature or twee widget `_args`
+usage) or `call` (inspected call-site values) evidence. No `llm` evidence was
+added in this batch.
 
-- structural: `case[1..2]`, `addinlineevent[1]`, `bodyliquid[1..2]`, `note[1]`,
-  `transform[1]`, `specialClothesUnlock[1]`
-- `prose_text`: `insufficientStat[1]`
+### SugarCube built-ins (grammar-registered, call evidence)
 
-Against the previous corpus baseline, this batch changed diagnostics from
-`23,216` total (`unclassified_argument` `23,206`) to `20,865` total
-(`unclassified_argument` `20,855`). Exposed segments changed from
-`529,674` to `529,864`: `macro_arg` `525 -> 715`, while `link_label` and
-`plain_text` remained unchanged. Restore and tree invariant failures remained
-zero.
+`radiobutton[1..2]`, `checkbox[1..3]`, `case[3..8]`, `link[1]`, `timed[0]`,
+`listbox[1]`, `dialog[0..2]`, `linkreplace[0]`, `replace[1]`,
+`addclass[0..1]`, `removeclass[0..1]`, `icon[1]` -> structural /
+`prose_text` (dialog title, link text are string literals).
+
+### JS stat macros (definition evidence)
+
+All `[0]` numeric-amount stat macros -> structural: `tiredness`, `def`,
+`status`, `sub`, `grace[0]`, `willpower`, `detention`, `awareness`, `control`,
+`livestock_obey`, `hallucinogen`, `hope`, `purity`, `drugs`, `rng`, `alcohol`,
+`corruption`, `suspicion`, `combattrauma`, `wolfDefiant`, `reb`, skill macros
+(`*skill`), sensitivity macros (`*_sensitivity`), wetness macros
+(`*wet`), `lewdity`, `lactation_pressure`, `locker_suspicion`,
+`masturbationAudienceIncrement`, `earSlimeDaily`, `skulduggery`, `prof[1]`,
+`insecurity[1]`, `acceptance[1]`, `world_corruption[1]`, `addevent[1]`,
+`ampm`, `formatmoney`, `numberslider`, `passTimeUntil`, `tanningGainOutput`,
+`tanningPenaltiesOutput`, `carriedClear[0]` (slot key -> arbitrary_text),
+`timeTrackingStart[0]`/`timeTrackingManual[0]` (source key ->
+arbitrary_text), `pluralise[0]` (count -> structural), `pluralise[1..2]`
+(singular/plural word, string literal -> `prose_text`), `wearProp[1..2]`
+(colour keys -> arbitrary_text), `recordSperm[0]` (JS object literal ->
+structural), `badEndTracking[1..4]`/`badEndTrackingEnd[1..8]` (JS object
+literal tokens -> structural).
+
+Pregnancy macros (definition evidence): `recordVaginalSperm[0..2]`,
+`recordAnusSperm[0..2]` (target/owner -> named_npc, spermType ->
+arbitrary_text), `playerPregnancy[0..5]` (npc -> named_npc, type ->
+arbitrary_text, genital -> body_part, flags -> structural),
+`endNpcPregnancy[0..2]`/`endPlayerPregnancy[0..1]` (locations),
+`setKnowsAboutPregnancy[0..2]`, `setBabyIntro[0..2]`,
+`removeBabyIntro[0..2]`, `setTalkedAboutPregnancy[0..1]` (mother/recipient ->
+named_npc), `impregnateParasite[0..2]`, `fertiliseParasites[0]`.
+
+### Twee widgets (definition evidence)
+
+- NPC index args -> structural: `beasttype[0]`, `bhis/bHe/bhim/bhe/bHis/bHes/
+  bhes/bhimself/bboy/beastgender/beastsplural[0]`, `personselect[0]`,
+  `clearsinglenpc[0]`, `npcPenis/npcVagina/npcChest/npcGenitals/npcPenisSimple
+  [0]`, `hand_gag[0]`, guard/inmate widgets
+  (`methodical_guard` etc. `[0]`, with `[1]` cap/apo/capo key ->
+  arbitrary_text), `generate*` slot widgets.
+- NPC references -> named_npc: `npcUndressText[0]`, `npcClothesText[0]`,
+  `npcRevealText[0]`, `npcClothesType[0]`, `npcClothesName[0]`,
+  `setNPCStrapon[0]`, `give_gift[0]`, `canteenlunchoptions[0]`,
+  `schoolWalkChat[0..1]`, `foresthuntstart[0]`, `babyIntro[0]`,
+  `pregnancyFeats[0]`, `bellyDescription[1]`, statDisplay `g/l` widgets
+  (`gperlove`, `glust`, `gglove`, `llove`, `ldom`, ... `[0]`).
+- Body part keys -> body_part: `bodypart[0]`, `tattoo[0]`,
+  `bodywriting_clear[0]`, `add_bodywriting[0]`, `parasite[0]`, `bruise[0]`,
+  `bodywriting_npc_*[0]`, `sex[1]`, `takeTempleVirginity[1]`,
+  `moveCreature[3]`, `playerPregnancy[3]`, `impregnateParasite[2]`.
+- Clothing -> clothing: `leash[0]`, `genitalswear[0]`, `ringswear[0]`,
+  `clothingicon[0]`, `steal[0]`, `lowersteal[0]`, `feetsteal[0]`,
+  `underlowersteal[0]`, `is[0]`, `A[0]`.
+- Farm widgets: `farm_text*[0..1]`, `farm_he/He/his/him/His[0..1]`,
+  `farm_gen[0]` (animal key -> arbitrary_text), `farm_*` amounts ->
+  structural.
+- Food/ingredient keys -> arbitrary_text: `recipe_name[0..1]`,
+  `ingredientsSuppliesSteal[0..9]`, `ingredientsSupplied[1..9]`,
+  `tending_pick[0]`, `recipe_exam_description[0]`.
+- Keys/selectors -> arbitrary_text: `canvas-model-override[0..1]`,
+  `machine_init[0..4]`, `prop[0..3]`, `drench[0..2]`, `water[0]`,
+  `skul_dock_*`, `*difficulty[2]` hide keys, `skill_difficulty[1]`,
+  `vore_img[0]`, `danceStudioIntro[0]` (passage name), `beastejaculation[0]`,
+  `fameexhibitionism[1]` and other fame `[1]` media-type keys, `fame[0..1]`,
+  `fameProse[0]`, `famerape[0..2]`, `gwylan*` keys, `pubfame*`,
+  `avery_mansion_*` room keys, `bird_loot[0]`, `flight_hunt_get[0..5]`,
+  `prison_rep[0]`, `pirate_status[1]`, `skulduggeryuse[1]`, `hc*` keys,
+  `wraith` keys, `deskText/tableText[0]`, `passagestrip[0]`,
+  `openinghours[0..1]` (hours -> structural), `map[0..1]` (location + mode
+  key), `estate_init[0]`, `islandBuildOption[0]`, `towerBuildOption[0]`,
+  `plots_init[0..4]`, `add_plot[0..3]`, `clear_plot[0..1]`,
+  `display_plot[0]` (locations).
+- `prose_text` (string literals only): `pluralise[1..2]`,
+  `CosmeticsGenericDepartment[1,2,8]`, `linkreplace[0]`, `dialog[0]`,
+  `sydneyBodywriting[0]`, `genitalsandbreasts[0..1]`, `add_bodywriting[1]` is
+  a bodywriting key (arbitrary_text), not prose.
+- Flags/amounts -> structural: `tentaclestart[0..1]`, `makeAbomination[0..1]`,
+  `struggle_*`, `bird_pass[0]`, `wraith_pass[0]`, `tentacle_forest_pass[0]`,
+  `island_pass[0]`, `photo_*`, `rentdue[0]`, `rentduerobin[0]`,
+  `blackjack*`, `defiance[0..1]`, `submission[0]`, `violence_noncombat[0..3]`,
+  `babyRent[0]`, `kylar_parents_trust[0]`, `island_tide[0]`,
+  `islander_language[0]`, `nectarfed[0]`, `semen*swallowedstat[0]`,
+  `orgasmcount[0]`, `angelTransform[0]`, `sleep[0]`, `pussy/undies/genitals/
+  penis[0]`, `ruined` family, `storeon*[0]` (store location key ->
+  arbitrary_text), `generalSend[3]`, `underlowersend[3]`, `facesend[0..1]`.
+
+### Batch-1 key canonicalisation
+
+Nine batch-1 entries were stored under camelCase keys (`bHe`, `bHes`, `bHis`,
+`creatureActivity`, `farm_He`, `farm_His`, `generateNPC`, `generateRole`,
+`ordinalList`) while the parser looks up `node.name.lower()`; those keys never
+matched. They were renamed to lowercase so their classified args take effect
+(`generateRole[0..2]` 396 rows and `generateNPC[0..4]` 36 rows were cleared
+this way).
 
 ## Prioritized Deltas
 
 All entries below are `macro[index]: before -> after` residual counts.
 
-### base-combat
-
 | Entry | Delta |
 |---|---:|
-| `spray[0]` | 6 -> 0 |
-| `moneyGain[0]` | 1 -> 0 |
-| `moneyGain[1]` | 1 -> 0 |
-| `moneyGain[2]` | 1 -> 0 |
-| `moneyGain[3]` | 1 -> 0 |
-| `beast[0]` | 1 -> 0 |
-| `violence[0]` | 1 -> 0 |
-| `neutral[0]` | 1 -> 0 |
+| `beasttype[0]` | 542 -> 0 |
+| `tiredness[0]` | 506 -> 0 |
+| `fameexhibitionism[0]` | 400 -> 0 |
+| `def[0]` | 371 -> 0 |
+| `status[0]` | 316 -> 0 |
+| `sub[0]` | 289 -> 0 |
+| `physique[0]` | 263 -> 0 |
+| `recipe_name[0]` | 260 -> 0 |
+| `saveNPC[0]` | 257 -> 0 |
+| `saveNPC[1]` | 257 -> 0 |
+| `beastNEWinit[0]` | 250 -> 0 |
+| `beastNEWinit[1]` | 250 -> 0 |
+| `farm_text[0]` | 229 -> 0 |
+| `grace[0]` | 228 -> 0 |
+| `willpower[0]` | 211 -> 0 |
+| `pluralise[0]` | 193 -> 0 |
+| `pluralise[1]` | 193 -> 0 |
+| `bhis[0]` | 189 -> 0 |
+| `bird_pass[0]` | 181 -> 0 |
+| `detention[0]` | 173 -> 0 |
+| `canvas-model-override[0]` | 163 -> 0 |
+| `athleticsdifficulty[0]` | 157 -> 0 |
+| `bHe[0]` | 151 -> 0 |
+| `generateRole[0]` | 132 -> 0 |
+| `generateRole[1]` | 132 -> 0 |
+| `generateRole[2]` | 132 -> 0 |
 
-### overworld-town
+## Remaining Residual (18 rows / 16 entries)
 
-| Entry | Delta |
-|---|---:|
-| `pass[0]` | 3,329 -> 0 |
-| `pass[1]` | 210 -> 0 |
-| `stress[0]` | 2,568 -> 0 |
-| `trauma[0]` | 1,422 -> 0 |
-| `arousal[0]` | 952 -> 0 |
-| `arousal[1]` | 314 -> 0 |
-| `money[0]` | 558 -> 0 |
-| `money[1]` | 434 -> 0 |
-| `neutral[0]` | 849 -> 0 |
-| `neutral[1]` | 4 -> 0 |
-| `loadNPC[0]` | 336 -> 0 |
-| `loadNPC[1]` | 336 -> 0 |
-| `pain[0]` | 625 -> 0 |
-| `crimeUp[0]` | 282 -> 0 |
-| `crimeUp[1]` | 281 -> 0 |
-| `crimeUp[2]` | 4 -> 0 |
-| `violence[0]` | 563 -> 0 |
-| `violence[1]` | 1 -> 0 |
-| `violence[2]` | 1 -> 0 |
-| `violence[3]` | 1 -> 0 |
-| `printmoney[0]` | 487 -> 0 |
-| `printmoney[1]` | 8 -> 0 |
-
-The remaining residual list is the complete tab-separated artifact
-`/tmp/opencode/agent1-after-final-residuals-20260807.tsv` (891 macro/index rows),
-generated from `agent1-after-final-20260807.jsonl`. The highest remaining entries are:
+All remaining rows are single (or triple) occurrences of positional args that
+the definition never reads (`_args[N]` not referenced) and where no call-site
+evidence determines a kind. Per policy they stay protected with diagnostics
+rather than being guessed:
 
 ```text
-case[1] 594
-beasttype[0] 542
-tiredness[0] 506
-addinlineevent[1] 443
-fameexhibitionism[0] 400
-def[0] 371
-status[0] 316
-bodyliquid[1] 304
-sub[0] 289
-physique[0] 263
-recipe_name[0] 260
-savenpc[0] 257
-savenpc[1] 257
-beastnewinit[0] 250
-beastnewinit[1] 250
-bhe[0] 239
-farm_text[0] 229
-grace[0] 228
-note[1] 224
-bhis[0] 213
+avery_housework_assess[0] 3
+avery_mansion_interrupt[0] 1
+cabintime[0] 1
+exhibitionist4[0] 1
+generate_methodical_guard[1] 1
+lheat[0] 1
+llheat[0] 1
+lllheat[0] 1
+oral[0] 1
+person3[0] 1
+pound_text[0] 1
+pubfameComplete[2] 1
+rutCycle[0] 1
+seize_stolen_goods[0] 1
+shopHuntDebug[0] 1
+shopHuntInit[0] 1
 ```
+
+Review queue usage: treat each `macro[index]` above as "definition does not
+consume this position; either the upstream widget ignores it (dead arg) or the
+caller passes context that the widget does not use". Resolving these requires
+upstream definition changes, not value-kind entries.

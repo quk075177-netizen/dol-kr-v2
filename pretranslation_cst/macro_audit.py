@@ -25,6 +25,7 @@ so two runs produce byte-identical output.
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import re
 from dataclasses import dataclass, field
@@ -594,15 +595,26 @@ def extract_sugarcube_specs(root: str | Path) -> dict[str, EffectiveSpec]:
     return resolve_effective_specs(calls)
 
 
-def extract_game_specs(root: str | Path, sugarcube_specs: Mapping[str, EffectiveSpec]) -> dict[str, EffectiveSpec]:
-    """Extract final effective specs from game/**/*.js, layered over SC specs."""
-    root = Path(root)
+@functools.lru_cache(maxsize=64)
+def _extract_game_js_calls_cached(root: Path) -> list[JsCall]:
+    """Collect raw Macro.add/DefineMacro/Macro.delete calls from game/**/*.js.
+
+    Cached by root path so audit, dynamic-detection, and determinism checks in
+    one process parse the JS corpus once.  Effective-spec resolution and
+    dynamic-name filtering run on the cached call list.
+    """
     all_calls: list[JsCall] = []
     for path in sorted(root.rglob("*.js")):
         for call in extract_js_calls(path.read_text(encoding="utf-8"),
                                      path.relative_to(root).as_posix()):
             all_calls.append(call)
-    game_specs = resolve_effective_specs(all_calls)
+    return all_calls
+
+
+def extract_game_specs(root: str | Path, sugarcube_specs: Mapping[str, EffectiveSpec]) -> dict[str, EffectiveSpec]:
+    """Extract final effective specs from game/**/*.js, layered over SC specs."""
+    root = Path(root)
+    game_specs = resolve_effective_specs(_extract_game_js_calls_cached(root))
     result: dict[str, EffectiveSpec] = {}
     for name, spec in sugarcube_specs.items():
         result[name] = spec
@@ -622,15 +634,13 @@ def extract_game_dynamic(root: str | Path) -> list[dict[str, str]]:
     """Report macro definitions whose name is only resolvable at runtime."""
     root = Path(root)
     result: list[dict[str, str]] = []
-    for path in sorted(root.rglob("*.js")):
-        relative = path.relative_to(root).as_posix()
-        for call in extract_js_calls(path.read_text(encoding="utf-8"), relative):
-            if call.names is None and call.dynamic_name:
-                result.append({
-                    "name": call.dynamic_name,
-                    "function": call.function,
-                    "evidence": call.evidence,
-                })
+    for call in _extract_game_js_calls_cached(root):
+        if call.names is None and call.dynamic_name:
+            result.append({
+                "name": call.dynamic_name,
+                "function": call.function,
+                "evidence": call.evidence,
+            })
     return result
 
 

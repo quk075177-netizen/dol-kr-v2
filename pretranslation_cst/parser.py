@@ -16,7 +16,7 @@ from typing import Any, Iterable
 
 from .grammar import MacroRegistry, MacroSpec, load_macro_registry
 from .model import ArgNode, CstNode, Diagnostic, Passage, SourceFile, Span
-from .square_markup import exposed_label, parse_square_markup
+from .square_markup import DYNAMIC_LABEL_MARKERS, exposed_label, parse_square_markup
 
 
 MACRO_NAME_RE = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
@@ -576,12 +576,30 @@ def _consume_variable(text: str, start: int, limit: int) -> int:
 SQUARE_MARKUP_START_RE = re.compile(r"\[\[|\[[<>]?[Ii][Mm][Gg]\[")
 
 
+def _is_exposable_link_label(text: str) -> bool:
+    """A string-argument display label is translatable when it has no dynamic markers.
+
+    Mirrors ``square_markup.exposed_label`` for string-form link/button arguments:
+    ``$``, ``_``, backtick, ``${`` and ``+`` concatenation mark the label as
+    dynamic, so the whole argument stays protected.
+    """
+    return text != "" and not any(marker in text for marker in DYNAMIC_LABEL_MARKERS)
+
+
 def _attach_argument_nodes(source: TextSource, node: CstNode, spec: MacroSpec) -> None:
     for arg in node.args:
         if arg.disposition == "expose" and arg.content_span is not None:
             node.children.append(CstNode(
                 arg.content_span, "prose_text", name="macro_arg", role="argument",
             ))
+            continue
+        if arg.index in spec.square_label_args and arg.lexeme_kind == "string" and arg.content_span is not None:
+            content = source.text[source.char_start(arg.content_span.start):source.char_start(arg.content_span.end)]
+            if _is_exposable_link_label(content):
+                node.children.append(CstNode(
+                    arg.content_span, "prose_text", name="link_label", role="label",
+                ))
+                continue
         if arg.lexeme_kind != "square_bracket" or SQUARE_MARKUP_START_RE.match(arg.raw_text) is None:
             continue
         start = source.char_start(arg.raw_span.start)

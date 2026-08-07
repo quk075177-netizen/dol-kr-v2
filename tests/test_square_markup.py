@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from pretranslation_cst import mask_passage, parse_file
+from pretranslation_cst import mask_passage, parse_file, restore_mask
 from pretranslation_cst.paths import DEFAULT_VALUE_KIND_PATH
 from pretranslation_cst.square_markup import (
     DYNAMIC_LABEL_MARKERS,
@@ -264,13 +264,30 @@ class SquareMarkupParserWiringTests(unittest.TestCase):
         self.assertNotIn("src.png", artifact.masked_text)
         self.assertEqual(restore_mask(artifact), body[passage.body_span.start:passage.body_span.end])
 
-    def test_string_form_link_policy_is_unchanged(self) -> None:
+    def test_string_form_link_static_label_is_exposed(self) -> None:
         body = b':: Links\n<<link "Control Up" "statDisplay Test">><</link>>\n'
         passage = self._passage(body)
-        self.assertFalse([span for span, kind in passage.exposed_candidates if kind == "link_label"])
+        labels = [span for span, kind in passage.exposed_candidates if kind == "link_label"]
+        self.assertEqual(len(labels), 1)
+        self.assertEqual(body[labels[0].start:labels[0].end], b"Control Up")
         artifact = mask_passage(body, passage)
-        self.assertNotIn("Control Up", artifact.masked_text)
-        self.assertFalse(any(segment.kind == "macro_arg" for segment in artifact.segments))
+        self.assertIn("Control Up", artifact.masked_text)
+        self.assertTrue(any(segment.kind == "link_label" and segment.text == "Control Up" for segment in artifact.segments))
+        self.assertNotIn("statDisplay Test", artifact.masked_text)
+        self.assertEqual(restore_mask(artifact), body[passage.body_span.start:passage.body_span.end])
+
+    def test_string_form_link_dynamic_label_is_protected(self) -> None:
+        body = b':: Links\n<<link "Hello " + $name "Target">><</link>>\n'
+        passage = self._passage(body)
+        # Raw expression macro arg[0] for link is not a string literal; lexer
+        # would not classify it as "string" lexeme_kind. This test pins that a
+        # string literal with a dynamic marker is also protected.
+        body2 = b':: Links\n<<link "$name" "Target">><</link>>\n'
+        passage2 = self._passage(body2)
+        labels = [span for span, kind in passage2.exposed_candidates if kind == "link_label"]
+        self.assertFalse(labels)
+        artifact = mask_passage(body2, passage2)
+        self.assertNotIn("$name", artifact.masked_text)
 
     def test_arrow_macro_argument_matches_standalone_parser(self) -> None:
         body = b':: Links\n[[Finish up->Bath Finish]]\n<<link [[Finish up->Bath Finish]]>><</link>>\n'
