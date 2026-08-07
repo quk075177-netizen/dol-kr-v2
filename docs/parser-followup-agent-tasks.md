@@ -20,7 +20,7 @@
 
 담당 파일:
 
-- `research/data/macro-value-kind.yml`
+- `config/macro-value-kind.yml`
 - value-kind 전용 검증 fixture 또는 보고서
 
 수정 금지:
@@ -36,7 +36,7 @@
 현재 parser로 전체 game corpus의 unclassified_argument를 macro/index별로 다시
 집계하라. raw expression macro는 대상에서 제외된 상태여야 한다. residual 상위
 parsed macro부터 실제 호출부와 definition/call evidence를 확인해
-research/data/macro-value-kind.yml을 보강하라.
+config/macro-value-kind.yml을 보강하라.
 
 우선순위는 base-combat residual 13건(spray 6, moneyGain 4, beast/violence/neutral 각 1),
 그 다음 overworld-town 상위 항목(pass, stress, trauma, arousal, money, neutral,
@@ -63,7 +63,7 @@ kind를 추정할 수 없는 인자는 보호 상태로 두고 note만으로 분
 수정 금지:
 
 - argument lexer와 tree builder 구현
-- `research/data/macro-value-kind.yml`
+- `config/macro-value-kind.yml`
 
 지시:
 

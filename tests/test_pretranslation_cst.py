@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import json
 import unittest
-from pathlib import Path
 
 from pretranslation_cst import mask_passage, parse_file, restore_mask, split_twee
+from pretranslation_cst.paths import DEFAULT_VALUE_KIND_PATH
 
 
-ROOT = Path(__file__).parents[1]
-VALUE_KINDS = ROOT / "research/data/macro-value-kind.yml"
+VALUE_KINDS = DEFAULT_VALUE_KIND_PATH
 
 
 class PretranslationCstTests(unittest.TestCase):

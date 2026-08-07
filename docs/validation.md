@@ -62,7 +62,7 @@ JSONL의 `unclassified_argument`가 실제 schema 누락인지 확인하려면 �
 
 ```bash
 python3 -m pretranslation_cst.verify /tmp/dolkr-cst-full.jsonl \
-  --value-kind research/data/macro-value-kind.yml
+  --value-kind config/macro-value-kind.yml
 ```
 
 `violations=0`이고 exit code가 0이어야 한다. `macro_missing`은 macro key 자체가

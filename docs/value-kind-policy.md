@@ -2,7 +2,7 @@
 
 ## 입력 스키마
 
-파서는 `research/data/macro-value-kind.yml`을 소비한다. 현재 파일은 YAML
+파서는 `config/macro-value-kind.yml`을 소비한다. 현재 파일은 YAML
 확장자를 사용하지만 JSON 문법으로 저장되어 있다.
 
 - key: lowercase macro name

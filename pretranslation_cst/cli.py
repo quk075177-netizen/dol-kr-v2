@@ -6,12 +6,13 @@ from pathlib import Path
 
 from .masking import mask_passage
 from .parser import parse_file
+from .paths import DEFAULT_VALUE_KIND_PATH
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Lossless Twee CST and prose masker")
     parser.add_argument("root", type=Path, help="directory containing Twee files")
-    parser.add_argument("--value-kind", type=Path, default=Path("research/data/macro-value-kind.yml"))
+    parser.add_argument("--value-kind", type=Path, default=DEFAULT_VALUE_KIND_PATH)
     parser.add_argument("--output", type=Path, required=True, help="JSONL output path")
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -137,7 +137,8 @@ class CorpusVerifyTests(unittest.TestCase):
             report = verify_corpus(root, allowlist_path=_empty_allowlist(root), baseline_path=no_baseline)
             self.assertEqual(report["exit_code"], 2)
             self.assertTrue(report["baseline"]["regression"])
-            self.assertIn("1 unexpected (non-allowlisted) diagnostics", report["baseline"]["regression_reasons"])
+            reason = "1 unexpected (non-allowlisted) diagnostics"
+            self.assertEqual(report["baseline"]["regression_reasons"].count(reason), 1)
 
     def test_allowlist_stale_entries_are_reported(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
+from .paths import DEFAULT_VALUE_KIND_PATH
+
 
 @dataclass
 class VerificationReport:
@@ -76,7 +78,7 @@ def verify_unclassified(jsonl_path: str | Path, value_kind_path: str | Path) -> 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify unclassified CST diagnostics against macro-value-kind")
     parser.add_argument("jsonl", type=Path, help="masked CST JSONL produced by pretranslation_cst.cli")
-    parser.add_argument("--value-kind", type=Path, default=Path("research/data/macro-value-kind.yml"))
+    parser.add_argument("--value-kind", type=Path, default=DEFAULT_VALUE_KIND_PATH)
     args = parser.parse_args()
     report = verify_unclassified(args.jsonl, args.value_kind)
     print(f"rows={report.rows} unclassified={report.unclassified}")

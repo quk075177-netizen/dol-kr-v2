@@ -31,6 +31,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from .paths import DEFAULT_VALUE_KIND_PATH
+
 DEFAULT_GRAMMAR_PATH = Path(__file__).with_name("data") / "macro-grammar.json"
 DEFAULT_ALLOWLIST_PATH = Path(__file__).with_name("data") / "macro-grammar-audit-allowlist.json"
 DEFAULT_SUGARCUBE_SNAPSHOT = Path(__file__).with_name("data") / "sugarcube-extracted.json"
@@ -1033,7 +1035,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     audit.add_argument("--allowlist", type=Path, default=DEFAULT_ALLOWLIST_PATH)
     audit.add_argument("--corpus", type=Path, default=None,
                        help="parse this twee root and attribute structure diagnostics")
-    audit.add_argument("--value-kind", type=Path, default=None)
+    audit.add_argument("--value-kind", type=Path, default=DEFAULT_VALUE_KIND_PATH)
     audit.add_argument("--json-out", type=Path, default=None)
     extract = subparsers.add_parser(
         "extract-sugarcube",

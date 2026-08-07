@@ -42,11 +42,11 @@ from typing import Any
 from .masking import mask_passage, restore_mask
 from .model import Passage, SourceFile
 from .parser import parse_file, split_twee
+from .paths import DEFAULT_VALUE_KIND_PATH
 
 MODULE_DIR = Path(__file__).parent
-REPO_ROOT = MODULE_DIR.parent
 DATA_DIR = MODULE_DIR / "data"
-DEFAULT_VALUE_KINDS = REPO_ROOT / "research" / "data" / "macro-value-kind.yml"
+DEFAULT_VALUE_KINDS = DEFAULT_VALUE_KIND_PATH
 DEFAULT_ALLOWLIST = DATA_DIR / "corpus-allowlist-v1.json"
 DEFAULT_BASELINE = DATA_DIR / "corpus-baseline-v1.json"
 REPORT_VERSION = 1
@@ -426,8 +426,8 @@ def compare_baseline(report: dict[str, Any], baseline: dict[str, Any]) -> dict[s
         "version": baseline.get("version"),
         "matched": not deviations,
         "deviations": deviations,
-        "regression": bool(regression_reasons) or bool(unexpected_reasons),
-        "regression_reasons": sorted([*regression_reasons, *unexpected_reasons]),
+        "regression": bool(regression_reasons),
+        "regression_reasons": sorted(regression_reasons),
     }
 
 
