@@ -1,0 +1,28 @@
+[project]
+name = "dol-kr"
+version = "0.1.0"
+description = "DoL Korean pre-translation CST parser and translation pipeline"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    "google-cloud-aiplatform>=1.90",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[project.scripts]
+dolkr-pilot = "translation.pilot:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pretranslation_cst", "translation"]
+
+[tool.uv]
+package = true

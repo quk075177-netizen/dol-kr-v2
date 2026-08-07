@@ -44,13 +44,19 @@ CST 완성. 세 완료 계약(Lossless/Structural/Extraction)이 모두 성립�
 
 ## 사용 방법
 
-이 프로젝트는 명령줄에서 실행하는 도구다. 아래 명령어로 전체 과정을
+환경은 [uv](https://docs.astral.sh/uv/)로 관리한다. 첫 실행 전:
+
+```bash
+uv sync --extra dev   # .venv 생성 + 의존성 설치 (Vertex AI SDK 포함)
+```
+
+이후 모든 명령은 `uv run`으로 실행한다. 아래 명령어로 전체 과정을
 실행한다. 모든 명령은 작업 디렉토리(`dol-kr/`)에서 실행한다.
 
 ### 1. 전체 번역 대상 추출하기 (JSONL 생성)
 
 ```bash
-python3 -m pretranslation_cst.cli game --output /tmp/dolkr-cst.jsonl
+uv run python -m pretranslation_cst.cli game --output /tmp/dolkr-cst.jsonl
 ```
 
 `game/` 디렉토리의 모든 `.twee` 파일을 읽어서, 각 passage의 트리 구조와
@@ -60,17 +66,18 @@ python3 -m pretranslation_cst.cli game --output /tmp/dolkr-cst.jsonl
 ### 2. 전체 검증하기 (회귀 확인)
 
 ```bash
-python3 -m pretranslation_cst.corpus_verify --root game
+uv run python -m pretranslation_cst.corpus_verify --root game
 ```
 
 642개 파일 전체를 파싱·마스킹·복원해서 원본과 byte-exact인지, 트리 구조가
 유효한지, 진단 수치가 baseline과 일치하는지 확인한다. `exit code 0`이면
-이상 없다는 뜻이다.
+이상 없다는 뜻이다. 파일은 병렬로 처리된다(`--workers 1`로 순차 실행
+가능).
 
 ### 3. 매크로 문법 감사하기
 
 ```bash
-python3 -m pretranslation_cst.macro_audit audit
+uv run python -m pretranslation_cst.macro_audit audit
 ```
 
 `macro-grammar.json`이 SugarCube 원본과 게임 JS의 매크로 정의와
@@ -79,10 +86,20 @@ python3 -m pretranslation_cst.macro_audit audit
 ### 4. 테스트 실행하기
 
 ```bash
-python3 -m unittest discover -s tests
+uv run python -m unittest discover -s tests
 ```
 
-113개 단위 테스트를 실행한다. 약 1.3초.
+120개 단위 테스트를 실행한다.
+
+### 5. 번역 파일럿 (Vertex AI Gemini)
+
+```bash
+uv run python -m translation.pilot --passage-name "Ocean Breeze" --max-units 10
+```
+
+parse → mask → chunk → Gemini 번역 → restore 전 과정을 실행한다.
+ADC 인증(`gcloud auth application-default login`)이 필요하다. 프로젝트와
+모델은 `translation/client.py` 상단 상수로 설정한다.
 
 ### 산출물 해석
 
