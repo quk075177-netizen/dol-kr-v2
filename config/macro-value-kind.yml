@@ -580,11 +580,11 @@
       "calls": 9,
       "args": {
         "0": {
-          "kind": "named_npc",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "party speaker key ('guest'/'Avery')"
         },
         "1": {
           "kind": "arbitrary_text",
@@ -1161,12 +1161,11 @@
           "note": "passed to >bodywriting_finalisation()"
         },
         "1": {
-          "kind": "named_npc",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "definition"
           ],
-          "confidence": "high",
-          "note": "passed to >add_bodywriting()"
+          "note": "bodywriting type key"
         }
       }
     },
@@ -1279,12 +1278,11 @@
       "calls": 14,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to $_cloth_type"
+          "note": "clothing slot key"
         }
       }
     },
@@ -1874,12 +1872,11 @@
       "calls": 7,
       "args": {
         "0": {
-          "kind": "body_part",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to _type"
+          "note": "virginity type key (temple/kiss/handholding)"
         }
       }
     },
@@ -2266,20 +2263,18 @@
       "calls": 7,
       "args": {
         "0": {
-          "kind": "body_part",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to $_action"
+          "note": "refused-request key (askPullOut/nochoke/...)"
         },
         "1": {
-          "kind": "named_npc",
+          "kind": "structural",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to $_target"
+          "note": "NPC index var"
         }
       }
     },
@@ -2302,11 +2297,11 @@
       "calls": 7,
       "args": {
         "0": {
-          "kind": "named_npc",
+          "kind": "structural",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "NPC index or 'player' key"
         },
         "1": {
           "kind": "prose_text",
@@ -2449,11 +2444,11 @@
       "calls": 19,
       "args": {
         "0": {
-          "kind": "body_part",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "target key (self/npc)"
         },
         "1": {
           "kind": "arbitrary_text",
@@ -2575,11 +2570,11 @@
       "calls": 13,
       "args": {
         "0": {
-          "kind": "body_part",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "NPC type key (human/horse/...)"
         },
         "1": {
           "kind": "structural",
@@ -3129,10 +3124,11 @@
       "calls": 33,
       "args": {
         "0": {
-          "kind": "named_npc",
+          "kind": "arbitrary_text",
           "evidence": [
             "call"
-          ]
+          ],
+          "note": "rescue condition key (NPC name or stat key, any order)"
         },
         "1": {
           "kind": "arbitrary_text",
@@ -3509,12 +3505,11 @@
       "calls": 12,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "medium",
-          "note": "passed to >generalUndress()"
+          "note": "undress context key"
         }
       }
     },
@@ -3691,12 +3686,11 @@
       "calls": 10,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to _name"
+          "note": "foodstuff key"
         },
         "1": {
           "kind": "structural",
@@ -3889,12 +3883,11 @@
       "calls": 16,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to $_slot"
+          "note": "clothing slot key"
         },
         "1": {
           "kind": "structural",
@@ -3947,18 +3940,18 @@
           "note": "passed to >sendToWardrobeFromDefault()"
         },
         "1": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "definition"
           ],
-          "confidence": "high"
+          "note": "clothing slot key"
         },
         "2": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "definition"
           ],
-          "confidence": "high"
+          "note": "item index or item name"
         },
         "3": {
           "kind": "arbitrary_text",
@@ -3989,12 +3982,11 @@
       "calls": 17,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "passed to >generalRuined()"
+          "note": "clothing slot key"
         },
         "1": {
           "kind": "arbitrary_text",
@@ -4011,12 +4003,11 @@
       "calls": 20,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to _stripSlot"
+          "note": "clothing slot key"
         }
       }
     },
@@ -4034,12 +4025,11 @@
           "note": "passed to >storeItem()"
         },
         "1": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to _undressSlot"
+          "note": "clothing slot key"
         }
       }
     },
@@ -4616,12 +4606,11 @@
       "calls": 9,
       "args": {
         "0": {
-          "kind": "body_part",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to $_level"
+          "note": "hypnosis note key ('kiss')"
         }
       }
     },
@@ -4814,12 +4803,11 @@
       "calls": 24,
       "args": {
         "0": {
-          "kind": "location",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "passed to >generalUndress()"
+          "note": "undress context key"
         }
       }
     },
@@ -4913,12 +4901,11 @@
       "calls": 6,
       "args": {
         "0": {
-          "kind": "location",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "passed to >generalUndress()"
+          "note": "undress context key"
         }
       }
     },
@@ -4963,11 +4950,11 @@
       "calls": 8,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "clothing slot key"
         }
       }
     },
@@ -5343,12 +5330,11 @@
       "calls": 10,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "definition"
           ],
-          "confidence": "high",
-          "note": "passed to >run()"
+          "note": "ingredient key array"
         },
         "1": {
           "kind": "arbitrary_text",
@@ -5421,12 +5407,11 @@
       "calls": 25,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "passed to >run()"
+          "note": "ingredient key"
         },
         "1": {
           "kind": "arbitrary_text",
@@ -5745,11 +5730,11 @@
       "calls": 11,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "clothing slot key"
         }
       }
     },
@@ -5759,11 +5744,11 @@
       "calls": 6,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "clothing slot key"
         }
       }
     },
@@ -5948,12 +5933,11 @@
       "calls": 7,
       "args": {
         "0": {
-          "kind": "location",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "passed to >generalUndress()"
+          "note": "undress context key"
         }
       }
     },
@@ -6284,11 +6268,11 @@
           "note": "NPCList destination slot"
         },
         "1": {
-          "kind": "named_npc",
+          "kind": "arbitrary_text",
           "evidence": [
             "definition"
           ],
-          "note": "persistent NPC key"
+          "note": "persistent NPC save key (as saved with saveNPC)"
         }
       }
     },
@@ -7587,12 +7571,11 @@
           "note": "assigned to $_npcId"
         },
         "1": {
-          "kind": "body_part",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to $_vType"
+          "note": "virginity act type key"
         },
         "2": {
           "kind": "prose_text",
@@ -7610,10 +7593,11 @@
       "calls": 41,
       "args": {
         "0": {
-          "kind": "body_part",
+          "kind": "named_npc",
           "evidence": [
             "call"
-          ]
+          ],
+          "note": "NPC name ($NPCNameList.indexOf(arg))"
         },
         "1": {
           "kind": "arbitrary_text",
@@ -9184,12 +9168,11 @@
       "calls": 24,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "definition"
           ],
-          "confidence": "high",
-          "note": "assigned to _wardrobe_list"
+          "note": "clothing slot key ($worn key)"
         },
         "1": {
           "kind": "arbitrary_text",
@@ -9661,11 +9644,11 @@
       "calls": 8,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "clothing slot/part key"
         }
       }
     },
@@ -9688,11 +9671,11 @@
       "calls": 7,
       "args": {
         "0": {
-          "kind": "location",
+          "kind": "body_part",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "body part key (anus/vagina/mouth)"
         }
       }
     },
@@ -9774,11 +9757,11 @@
       "calls": 7,
       "args": {
         "0": {
-          "kind": "named_npc",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "'pc' target key"
         }
       }
     },
@@ -10013,11 +9996,11 @@
       "calls": 8,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "clothing slot key"
         },
         "1": {
           "kind": "prose_text",
@@ -10466,10 +10449,11 @@
       "calls": 66,
       "args": {
         "0": {
-          "kind": "body_part",
+          "kind": "named_npc",
           "evidence": [
             "call"
-          ]
+          ],
+          "note": "sperm target/owner ('pc' or NPC name)"
         },
         "1": {
           "kind": "named_npc",
@@ -10676,11 +10660,11 @@
           "note": "passed to >run()"
         },
         "1": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "food key"
         }
       }
     },
@@ -10927,11 +10911,11 @@
       "calls": 6,
       "args": {
         "0": {
-          "kind": "body_part",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "action position key (otheranus*)"
         }
       }
     },
@@ -11285,12 +11269,11 @@
       "calls": 11,
       "args": {
         "0": {
-          "kind": "location",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "passed to >icon()"
+          "note": "icon context key (location ref or mode)"
         },
         "1": {
           "kind": "ui_icon",
@@ -11392,11 +11375,11 @@
       "calls": 3,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
             "call"
           ],
-          "note": "passed to >run()"
+          "note": "canvas model layer key"
         }
       }
     },
@@ -11427,12 +11410,11 @@
       "calls": 12,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to _slot"
+          "note": "clothing slot key"
         }
       }
     },
@@ -11701,12 +11683,11 @@
       "calls": 13,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "medium",
-          "note": "assigned to _temp_strip"
+          "note": "store action/context key"
         }
       }
     },
@@ -11716,20 +11697,18 @@
       "calls": 12,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "passed to >run()"
+          "note": "store location key"
         },
         "1": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "passed to >run()"
+          "note": "store slot key"
         }
       }
     },
@@ -12338,11 +12317,11 @@
       "calls": 6,
       "args": {
         "0": {
-          "kind": "named_npc",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "temple title target key (NPC name or 'dark')"
         }
       }
     },
@@ -12366,12 +12345,11 @@
       "calls": 7,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to $_type"
+          "note": "foodstuff key"
         },
         "1": {
           "kind": "structural",
@@ -12598,11 +12576,11 @@
       "calls": 10,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "body_part",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "note": "body part key (hands/legs/feet/genitals)"
         }
       }
     },
@@ -12884,11 +12862,11 @@
       "calls": 4,
       "args": {
         "0": {
-          "kind": "arbitrary_text",
+          "kind": "location",
           "evidence": [
             "call"
           ],
-          "note": "undress context key"
+          "note": "undress location/context key (exec room/meeting_room)"
         }
       }
     },
@@ -12968,11 +12946,11 @@
       "calls": 2,
       "args": {
         "0": {
-          "kind": "arbitrary_text",
+          "kind": "location",
           "evidence": [
             "call"
           ],
-          "note": "undress context key"
+          "note": "undress location/context key (exec room/meeting_room)"
         }
       }
     },
@@ -13080,12 +13058,11 @@
       "calls": 8,
       "args": {
         "0": {
-          "kind": "location",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high",
-          "note": "assigned to $_location"
+          "note": "undress context key"
         }
       }
     },
@@ -18046,11 +18023,11 @@
       "calls": 0,
       "args": {
         "0": {
-          "kind": "clothing",
+          "kind": "arbitrary_text",
           "evidence": [
             "definition"
           ],
-          "note": "clothing name"
+          "note": "item index or name forwarded to generalWear"
         }
       }
     },

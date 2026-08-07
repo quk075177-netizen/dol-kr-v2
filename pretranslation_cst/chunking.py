@@ -261,14 +261,15 @@ def _split_group(
 
 
 def _merge_small_units(units: list[TranslateUnit], min_chars: int) -> list[TranslateUnit]:
-    """Merge units smaller than ``min_chars`` with a neighbour."""
+    """Merge units smaller than ``min_chars`` with a neighbour (repeat until
+    the merged unit clears the threshold or no neighbour remains)."""
     if len(units) <= 1:
         return units
     merged: list[TranslateUnit] = []
     i = 0
     while i < len(units):
         unit = units[i]
-        if unit.char_count < min_chars and i + 1 < len(units):
+        while unit.char_count < min_chars and i + 1 < len(units):
             nxt = units[i + 1]
             unit = TranslateUnit(
                 unit_id=unit.unit_id,

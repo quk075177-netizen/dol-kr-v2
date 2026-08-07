@@ -142,10 +142,10 @@ kind의 회귀는 exit code 2를 낸다.
 - malformed_args 0, mismatched_close 0
 - unclosed_container 2, invalid_macro_name 5, malformed_macro 1,
   unterminated_comment 2 (모두 allowlist 매칭)
-- unclassified_argument 0
-- segments: link_label 39,157, macro_arg 1,866, plain_text 759,058
-- exposed segments 800,081, placeholders 798,136
-- protected coverage 평균 0.674121
+- unclassified_argument 0 (value-kind 검수 반영, `docs/value-kind-audit-report.md`)
+- segments: link_label 39,157, macro_arg 1,768, plain_text 759,058
+- exposed segments 799,983, placeholders 798,038
+- protected coverage 평균 0.576128
 
 ## Golden 데이터셋
 

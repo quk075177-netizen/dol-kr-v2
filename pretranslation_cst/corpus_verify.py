@@ -466,7 +466,14 @@ def verify_corpus(
     value_kind_path: str | Path = DEFAULT_VALUE_KINDS,
     allowlist_path: str | Path = DEFAULT_ALLOWLIST,
     baseline_path: str | Path | None = DEFAULT_BASELINE,
+    workers: int | None = None,
 ) -> dict[str, Any]:
+    """Verify the whole corpus.
+
+    ``workers`` controls file-level parallelism: ``None`` uses up to 16
+    processes, ``1`` runs sequentially in-process (needed by tests that
+    monkeypatch ``split_twee`` / ``analyze_file``).
+    """
     root_path = Path(root)
     files = sorted(root_path.rglob("*.twee"))
     allowlist = _load_allowlist(Path(allowlist_path))
@@ -497,79 +504,94 @@ def verify_corpus(
     body_byte_total = 0
     protected_byte_total = 0
 
-    tasks = [(path, root_path, Path(value_kind_path)) for path in files]
-    workers = max(1, min(os.cpu_count() or 1, 16))
-    with ProcessPoolExecutor(max_workers=workers) as executor:
-        for relative_path, file_analysis, error in executor.map(_analyze_one, tasks):
-            if error is not None:
-                split_failures.append({
-                    "path": relative_path,
-                    "error": error,
-                })
-                continue
-            file_hashes.append({
-                "path": file_analysis["path"],
-                "sha256": file_analysis["sha256"],
-                "bytes": file_analysis["bytes"],
-                "passages": len(file_analysis["passages"]),
+    def consume(relative_path: str, file_analysis: dict[str, Any] | None, error: str | None) -> None:
+        nonlocal twee_byte_total, files_with_passages, passages_total
+        nonlocal segment_total, placeholder_total, body_byte_total, protected_byte_total
+        nonlocal diagnostics_total
+        if error is not None:
+            split_failures.append({
+                "path": relative_path,
+                "error": error,
             })
-            twee_byte_total += file_analysis["bytes"]
-            if file_analysis["reassembly_error"]:
-                reassembly_failures.append({
-                    "path": file_analysis["path"],
-                    "error": file_analysis["reassembly_error"],
-                })
-            if file_analysis["passages"]:
-                files_with_passages += 1
-            for passage_analysis in file_analysis["passages"]:
-                passages_total += 1
-                if passage_analysis["restore_error"]:
-                    restore_failures.append({
-                        "path": passage_analysis["path"],
-                        "passage": passage_analysis["passage"],
-                        "span": passage_analysis["body_span"],
-                        "error": passage_analysis["restore_error"],
-                    })
-                for kind, count in passage_analysis["segment_kinds"].items():
-                    by_segment_kind[kind] += count
-                segment_total += passage_analysis["exposed_segment_count"]
-                placeholder_total += passage_analysis["placeholder_count"]
-                body_byte_total += passage_analysis["body_bytes"]
-                protected_byte_total += passage_analysis["protected_bytes"]
-                coverage_entries.append({
+            return
+        assert file_analysis is not None
+        file_hashes.append({
+            "path": file_analysis["path"],
+            "sha256": file_analysis["sha256"],
+            "bytes": file_analysis["bytes"],
+            "passages": len(file_analysis["passages"]),
+        })
+        twee_byte_total += file_analysis["bytes"]
+        if file_analysis["reassembly_error"]:
+            reassembly_failures.append({
+                "path": file_analysis["path"],
+                "error": file_analysis["reassembly_error"],
+            })
+        if file_analysis["passages"]:
+            files_with_passages += 1
+        for passage_analysis in file_analysis["passages"]:
+            passages_total += 1
+            if passage_analysis["restore_error"]:
+                restore_failures.append({
                     "path": passage_analysis["path"],
                     "passage": passage_analysis["passage"],
                     "span": passage_analysis["body_span"],
-                    "body_bytes": passage_analysis["body_bytes"],
-                    "protected_bytes": passage_analysis["protected_bytes"],
-                    "coverage": passage_analysis["coverage"],
+                    "error": passage_analysis["restore_error"],
                 })
-                for diagnostic in passage_analysis["diagnostics"]:
-                    diagnostics_total += 1
-                    code = diagnostic["code"]
-                    macro = str(diagnostic["macro_name"] or "")
-                    by_code[code] += 1
-                    by_code_macro[(code, macro)] += 1
-                    span = diagnostic["span"]
-                    entry = _find_allowlist_entry(code, span, passage_analysis["path"], passage_analysis["passage"], allowlist_index)
-                    if entry is not None:
-                        allowlisted[code] += 1
-                        matched_entry_ids.add(id(entry))
-                        continue
-                    if code in NON_STRUCTURAL_CODES:
-                        continue
-                    unexpected.append({
-                        "path": passage_analysis["path"],
-                        "passage": passage_analysis["passage"],
-                        "code": code,
-                        "macro_name": diagnostic["macro_name"],
-                        "span": span,
-                        "message": diagnostic["message"],
-                    })
-                    unexpected_by_code[code] += 1
-                for issue in passage_analysis["invariant_issues"]:
-                    invariant_issues.append(issue)
-                    invariant_by_kind[issue["kind"]] += 1
+            for kind, count in passage_analysis["segment_kinds"].items():
+                by_segment_kind[kind] += count
+            segment_total += passage_analysis["exposed_segment_count"]
+            placeholder_total += passage_analysis["placeholder_count"]
+            body_byte_total += passage_analysis["body_bytes"]
+            protected_byte_total += passage_analysis["protected_bytes"]
+            coverage_entries.append({
+                "path": passage_analysis["path"],
+                "passage": passage_analysis["passage"],
+                "span": passage_analysis["body_span"],
+                "body_bytes": passage_analysis["body_bytes"],
+                "protected_bytes": passage_analysis["protected_bytes"],
+                "coverage": passage_analysis["coverage"],
+            })
+            for diagnostic in passage_analysis["diagnostics"]:
+                diagnostics_total += 1
+                code = diagnostic["code"]
+                macro = str(diagnostic["macro_name"] or "")
+                by_code[code] += 1
+                by_code_macro[(code, macro)] += 1
+                span = diagnostic["span"]
+                entry = _find_allowlist_entry(code, span, passage_analysis["path"], passage_analysis["passage"], allowlist_index)
+                if entry is not None:
+                    allowlisted[code] += 1
+                    matched_entry_ids.add(id(entry))
+                    continue
+                if code in NON_STRUCTURAL_CODES:
+                    continue
+                unexpected.append({
+                    "path": passage_analysis["path"],
+                    "passage": passage_analysis["passage"],
+                    "code": code,
+                    "macro_name": diagnostic["macro_name"],
+                    "span": span,
+                    "message": diagnostic["message"],
+                })
+                unexpected_by_code[code] += 1
+            for issue in passage_analysis["invariant_issues"]:
+                invariant_issues.append(issue)
+                invariant_by_kind[issue["kind"]] += 1
+
+    if workers == 1:
+        for path in files:
+            relative_path = path.relative_to(root_path).as_posix()
+            try:
+                consume(relative_path, analyze_file(path, Path(value_kind_path), source_path=relative_path), None)
+            except Exception as exc:
+                consume(relative_path, None, f"{type(exc).__name__}: {exc}")
+    else:
+        tasks = [(path, root_path, Path(value_kind_path)) for path in files]
+        worker_count = max(1, min(workers or os.cpu_count() or 1, 16))
+        with ProcessPoolExecutor(max_workers=worker_count) as executor:
+            for relative_path, file_analysis, error in executor.map(_analyze_one, tasks):
+                consume(relative_path, file_analysis, error)
 
     stale_entries = [
         entry for entry in allowlist["entries"]
@@ -716,12 +738,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report", type=Path, default=Path("corpus-verify-report.json"), help="JSON report output path")
     parser.add_argument("--init-baseline", action="store_true", help="write the current run as the baseline file")
     parser.add_argument("--json", action="store_true", help="also print the full report JSON to stdout")
+    parser.add_argument("--workers", type=int, default=None,
+                        help="file-level parallelism (default: up to 16 processes; 1 = sequential)")
     args = parser.parse_args(argv)
     report = verify_corpus(
         args.root,
         value_kind_path=args.value_kind,
         allowlist_path=args.allowlist,
         baseline_path=args.baseline,
+        workers=args.workers,
     )
     if args.init_baseline:
         _write_baseline(args.baseline, report)

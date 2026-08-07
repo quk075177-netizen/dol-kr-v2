@@ -172,33 +172,30 @@ All entries below are `macro[index]: before -> after` residual counts.
 | `generateRole[1]` | 132 -> 0 |
 | `generateRole[2]` | 132 -> 0 |
 
-## Remaining Residual (18 rows / 16 entries)
+## Remaining Residual (18 rows / 16 entries) — resolved 2026-08-07
 
-All remaining rows are single (or triple) occurrences of positional args that
-the definition never reads (`_args[N]` not referenced) and where no call-site
-evidence determines a kind. Per policy they stay protected with diagnostics
-rather than being guessed:
+The pre-I2 residual of 18 rows / 16 entries above was revisited after the I2
+widget-unopaque change (commit 6236c66) raised `unclassified_argument` to
+9,072. The full-corpus value-kind audit (`docs/value-kind-audit-report.md`)
+classified every remaining position with call-site or definition evidence:
 
-```text
-avery_housework_assess[0] 3
-avery_mansion_interrupt[0] 1
-cabintime[0] 1
-exhibitionist4[0] 1
-generate_methodical_guard[1] 1
-lheat[0] 1
-llheat[0] 1
-lllheat[0] 1
-oral[0] 1
-person3[0] 1
-pound_text[0] 1
-pubfameComplete[2] 1
-rutCycle[0] 1
-seize_stolen_goods[0] 1
-shopHuntDebug[0] 1
-shopHuntInit[0] 1
-```
+- `avery_housework_assess[0]` (task key bath/sleep/work, `_args[0] is "work"`
+  read by the definition) -> arbitrary_text
+- `avery_mansion_interrupt[0]`, `cabintime[0]`, `pubfameComplete[2]`,
+  `rutCycle[0]` (flags) -> structural
+- `exhibitionist4[0]`, `person3[0]`, `lheat[0]`, `llheat[0]`, `lllheat[0]`
+  (values) -> structural
+- `generate_methodical_guard[1]`, `pound_text[0]`, `seize_stolen_goods[0]`,
+  `shopHuntDebug[0]`, `oral[0]`, `shopHuntInit[0]` (keys/flags) ->
+  arbitrary_text
 
-Review queue usage: treat each `macro[index]` above as "definition does not
-consume this position; either the upstream widget ignores it (dead arg) or the
-caller passes context that the widget does not use". Resolving these requires
-upstream definition changes, not value-kind entries.
+Final state: `unclassified_argument` **0**, `macro_arg` 1,322 -> 1,768
+(`option[0]`, `numberStepper[0]`, `actionstentacleadvcheckbox[1]` prose_text
+exposures; `avery_mansion_party_speech[1]` demoted to arbitrary_text),
+`link_label` and `plain_text` unchanged.
+
+Review queue note: dead positional args that the upstream definition never
+reads (e.g. `brat[1]`, `meek[1]`, `submission[1]`) were still classified with
+call-site evidence (NPC index / body-target values) where the meaning was
+determinable; positions with no evidence remain out of scope for value-kind
+entries.

@@ -270,7 +270,12 @@ class CorpusVerifyTests(unittest.TestCase):
             (root / "a.twee").write_bytes(b":: One\nhello\n:: Two\nworld\n")
             (root / "b.twee").write_bytes(b":: Three\nx\n")
             with mock.patch.object(corpus_module, "split_twee", side_effect=broken_split):
-                report = verify_corpus(root, allowlist_path=_empty_allowlist(root), baseline_path=root / "no-baseline.json")
+                report = verify_corpus(
+                    root,
+                    allowlist_path=_empty_allowlist(root),
+                    baseline_path=root / "no-baseline.json",
+                    workers=1,  # sequential so the mock applies in-process
+                )
             self.assertEqual(report["round_trip"]["reassembly_failures"], 1)
             self.assertEqual(report["exit_code"], 1)
 
