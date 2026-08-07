@@ -88,6 +88,11 @@ def chunk_passage(
 
     ``data`` is the original file bytes (used for byte offsets).  The split
     honours CST container boundaries so related prose stays together.
+
+    ``threshold`` is the target size below which a unit is left whole;
+    ``max_chars`` is a soft ceiling — units are split further only along
+    container/branch boundaries, so a single leaf larger than ``max_chars``
+    is kept as-is (no hard cap).
     """
     if passage.is_opaque or passage.root is None or not artifact.segments:
         # opaque passage (no exposed text) -> no units
@@ -139,6 +144,13 @@ def _build_units_from_spans(
     for span, ancestors in spans:
         start = max(span.start, prev_end)
         end = max(start, span.end)
+        # A placeholder may cover several adjacent macros merged by masking
+        # (_merge merges touching protected spans).  If a split point falls
+        # inside such a placeholder, grow the span end to that placeholder's
+        # end so no placeholder straddles a unit boundary.
+        for ph in artifact.placeholders:
+            if start <= ph.source_span.start < end and ph.source_span.end > end:
+                end = ph.source_span.end
         clamped.append((Span(start, end), ancestors))
         prev_end = end
     spans = clamped
@@ -289,6 +301,23 @@ def _merge_small_units(units: list[TranslateUnit], min_chars: int) -> list[Trans
     return merged
 
 
+PLACEHOLDER_PREFIX = "__DOLKR_P"
+
+
 def _neighbour_context(unit: TranslateUnit) -> str:
-    """Short placeholder-safe context slice of a neighbour unit."""
-    return unit.masked_text[:120]
+    """Short placeholder-safe context slice of a neighbour unit.
+
+    Truncates at a complete placeholder token boundary so the model never
+    sees a half token like ``__DOLKR_P00000`` in the context hint.
+    """
+    limit = 120
+    text = unit.masked_text
+    if len(text) <= limit:
+        return text
+    cut = text.rfind(PLACEHOLDER_PREFIX, 0, limit)
+    if cut >= 0:
+        # include the full token that starts at or before the cut
+        end = text.find("__", cut + len(PLACEHOLDER_PREFIX))
+        if end > 0 and end + 2 <= len(text):
+            limit = end + 2
+    return text[:limit]

@@ -67,6 +67,18 @@ class MacroRegistry:
                 implicit_branch=bool(data.get("implicit_branch", False)),
                 source=str(data.get("source", "unknown")),
             )
+        # Consistency check: the arg_mode recorded in a container's `tags`
+        # map must match the branch's own top-level entry.  The parser reads
+        # arg_mode only from the top-level entry, so a divergence would be
+        # silently ignored — fail loudly instead.
+        for name, spec in specs.items():
+            for tag, mode in spec.tags.items():
+                branch = specs.get(tag)
+                if branch is not None and branch.arg_mode != mode:
+                    raise ValueError(
+                        f"macro {name!r} tags.{tag} arg_mode {mode!r} "
+                        f"does not match top-level {tag!r} entry ({branch.arg_mode!r})"
+                    )
         return cls(specs)
 
     def get(self, name: str) -> MacroSpec:

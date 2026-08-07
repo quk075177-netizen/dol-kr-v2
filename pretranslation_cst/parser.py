@@ -468,6 +468,9 @@ def _classify_args(node: CstNode, value_kinds: dict[str, Any], diagnostics: list
             diagnostics.append(Diagnostic(
                 "unclassified_argument", "macro argument kind is not classified", arg.raw_span,
                 node.name, arg.index))
+        # Expose only when the classification is trustworthy: rule-based
+        # (call/definition) evidence is trusted, LLM evidence only at
+        # confidence=high (value-kind-policy.md).
         elif arg.lexeme_kind == "string" and arg.value_kind == "prose_text" and (
             "llm" not in arg.evidence or arg.confidence == "high"
         ):
