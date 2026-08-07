@@ -35,7 +35,7 @@ restore(mask(passage_bytes)) == passage_bytes
 
 ## 저장소 검증
 
-현재 `game/` 전체 642개 Twee 파일을 대상으로 한다.
+현재 `game/` 전체 642개 Twee 파일과 16,135개 passage를 대상으로 한다.
 
 2026-08-07 corpus inventory에서는 특수 passage가 3개(`StoryData` 1개,
 `StoryTitle` 1개, `StoryInit` 1개)였고, `[script]`/`[stylesheet]` passage와
@@ -49,6 +49,10 @@ UTF-8 BOM 파일은 발견되지 않았다. 중첩 widget 정의도 현재 원�
 5. 모든 node의 parent chain이 cycle 없이 root에 도달하는지 검사
 6. mask/restore byte-exact
 7. 동일 입력 2회 실행 결과 JSONL byte-identical
+
+최근 실행 결과: 642개 파일, 16,135개 passage 전체의 parse/mask/restore가
+byte-exact로 통과했다. 전체 CLI 출력은 16,135행이었고, 대표 디렉터리 2회 실행의
+JSONL SHA-256이 동일했다.
 
 ## Golden 데이터셋
 

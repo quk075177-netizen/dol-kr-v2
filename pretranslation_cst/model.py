@@ -1,3 +1,5 @@
+"""Small, JSON-friendly data objects used by the Twee CST parser."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -6,7 +8,7 @@ from typing import Any
 
 @dataclass(frozen=True, order=True)
 class Span:
-    """A file-relative UTF-8 byte span, represented as [start, end)."""
+    """A file-relative UTF-8 byte span represented as [start, end)."""
 
     start: int
     end: int
@@ -14,6 +16,9 @@ class Span:
     def __post_init__(self) -> None:
         if self.start < 0 or self.end < self.start:
             raise ValueError(f"invalid span [{self.start}, {self.end})")
+
+    def contains(self, other: "Span") -> bool:
+        return self.start <= other.start and other.end <= self.end
 
     def to_dict(self) -> dict[str, int]:
         return {"start": self.start, "end": self.end}
@@ -75,32 +80,54 @@ class ArgNode:
 
 
 @dataclass
-class MacroNode:
+class CstNode:
     span: Span
-    name: str
-    name_span: Span
-    raw_args_span: Span
-    args: list[ArgNode]
+    node_type: str
+    name: str = ""
     role: str = "call"
+    name_span: Span | None = None
+    raw_args_span: Span | None = None
+    args: list[ArgNode] = field(default_factory=list)
     closing_span: Span | None = None
     body_span: Span | None = None
     malformed: bool = False
+    node_id: str = ""
+    parent_id: str | None = None
+    sibling_order: int = 0
+    depth: int = 0
+    children: list["CstNode"] = field(default_factory=list)
 
-    def to_dict(self) -> dict[str, Any]:
+    @property
+    def byte_span(self) -> Span:
+        return self.span
+
+    def to_dict(self, include_children: bool = True) -> dict[str, Any]:
         result: dict[str, Any] = {
-            "span": self.span.to_dict(),
+            "node_id": self.node_id,
+            "parent_id": self.parent_id,
+            "sibling_order": self.sibling_order,
+            "depth": self.depth,
+            "byte_span": self.span.to_dict(),
+            "node_type": self.node_type,
             "name": self.name,
-            "name_span": self.name_span.to_dict(),
-            "raw_args_span": self.raw_args_span.to_dict(),
-            "args": [arg.to_dict() for arg in self.args],
             "role": self.role,
+            "args": [arg.to_dict() for arg in self.args],
             "malformed": self.malformed,
+            "children": [child.to_dict() for child in self.children] if include_children else [],
         }
+        if self.name_span is not None:
+            result["name_span"] = self.name_span.to_dict()
+        if self.raw_args_span is not None:
+            result["raw_args_span"] = self.raw_args_span.to_dict()
         if self.closing_span is not None:
             result["closing_span"] = self.closing_span.to_dict()
         if self.body_span is not None:
             result["body_span"] = self.body_span.to_dict()
         return result
+
+
+# Kept as a public name for callers of the first draft API.
+MacroNode = CstNode
 
 
 @dataclass
@@ -112,10 +139,44 @@ class Passage:
     name_span: Span | None
     body_span: Span
     source_span: Span
-    nodes: list[MacroNode] = field(default_factory=list)
+    nodes: list[CstNode] = field(default_factory=list)
     protected_spans: list[Span] = field(default_factory=list)
     exposed_candidates: list[tuple[Span, str]] = field(default_factory=list)
     diagnostics: list[Diagnostic] = field(default_factory=list)
+    root: CstNode | None = None
+    node_index: dict[str, CstNode] = field(default_factory=dict)
+
+    @property
+    def is_opaque(self) -> bool:
+        return self.root is not None and any(child.node_type == "passage_opaque" for child in self.root.children)
+
+    @property
+    def tree(self) -> CstNode | None:
+        return self.root
+
+    def get_ancestors(self, node_id: str) -> list[CstNode]:
+        node = self.node_index.get(node_id)
+        if node is None:
+            raise LookupError(f"unknown node_id: {node_id}")
+        result: list[CstNode] = []
+        while node.parent_id is not None:
+            parent = self.node_index.get(node.parent_id)
+            if parent is None:
+                raise LookupError(f"missing parent for node_id: {node_id}")
+            result.append(parent)
+            node = parent
+        return result
+
+    def get_siblings(self, node_id: str) -> list[CstNode]:
+        node = self.node_index.get(node_id)
+        if node is None:
+            raise LookupError(f"unknown node_id: {node_id}")
+        if node.parent_id is None:
+            return []
+        parent = self.node_index.get(node.parent_id)
+        if parent is None:
+            raise LookupError(f"missing parent for node_id: {node_id}")
+        return [child for child in parent.children if child.node_id != node_id]
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -125,11 +186,15 @@ class Passage:
             "header_span": self.header_span.to_dict(),
             "body_span": self.body_span.to_dict(),
             "source_span": self.source_span.to_dict(),
-            "nodes": [node.to_dict() for node in self.nodes],
+            # The complete hierarchy is in tree. Keep this compatibility list shallow
+            # so JSONL output does not repeat every descendant for every macro.
+            "nodes": [node.to_dict(include_children=False) for node in self.nodes],
             "diagnostics": [item.to_dict() for item in self.diagnostics],
         }
         if self.name_span is not None:
             result["name_span"] = self.name_span.to_dict()
+        if self.root is not None:
+            result["tree"] = self.root.to_dict()
         return result
 
 
