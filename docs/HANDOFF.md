@@ -1,0 +1,77 @@
+# HANDOFF — 세션 이관 문서
+
+기준일: 2026-08-08
+
+## 현재 상태 요약
+
+```text
+CST 파서 (완료) → value-kind 분류 (완료, unclassified 0)
+  → 청킹 (완료, failures 0) → 파일럿 번역 (동작 확인)
+  → post 시스템 (초기 구현) → 번역 재사용 (설계만)
+```
+
+- 전체 corpus: 642 files / 16,135 passages, round-trip 0, tree invariants 0
+- diagnostics: unclassified 0, unknown_macro 238 (exit 계열 미해결)
+- 노출: link_label 39,157 / macro_arg 1,768 / plain_text 759,058
+- 파일럿: Gemini 2.5 Flash Lite + ADC, placeholder 보존 96%, restore 정상
+- 테스트 132개 통과, corpus_verify exit 0 (baseline matched)
+
+## 이관 전 확인 사항 (미해결)
+
+### 기능/조사 (해결 필요)
+
+- [ ] **exit/exitAll 매크로 정의** — 218건 사용, 위젯·JS·statDisplay 어디에도
+  정의 없음. 전투 UI 집중. (`docs/g-l-macro-investigation.md` S2)
+- [ ] **translation-reuse-design 구현** — 원문 hash 기반 재사용 저장소.
+  R1~R4 미구현. (`docs/translation-reuse-design.md`)
+- [ ] **3-match 재사용** — post 구현 완료 후. 마커 없는 44%(3,169 passage)
+  우선. (`docs/translation-pipeline-roadmap.md` P3)
+- [ ] **post 런타임 helper** — `{{post:...}}` 동적 마커 치환 (게임 사이드).
+  설계만. (`docs/post-system-design.md` PO2)
+- [ ] **시맨틱 롤 판정** — 파일럿 결과로 "불필요" 잠정 결론. LLM이 조사
+  선택까지 처리. 사례 발견 시 재검토. (`docs/archive/semantic-role-roadmap.md`)
+
+### 유지보수 체크 (우선순위 낮음)
+
+- [ ] **F2/F3 회귀 fixture** — passage JSON 메타데이터, square 중첩.
+  DoL 원문 0건이지만 회귀 방지용 fixture 미추가. (`docs/archive/system-review-triage.md`)
+- [ ] **placeholder prefix 인플레이션** — `_merge` 충돌 시 일부 토큰만 길어짐.
+  발동 확률 낮음. (`docs/archive/system-review-triage.md` F10)
+- [ ] **`_merge_small_units` ancestors** — 병합 시 한쪽 경로만 남음. 낮음. (F9)
+- [ ] **TextSource char 단위 encode** — 최적화 여지. 프로파일링 후 결정. (F11)
+
+### 데이터 (후순위)
+
+- [ ] props/색상/식물 glossary — clothing 외 분야 미구축
+- [ ] glossary의 `display_ko` 변경 시 post 재계산 규칙 문서화
+
+## 사용 방법 (빠른 참조)
+
+```bash
+uv sync --extra dev                                   # 환경
+uv run python -m unittest discover -s tests           # 테스트 (132개)
+uv run python -m pretranslation_cst.corpus_verify --root game   # corpus 검증
+uv run python -m translation.pilot --batch --max-units 5        # 파일럿 배치
+uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감사
+```
+
+- 프로젝트: `adept-elevator-503122-h0`, 모델 `gemini-2.5-flash-lite`
+  (`translation/client.py` 상수)
+- ADC: `gcloud auth application-default login`
+- 모든 산출물은 `/tmp/opencode/`에 저장 (repo Git 제외)
+
+## 문서 구조
+
+- **정본** (`docs/`): cst-scope, sugarcube-ground-truth, value-kind-policy,
+  validation
+- **현행** (`docs/`): chunking-strategy, post-system-design,
+  translation-reuse-design, translation-pipeline-roadmap,
+  g-l-macro-investigation, triple-match-and-post
+- **아카이브** (`docs/archive/`): 완료 기록 (로드맵·워커 지시·감사·트리아지)
+- **조사 자료** (`research/`): 근거·데이터셋 (Git 제외)
+
+## 주의
+
+- `research/`, `game/`, `ref/`, `corpus-verify-report.json`은 Git 제외.
+- `config/glossary.yml` — clothing glossary (1,459 approved, post 계산됨).
+- 워커 에이전트 지시문 양식은 `docs/archive/parser-followup-agent-tasks.md` 참고.

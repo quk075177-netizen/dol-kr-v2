@@ -15,32 +15,30 @@ Twee 레이어가 안정된 뒤 별도 frontend로 검토한다.
 
 ## 문서
 
+- [문서 인덱스](docs/README.md) — 정본·현행·아카이브 전체 구조
+- [세션 이관 핸드오프](docs/HANDOFF.md) — 미해결 체크 사항
 - [CST 범위와 데이터 모델](docs/cst-scope.md)
 - [SugarCube ground truth 대조 규칙](docs/sugarcube-ground-truth.md)
 - [value-kind와 fail-safe 정책](docs/value-kind-policy.md)
 - [검증과 완료 조건](docs/validation.md)
-- [파서 구조 개선 로드맵](docs/parser-remediation-roadmap.md)
-- [CST 완성 진행 계획](docs/cst-completion-plan.md)
-- [value-kind 분류 품질 검수 로드맵](docs/value-kind-audit-roadmap.md)
-- [시맨틱 롤 조사 로드맵](docs/semantic-role-roadmap.md)
 - [번역 유닛 분할 전략](docs/chunking-strategy.md)
-- [문서 인덱스](docs/README.md)
+- [post(조사) 시스템 설계](docs/post-system-design.md)
+- [번역 재사용 설계](docs/translation-reuse-design.md)
+- [번역 파이프라인 로드맵](docs/translation-pipeline-roadmap.md)
+- 완료 기록은 [docs/archive/](docs/archive/README.md)
 
 조사 원문과 생성된 데이터셋은 [research/](research/)에 보관한다. `research/`
 문서는 근거와 과거 분석 기록이며, 구현 정책의 정본은 `docs/`다.
 
 ## 상태
 
-CST 완성. 세 완료 계약(Lossless/Structural/Extraction)이 모두 성립한다.
+CST 완성 + 번역 파이프라인 진행 중.
 
 - 642개 파일, 16,135개 passage round-trip 0 failures, 2회 실행 byte-identity
-- `unclassified_argument` 18건으로 수렴 (raw expression 제외, parsed
-  positional residual만)
-- standalone `[[...]]`와 string-form `<<link "Label" "Target">>` 정적 라벨이
-  tree에 leaf로 연결되어 parent context를 가진다
-- `link_label` 32,908 / `macro_arg` 952 / `plain_text` 496,421 노출
-
-자세한 진행 기록은 [docs/cst-completion-plan.md](docs/cst-completion-plan.md).
+- `unclassified_argument` 0, `unknown_macro` 238 (exit 계열 미해결)
+- standalone `[[...]]`와 string-form link 정적 라벨이 tree leaf로 연결
+- `link_label` 39,157 / `macro_arg` 1,768 / `plain_text` 759,058 노출
+- 파일럿 번역: Gemini 2.5 Flash Lite, placeholder 보존 96%, post 마커 정규화
 
 ## 사용 방법
 
