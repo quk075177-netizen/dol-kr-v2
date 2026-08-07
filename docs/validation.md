@@ -142,7 +142,7 @@ kind의 회귀는 exit code 2를 낸다.
 - malformed_args 0, mismatched_close 0
 - unclosed_container 2, invalid_macro_name 5, malformed_macro 1,
   unterminated_comment 2 (모두 allowlist 매칭)
-- unclassified_argument 23,206
+- unclassified_argument 23,161
 - segments: link_label 32,728, macro_arg 525, plain_text 496,421
 - exposed segments 529,674, placeholders 527,729
 - protected coverage 평균 0.674121

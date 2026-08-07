@@ -16,7 +16,8 @@
 - `set/run/print/if/elseif/for/unset` 계열 raw expression 처리
 - `addinlineevent`, `foldout`, `linkreplace` container 처리
 - `checkbox`, `radiobutton` leaf 처리
-- macro 내부 square-link label의 CST leaf 및 masking 노출
+- SugarCube 규칙 기반 square markup lexer와 link/image CST leaf
+- standalone 및 macro 내부 square-link label의 masking 노출
 - division과 regex literal의 macro boundary 구분
 
 전체 `game/**/*.twee` 642개 파일, 16,135개 passage에서 restore 실패 0,
@@ -25,8 +26,9 @@ tree invariant 실패 0, `malformed_args` 0, `mismatched_close` 0을 확인했�
 `game/overworld-forest/loc-forestshop/gwylan-clothes.twee`의 malformed `case`
 인자가 뒤 구조를 닫지 못하게 만드는 동일 source 결함에서 발생한다.
 
-남은 병렬 작업은 [parser-followup-agent-tasks.md](parser-followup-agent-tasks.md)에
-분리했다.
+Agent 1~4의 병렬 작업은 모두 반영됐다. string-form
+`<<link "Label" "Target">>`는 호출부의 동적 비율과 별도 exposure 정책 승인이
+필요하므로 현재 보호 상태를 유지한다.
 
 ## 결론
 

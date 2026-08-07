@@ -16,6 +16,7 @@ from typing import Any, Iterable
 
 from .grammar import MacroRegistry, MacroSpec, load_macro_registry
 from .model import ArgNode, CstNode, Diagnostic, Passage, SourceFile, Span
+from .square_markup import exposed_label, parse_square_markup
 
 
 MACRO_NAME_RE = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
@@ -573,22 +574,14 @@ def _consume_variable(text: str, start: int, limit: int) -> int:
 
 
 def _link_label(source: TextSource, start: int, end: int) -> Span | None:
-    inner_start, inner_end = start + 2, end - 2
-    inner = source.text[inner_start:inner_end]
-    delimiter_index = -1
-    delimiter = ""
-    for candidate in ("|", "->", "<-"):
-        index = inner.find(candidate)
-        if index >= 0 and (delimiter_index < 0 or index < delimiter_index):
-            delimiter_index, delimiter = index, candidate
-    if delimiter_index < 0:
+    markup = parse_square_markup(source.text, start, end)
+    label = exposed_label(markup)
+    if label is None:
         return None
-    label_start = inner_start
-    label_end = inner_start + delimiter_index
-    label = source.text[label_start:label_end]
-    if not label or any(marker in label for marker in ("$", "_", "`", "${", "+")):
-        return None
-    return source.span(label_start, label_end)
+    return source.span(label.start, label.end)
+
+
+SQUARE_MARKUP_START_RE = re.compile(r"\[\[|\[[<>]?[Ii][Mm][Gg]\[")
 
 
 def _attach_argument_nodes(source: TextSource, node: CstNode, spec: MacroSpec) -> None:
@@ -597,17 +590,24 @@ def _attach_argument_nodes(source: TextSource, node: CstNode, spec: MacroSpec) -
             node.children.append(CstNode(
                 arg.content_span, "prose_text", name="macro_arg", role="argument",
             ))
-        if arg.lexeme_kind != "square_bracket" or not arg.raw_text.startswith("[["):
+        if arg.lexeme_kind != "square_bracket" or SQUARE_MARKUP_START_RE.match(arg.raw_text) is None:
             continue
         start = source.char_start(arg.raw_span.start)
         end = source.char_start(arg.raw_span.end)
-        markup = CstNode(arg.raw_span, "protected_markup", name="link", role="markup")
-        label = _link_label(source, start, end) if arg.index in spec.square_label_args else None
-        if label is not None:
-            markup.children.append(CstNode(
-                label, "prose_text", name="link_label", role="label",
-            ))
-        node.children.append(markup)
+        markup = parse_square_markup(source.text, start, end)
+        markup_node = CstNode(
+            arg.raw_span,
+            "protected_markup",
+            name="link" if (markup.is_link or markup.error is not None) else "image",
+            role="markup",
+        )
+        if markup.is_link and markup.error is None and arg.index in spec.square_label_args:
+            label = exposed_label(markup)
+            if label is not None:
+                markup_node.children.append(CstNode(
+                    source.span(label.start, label.end), "prose_text", name="link_label", role="label",
+                ))
+        node.children.append(markup_node)
 
 
 def _collect_tree_exposure(passage: Passage) -> None:
@@ -645,7 +645,7 @@ def _collect_markup(source: TextSource, passage: Passage, start: int, end: int, 
             scan = _parse_macro(source, pos, end)
             pos = max(scan.end, pos + 1)
             continue
-        if text.startswith("[[", pos):
+        if SQUARE_MARKUP_START_RE.match(text, pos):
             link_end = _consume_square(text, pos, end)
             if link_end is not None:
                 link_span = source.span(pos, link_end)

@@ -122,7 +122,7 @@ manifest의 각 entry에 대해:
 
 | 진단 | before | after |
 |---|---:|---:|
-| unclassified_argument | 23,206 | 23,206 |
+| unclassified_argument | 23,206 | 23,161 |
 | invalid_macro_name | 5 | 5 |
 | malformed_macro | 1 | 1 |
 | mismatched_close | 0 | 0 |
