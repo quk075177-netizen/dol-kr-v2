@@ -1,0 +1,165 @@
+# 번역 재사용성(Reuse) 설계
+
+기준일: 2026-08-08
+상태: 설계 (구현 전)
+
+## 목적
+
+번역 결과물을 **저장·추적·재사용**한다. 같은 원문은 다시 번역하지 않고,
+원문이 변경됐을 때만 해당 유닛을 재번역한다. 3-match 재사용(KO 기존 번역
+승격)과 Gemini 신규 번역이 같은 저장소·같은 흐름을 쓰게 한다.
+
+## 핵심 개념: 원문 해시 기반 식별
+
+번역 유닛의 식별은 **원문 텍스트의 해시**다. 위치(span)는 원문이
+조금만 바뀌어도 바뀌므로 재사용 키로 부적합하다.
+
+| 키 | 용도 |
+|---|---|
+| `source_text_hash` (sha256 of masked_text) | **재사용 판정의 유일 키** |
+| `unit_id` (source_path:passage:span) | 현재 위치 참조용 (재사용 키 아님) |
+| `request_id` | 번역 요청(배치) 단위 추적 |
+
+```text
+translate(masked_text) → translated_text
+reuse key = sha256(masked_text)
+```
+
+## 저장소 스키마 (번역 유닛 단위 JSONL)
+
+`work/translations/translations.jsonl` (Git 제외):
+
+```json
+{
+  "record_id": "tr_<hash 12자>_<seq>",
+  "source_text_hash": "a1b2...",
+  "source_text": "Hello there __DOLKR_P000000__",
+  "translated_text": "안녕하세요 __DOLKR_P000000__",
+  "source_path": "game/overworld-town/loc-cafe/main.twee",
+  "passage_name": "Ocean Breeze",
+  "unit_id": "loc-cafe:Ocean Breeze:1234",
+  "request_id": "req_20260808_001",
+  "model": "gemini-2.5-flash-lite",
+  "temperature": 0.7,
+  "created_at": "2026-08-08T06:00:00Z",
+  "placeholder_ok": true,
+  "post_status": "static_done | runtime_remaining | none",
+  "source": "gemini | ko_reuse | owner_approved"
+}
+```
+
+- `record_id`: 고유 레코드 ID — 재번역 시 **새 레코드**가 추가되고 이전
+  레코드는 superseded 표시를 하지 않고 남긴다 (추적성).
+- `source_text_hash`: 재사용 판정 키. source_text 전체를 sha256.
+- `placeholder_ok`: restore 검증 통과 여부 (번역 시점에 확인).
+- `post_status`: post 처리 상태 (정적 치환 완료 / 런타임 마커 잔존 / 해당 없음).
+- `source`: `gemini`(신규), `ko_reuse`(3-match 승격), `owner_approved`(검수 승인).
+
+## 재사용 판정 규칙
+
+```text
+input: passage → mask → chunk → unit(masked_text)
+
+1. hash = sha256(unit.masked_text)
+2. 저장소에서 hash 매칭 레코드 검색
+   - 최신 레코드의 placeholder_ok == true and source != superseded
+   → 그 translated_text 재사용 (번역 API 호출 없음)
+3. 매칭 없음 → 번역 API 호출 → 새 레코드 저장
+```
+
+주의:
+
+- **masked_text에 placeholder 토큰이 포함**되어 있으므로, 같은 문장이라도
+  placeholder 번호가 다르면 hash가 다르다. placeholder 번호는 passage
+  내 위치에 의존하므로 **passage가 바뀌면 재사용 불가** — 이건 의도된
+  보수적 동작이다 (placeholder가 원본 매크로와 연결되므로 위치가
+  바뀌면 복원 대상이 달라진다).
+- 선택적 완화: placeholder 토큰을 `{P}`로 일반화한 hash를 보조 키로 두면
+  "같은 문장 + 다른 매크로 위치" 재사용이 가능하다. 첫 구현에서는
+  **완전 hash만** 사용하고, 일반화 hash는 후순위로 둔다.
+
+## request_id 추적
+
+`request_id`는 한 번의 배치 실행(파일럿/전체 corpus) 단위로 발급한다:
+
+```text
+req_<yyyymmdd>_<seq>
+```
+
+- 배치 시작 시 생성, 모든 레코드에 기록
+- 동일 배치 재실행 시 새 request_id — 이전 배치 결과와 비교 가능
+- 재번역 원인 조사용 (모델 변경/프롬프트 변경 시 이전 결과와 diff)
+
+## 검수 → 승격 흐름
+
+```text
+Gemini 번역 (request_id 발급, source=gemini)
+  → placeholder_ok 확인
+  → post 정적 치환 적용 (post_status 기록)
+  → 검수 (owner) → 승인 → source=owner_approved
+```
+
+- 승인 레코드는 재사용 우선순위가 가장 높다 (LLM 재번역보다 신뢰).
+- 검수 전 레코드는 재사용 가능하되 "미검수" 상태로 표시한다
+  (필요하면 `reviewed: bool` 필드).
+
+## 3-match 재사용 통합
+
+```text
+corpus-triple-match.jsonl (KO body, 【 】마커 포함)
+  → normalize_markers (【 】→{{post:...}})
+  → resolve_static (정적 조사 확정)
+  → source_text_hash = sha256(masked_text)
+  → KO body의 번역 텍스트를 record로 등록 (source=ko_reuse)
+  → 이후 같은 원문이 파이프라인에 들어오면 hash 매칭으로 재사용
+```
+
+- 마커 없는 44%(3,169 passage)부터 등록
+- 마커 있는 56%는 동적 마커가 남은 상태로 등록 (post_status=runtime_remaining)
+  → 게임 런타임 helper가 처리
+
+## 구현 순서
+
+### R1. 저장소 모듈 (`translation/store.py`)
+
+- `load_translations(path)` → dict[hash, list[record]]
+- `find_reuse(hash, records)` → 최신 유효 레코드 or None
+- `append_record(record, path)` → JSONL append (결정적 정렬)
+- 유닛 테스트: hash 매칭, superseded 처리, 중복 append
+
+### R2. 재사용 파이프라인 연결
+
+- `translate_unit`에 `store` 파라미터 추가
+- hash 매칭 시 API 호출 없이 저장된 번역 반환
+- 매칭 없으면 번역 + 저장
+
+### R3. 3-match 등록 스크립트 (`translation/register_ko_reuse.py`)
+
+- triple-match JSONL → 마커 정규화 → record 등록
+- 마커 없는 passage부터, 단계적으로
+
+### R4. 배치 실행 시 request_id 자동 발급
+
+- pilot.py / 새 배치 CLI에 `--request-id` 옵션
+- 미지정 시 자동 생성
+
+## 완료 기준
+
+- 같은 유닛 2회 번역 시 2회째는 API 호출 0 (저장소 hit)
+- 원문 변경 시 새 hash → 재번역
+- 3-match 마커 없는 passage가 재사용으로 처리됨
+- request_id로 배치별 번역 결과 추적 가능
+- placeholder_ok=false 레코드는 재사용되지 않음
+
+## 비용 효과 예상
+
+- 3-match 마커 없는 3,169 passage의 유닛 수 × 유닛당 API 비용 절감
+- 유닛 재방문(전체 corpus 재번역 시 동일 문장 반복) 절감
+- 정확한 수치는 R2 구현 후 재사용 hit rate로 측정
+
+## 참고
+
+- 청킹: `docs/chunking-strategy.md` (masked_text = 재사용 키 원천)
+- post: `docs/post-system-design.md` (post_status 연동)
+- 3-match: `research/triple-match-and-post.md`
+- 파일럿: `docs/pilot-report.md`
