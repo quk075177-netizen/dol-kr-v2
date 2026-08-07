@@ -58,6 +58,15 @@ class PretranslationCstTests(unittest.TestCase):
         self.assertTrue(any(item.code == "unclassified_argument" for item in artifact.diagnostics))
         self.assertEqual(restore_mask(artifact), body[source.passages[0].body_span.start:source.passages[0].body_span.end])
 
+    def test_residual_schema_maps_structural_args_and_prose_explanation(self) -> None:
+        body = b':: Test\n<<case "a" "b" "c">><<insufficientStat "promiscuity" "to continue">>\n'
+        source = parse_file(body, "fixture.twee", VALUE_KINDS)
+        passage = source.passages[0]
+        self.assertFalse(any(item.code == "unclassified_argument" for item in passage.diagnostics))
+        artifact = mask_passage(body, passage)
+        self.assertTrue(any(segment.kind == "macro_arg" and segment.text == "to continue" for segment in artifact.segments))
+        self.assertEqual(restore_mask(artifact), body[passage.body_span.start:passage.body_span.end])
+
     def test_special_passage_body_is_opaque(self) -> None:
         body = (
             b":: StoryData\n{\"ifid\":\"x\",\"fake\":\"<<gagged_speech 'no'>>\"}\n"
@@ -206,6 +215,51 @@ class PretranslationCstTests(unittest.TestCase):
         artifact = mask_passage(body, source.passages[0])
         self.assertNotIn("Not a display label", artifact.masked_text)
         self.assertFalse(any(segment.kind == "link_label" for segment in artifact.segments))
+
+    def test_standalone_link_label_is_a_cst_leaf_under_root(self) -> None:
+        body = b":: Links\nintro [[Plain label|Target]] tail\n"
+        source = parse_file(body, "links-standalone.twee", VALUE_KINDS)
+        passage = source.passages[0]
+        self.assertIsNotNone(passage.root)
+        markup_nodes = [child for child in passage.root.children if child.node_type == "protected_markup"]
+        self.assertEqual(len(markup_nodes), 1)
+        markup = markup_nodes[0]
+        self.assertEqual(markup.name, "link")
+        self.assertEqual(passage.root, passage.node_index[markup.parent_id])
+        labels = [child for child in markup.children if child.node_type == "prose_text" and child.name == "link_label"]
+        self.assertEqual(len(labels), 1)
+        self.assertEqual(body[labels[0].span.start:labels[0].span.end], b"Plain label")
+        artifact = mask_passage(body, passage)
+        self.assertIn("Plain label", artifact.masked_text)
+        self.assertTrue(any(segment.kind == "link_label" and segment.text == "Plain label" for segment in artifact.segments))
+        self.assertEqual(restore_mask(artifact), body[passage.body_span.start:passage.body_span.end])
+
+    def test_standalone_dynamic_link_label_has_no_exposed_leaf(self) -> None:
+        body = b":: Links\n[[Dynamic $name|Target]]\n"
+        source = parse_file(body, "links-dynamic.twee", VALUE_KINDS)
+        passage = source.passages[0]
+        markup = next(child for child in passage.root.children if child.node_type == "protected_markup")
+        self.assertEqual(markup.name, "link")
+        self.assertFalse(any(child.node_type == "prose_text" for child in markup.children))
+        artifact = mask_passage(body, passage)
+        self.assertNotIn("Dynamic $name", artifact.masked_text)
+        self.assertFalse(any(segment.kind == "link_label" for segment in artifact.segments))
+        self.assertEqual(restore_mask(artifact), body[passage.body_span.start:passage.body_span.end])
+
+    def test_standalone_link_inside_container_is_a_child_of_branch(self) -> None:
+        body = b":: Branch\n<<if $x>>[[Next|Target]]<</if>>\n"
+        source = parse_file(body, "links-branch.twee", VALUE_KINDS)
+        passage = source.passages[0]
+        container = next(node for node in passage.nodes if node.name == "if")
+        branch = next(child for child in container.children if child.node_type == "macro_branch")
+        markup = next(child for child in branch.children if child.node_type == "protected_markup" and child.name == "link")
+        self.assertEqual(markup.name, "link")
+        ancestors = passage.get_ancestors(markup.children[0].node_id)
+        self.assertIn(branch, ancestors)
+        self.assertIn(container, ancestors)
+        artifact = mask_passage(body, passage)
+        self.assertIn("Next", artifact.masked_text)
+        self.assertEqual(restore_mask(artifact), body[passage.body_span.start:passage.body_span.end])
 
 
 if __name__ == "__main__":

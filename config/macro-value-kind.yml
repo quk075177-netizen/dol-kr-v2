@@ -130,6 +130,13 @@
           "evidence": [
             "call"
           ]
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "event delay/expression"
         }
       }
     },
@@ -690,6 +697,20 @@
           ],
           "note": "assigned to $_bodypart"
         },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "body liquid type"
+        },
+        "2": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "body liquid amount"
+        },
         "3": {
           "note": "passed to >error()"
         }
@@ -789,6 +810,18 @@
           "evidence": [
             "call"
           ]
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        },
+        "2": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
         }
       }
     },
@@ -871,6 +904,20 @@
           "evidence": [
             "call"
           ]
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "additional switch case value"
+        },
+        "2": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "additional switch case value"
         }
       }
     },
@@ -3456,6 +3503,13 @@
           ],
           "note": "passed to >switch()"
         },
+        "1": {
+          "kind": "prose_text",
+          "evidence": [
+            "call"
+          ],
+          "note": "insufficient-stat explanation shown to the player"
+        },
         "2": {
           "note": "assigned to $_color"
         }
@@ -4844,6 +4898,13 @@
             "call"
           ],
           "note": "passed to >print()"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "note style/color"
         }
       }
     },
@@ -6490,6 +6551,13 @@
           "evidence": [
             "call"
           ]
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "unlock key"
         }
       }
     },
@@ -7304,6 +7372,13 @@
             "call"
           ],
           "note": "passed to >switch()"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "transformation amount"
         }
       }
     },

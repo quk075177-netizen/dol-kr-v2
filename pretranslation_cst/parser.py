@@ -573,14 +573,6 @@ def _consume_variable(text: str, start: int, limit: int) -> int:
     return pos
 
 
-def _link_label(source: TextSource, start: int, end: int) -> Span | None:
-    markup = parse_square_markup(source.text, start, end)
-    label = exposed_label(markup)
-    if label is None:
-        return None
-    return source.span(label.start, label.end)
-
-
 SQUARE_MARKUP_START_RE = re.compile(r"\[\[|\[[<>]?[Ii][Mm][Gg]\[")
 
 
@@ -623,6 +615,57 @@ def _collect_tree_exposure(passage: Passage) -> None:
     visit(passage.root)
 
 
+def _standalone_markup_nodes(
+    source: TextSource,
+    start: int,
+    end: int,
+    ignored: list[Span],
+) -> list[CstNode]:
+    """Find standalone ``[[...]]`` / image markup outside macros and definitions.
+
+    Each markup element becomes a ``protected_markup`` leaf node so the tree
+    builder can place it under ``passage_root`` (or the active container/branch)
+    alongside text and macro nodes.  A static link display label is attached as
+    a ``link_label`` ``prose_text`` child, mirroring
+    ``_attach_argument_nodes``.
+    """
+    text = source.text
+    pos = start
+    ignored = sorted(ignored)
+    ignored_index = 0
+    nodes: list[CstNode] = []
+    while pos < end:
+        byte_pos = source.byte_start(pos)
+        while ignored_index < len(ignored) and ignored[ignored_index].end <= byte_pos:
+            ignored_index += 1
+        if ignored_index < len(ignored) and ignored[ignored_index].start <= byte_pos < ignored[ignored_index].end:
+            pos = source.char_start(ignored[ignored_index].end)
+            continue
+        if not SQUARE_MARKUP_START_RE.match(text, pos):
+            pos += 1
+            continue
+        markup_end = _consume_square(text, pos, end)
+        if markup_end is None:
+            pos += 1
+            continue
+        markup = parse_square_markup(text, pos, markup_end)
+        markup_node = CstNode(
+            source.span(pos, markup_end),
+            "protected_markup",
+            name="link" if (markup.is_link or markup.error is not None) else "image",
+            role="markup",
+        )
+        if markup.is_link and markup.error is None:
+            label = exposed_label(markup)
+            if label is not None:
+                markup_node.children.append(CstNode(
+                    source.span(label.start, label.end), "prose_text", name="link_label", role="label",
+                ))
+        nodes.append(markup_node)
+        pos = markup_end
+    return nodes
+
+
 def _collect_markup(source: TextSource, passage: Passage, start: int, end: int, ignored: list[Span]) -> None:
     text = source.text
     pos = start
@@ -648,11 +691,6 @@ def _collect_markup(source: TextSource, passage: Passage, start: int, end: int, 
         if SQUARE_MARKUP_START_RE.match(text, pos):
             link_end = _consume_square(text, pos, end)
             if link_end is not None:
-                link_span = source.span(pos, link_end)
-                passage.protected_spans.append(link_span)
-                label = _link_label(source, pos, link_end)
-                if label is not None:
-                    passage.exposed_candidates.append((label, "link_label"))
                 pos = link_end
                 continue
         if text[pos] == "<":
@@ -714,10 +752,12 @@ def _build_tree(
     definitions: list[CstNode],
     source: TextSource,
     registry: MacroRegistry,
+    markup_nodes: list[CstNode] | None = None,
 ) -> None:
     root = CstNode(passage.body_span, "passage_root", role="root")
     passage.root = root
-    all_events = sorted([*macros, *definitions], key=lambda node: (node.span.start, node.span.end))
+    markup_nodes = markup_nodes or []
+    all_events = sorted([*macros, *definitions, *markup_nodes], key=lambda node: (node.span.start, node.span.end))
     stack: list[CstNode] = [root]
     last = passage.body_span.start
 
@@ -729,6 +769,11 @@ def _build_tree(
         add_text(last, node.span.start, stack[-1])
         if node.node_type == "widget_definition_opaque":
             root.children.append(node)
+            last = node.span.end
+            continue
+        if node.node_type == "protected_markup":
+            stack[-1].children.append(node)
+            passage.protected_spans.append(node.span)
             last = node.span.end
             continue
         if node.name.startswith("/"):
@@ -863,10 +908,12 @@ def parse_passage(
         passage.protected_spans.append(node.span)
         pos = scan.end
     passage.nodes.extend(definitions)
-    _collect_markup(source, passage, start, end, [*definition_spans, *(node.span for node in macros)])
-    _build_tree(passage, macros, definitions, source, registry)
+    markup_nodes = _standalone_markup_nodes(source, start, end, [*definition_spans, *(node.span for node in macros)])
+    _collect_markup(source, passage, start, end, [*definition_spans, *(node.span for node in macros), *(node.span for node in markup_nodes)])
+    _build_tree(passage, macros, definitions, source, registry, markup_nodes)
     _collect_tree_exposure(passage)
     passage.protected_spans = _merge_spans(passage.protected_spans)
+    passage.nodes.extend(markup_nodes)
     passage.nodes.sort(key=lambda node: (node.span.start, node.span.end))
     return passage
 

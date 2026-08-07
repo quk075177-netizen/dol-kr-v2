@@ -31,6 +31,22 @@ The stale positional `if[0]` mapping entry was also removed; all raw macros now
 have no value-kind positional entries.
 The after verification had zero schema violations and zero malformed JSONL rows.
 
+## Follow-up Batch 1
+
+After the initial schema migration, an evidence-backed batch classified only
+structural arguments and one player-facing explanation:
+
+- structural: `case[1..2]`, `addinlineevent[1]`, `bodyliquid[1..2]`, `note[1]`,
+  `transform[1]`, `specialClothesUnlock[1]`
+- `prose_text`: `insufficientStat[1]`
+
+Against the previous corpus baseline, this batch changed diagnostics from
+`23,216` total (`unclassified_argument` `23,206`) to `20,865` total
+(`unclassified_argument` `20,855`). Exposed segments changed from
+`529,674` to `529,864`: `macro_arg` `525 -> 715`, while `link_label` and
+`plain_text` remained unchanged. Restore and tree invariant failures remained
+zero.
+
 ## Prioritized Deltas
 
 All entries below are `macro[index]: before -> after` residual counts.

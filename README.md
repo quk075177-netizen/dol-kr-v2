@@ -20,6 +20,7 @@ Twee 레이어가 안정된 뒤 별도 frontend로 검토한다.
 - [value-kind와 fail-safe 정책](docs/value-kind-policy.md)
 - [검증과 완료 조건](docs/validation.md)
 - [파서 구조 개선 로드맵](docs/parser-remediation-roadmap.md)
+- [CST 완성 진행 계획](docs/cst-completion-plan.md)
 - [문서 인덱스](docs/README.md)
 
 조사 원문과 생성된 데이터셋은 [research/](research/)에 보관한다. `research/`
