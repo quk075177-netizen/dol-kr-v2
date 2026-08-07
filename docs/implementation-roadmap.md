@@ -5,6 +5,11 @@
 목표는 짧은 함수와 평범한 자료구조를 사용해, parser를 처음 보는 사람도 한 파일의
 규칙을 고칠 수 있게 하는 것이다.
 
+> 검수 후 확인된 argument dispatch, macro registry, nested markup 문제의 원인과
+> 후속 작업 순서는 [parser-remediation-roadmap.md](parser-remediation-roadmap.md)를
+> 따른다. 아래 `[완료]` 표시는 최초 기능 범위 구현 여부이며, 추출 품질까지 완료되었다는
+> 뜻은 아니다.
+
 ## 구조 원칙
 
 - 외부 의존성 없이 Python 표준 라이브러리만 사용한다.
@@ -13,7 +18,8 @@
 - boundary 탐색, passage 분류, CST 조립, masking을 서로 다른 모듈에 둔다.
 - 실패하면 prose로 추정하지 않고 보호 span과 진단을 남긴다.
 - public API는 `parse_file`, `split_twee`, `mask_passage`, `restore_mask`와
-  dataclass 모델로 제한한다.
+  dataclass 모델로 제한한다. 검증용 명령은 `python3 -m pretranslation_cst.verify`로
+  별도 제공한다.
 
 ## 단계
 

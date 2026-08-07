@@ -54,6 +54,20 @@ UTF-8 BOM 파일은 발견되지 않았다. 중첩 widget 정의도 현재 원�
 byte-exact로 통과했다. 전체 CLI 출력은 16,135행이었고, 대표 디렉터리 2회 실행의
 JSONL SHA-256이 동일했다.
 
+## unclassified 일관성 검사
+
+JSONL의 `unclassified_argument`가 실제 schema 누락인지 확인하려면 다음 명령을
+실행한다. 이 검사는 JSONL을 한 줄씩 읽고, macro 이름과 argument index가
+`macro-value-kind`에 존재하면 실패한다.
+
+```bash
+python3 -m pretranslation_cst.verify /tmp/dolkr-cst-full.jsonl \
+  --value-kind research/data/macro-value-kind.yml
+```
+
+`violations=0`이고 exit code가 0이어야 한다. `macro_missing`은 macro key 자체가
+없는 경우, `argument_missing`은 macro는 있지만 해당 인자 위치가 없는 경우다.
+
 ## Golden 데이터셋
 
 `research/golden/`을 검증 입력으로 사용한다.
