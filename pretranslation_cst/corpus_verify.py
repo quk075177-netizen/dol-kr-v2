@@ -375,6 +375,9 @@ def collect_known_macro_names(root: Path) -> frozenset[str]:
         text = path.read_bytes().decode("utf-8", errors="replace")
         names.update(re.findall(r'Macro\.add\(\s*["\']([^"\']+)["\']', text))
         names.update(re.findall(r'DefineMacroS?\(\s*["\']([^"\']+)["\']', text))
+        # statDisplay.create registers stat-change macros dynamically
+        # (gstress = Stress +1, lstress = Stress -1, ...).
+        names.update(re.findall(r'statDisplay\.create\(\s*["\']([^"\']+)["\']', text))
     return frozenset(names)
 
 

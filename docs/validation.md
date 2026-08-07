@@ -143,7 +143,8 @@ kind의 회귀는 exit code 2를 낸다.
 - unclosed_container 2, invalid_macro_name 5, malformed_macro 1,
   unterminated_comment 2 (모두 allowlist 매칭)
 - unclassified_argument 0
-- unknown_macro 24,704 (위젯·JS 매크로 제외한 미등록 — g/l 접두사 런타임 매크로 추정) (value-kind 검수 반영, `docs/value-kind-audit-report.md`)
+- unknown_macro 238 (statDisplay.create 405개·위젯·SC built-in 등록 후 잔여 —
+  exit/exitAll 218건 정의 미발견, 별도 조사 대상) (value-kind 검수 반영, `docs/value-kind-audit-report.md`)
 - segments: link_label 39,157, macro_arg 1,768, plain_text 759,058
 - exposed segments 799,983, placeholders 798,038
 - protected coverage 평균 0.576128

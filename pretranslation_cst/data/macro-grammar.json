@@ -379,6 +379,34 @@
     "runeventpool": {
       "arg_mode": "raw",
       "source": "game_js"
+    },
+    "include": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
+    },
+    "addclass": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
+    },
+    "removeclass": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
+    },
+    "toggleclass": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
+    },
+    "numberbox": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
+    },
+    "textbox": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
+    },
+    "textarea": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
     }
   }
 }

@@ -354,7 +354,7 @@ class AuditManifestTests(unittest.TestCase):
         report = audit_manifest(GRAMMAR, ROOT / "game", sc_specs, ALLOWLIST,
                                 game_specs_override=game_specs)
         self.assertTrue(report.ok, [issue.to_dict() for issue in report.errors])
-        self.assertEqual(len(report.trace), 73)
+        self.assertEqual(len(report.trace), 80)
         self.assertEqual(report.trace["silently"]["source"], "sugarcube_deprecated")
         self.assertEqual(report.trace["button"]["source"], "game_override")
         self.assertEqual(report.trace["radiovar"]["source"], "game_js")
