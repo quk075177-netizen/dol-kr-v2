@@ -28,5 +28,13 @@ Twee 레이어가 안정된 뒤 별도 frontend로 검토한다.
 
 ## 상태
 
-계층형 CST 요구사항을 반영해 parser 구현을 재설계하는 중이다. 기존
-flat-list WIP는 검증되지 않은 초안으로 취급한다.
+CST 완성. 세 완료 계약(Lossless/Structural/Extraction)이 모두 성립한다.
+
+- 642개 파일, 16,135개 passage round-trip 0 failures, 2회 실행 byte-identity
+- `unclassified_argument` 18건으로 수렴 (raw expression 제외, parsed
+  positional residual만)
+- standalone `[[...]]`와 string-form `<<link "Label" "Target">>` 정적 라벨이
+  tree에 leaf로 연결되어 parent context를 가진다
+- `link_label` 32,908 / `macro_arg` 952 / `plain_text` 496,421 노출
+
+자세한 진행 기록은 [docs/cst-completion-plan.md](docs/cst-completion-plan.md).
