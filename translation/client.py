@@ -143,11 +143,21 @@ def build_prompt(unit: TranslateUnit, index: int, total: int) -> list[dict[str, 
     ]
 
 
-def translate_unit(unit: TranslateUnit, index: int = 0, total: int = 1, max_retries: int = 2) -> TranslatedUnit:
+def translate_unit(unit: TranslateUnit, index: int = 0, total: int = 1, max_retries: int = 3) -> TranslatedUnit:
     """Translate one unit, retrying when the model drops/duplicates placeholders."""
     last_text = ""
+    n_placeholders = len(unit.placeholders)
     for attempt in range(max_retries + 1):
         contents = build_prompt(unit, index, total)
+        if attempt > 0:
+            # Re-emphasise preservation on retries, especially for
+            # placeholder-dense units where the model tends to compress.
+            extra = (
+                f"\nIMPORTANT: this unit has exactly {n_placeholders} placeholder"
+                f" tokens. Your previous attempt dropped or duplicated some.\n"
+                f"Count them as you go and keep ALL {n_placeholders} tokens exactly once."
+            )
+            contents[0]["parts"][0]["text"] += extra
         text = _generate(contents)
         last_text = text
         if not verify_placeholders(unit, text):

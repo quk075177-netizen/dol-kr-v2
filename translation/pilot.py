@@ -1,12 +1,14 @@
-"""Pilot: translate a few sample passages end-to-end with Gemini.
+"""Pilot: translate sample passages end-to-end with Gemini.
 
 Usage:
-    python3 -m translation.pilot [--passage-name NAME] [--max-units N]
+    python3 -m translation.pilot --passage-name "Ocean Breeze" [--max-units 10]
+    python3 -m translation.pilot --batch --out /tmp/opencode/pilot.jsonl
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from pretranslation_cst.chunking import chunk_passage
@@ -22,73 +24,132 @@ from .client import (
 )
 
 SAMPLE_FILES = [
-    "game/overworld-town/loc-cafe/main.twee",
-    "game/overworld-town/loc-flats/main.twee",
-    "game/overworld-forest/loc-cabin/main.twee",
+    "game/overworld-town/loc-cafe/main.twee",        # 대화
+    "game/overworld-town/loc-flats/main.twee",       # 대화/이벤트
+    "game/overworld-forest/loc-cabin/main.twee",     # 이벤트
+    "game/base-combat/man-combat.twee",              # 전투
+    "game/base-combat/actions-text.twee",            # 전투(성인)
+    "game/01-config/versionInfo.twee",               # UI
+    "game/base-system/settings.twee",                # 설정
+    "game/overworld-forest/loc-forestshop/gwylan-events.twee",  # 성인
 ]
+
+# 유형별 대표 passage: (파일, passage 이름)
+BATCH_PASSAGES = [
+    ("game/overworld-town/loc-cafe/main.twee", "Ocean Breeze"),              # 대화
+    ("game/base-combat/man-combat.twee", "Widgets Combat Man-Combat"),       # 전투
+    ("game/01-config/versionInfo.twee", "Widgets Version Info"),             # UI
+    ("game/base-system/settings.twee", "Widgets Settings"),                  # 설정
+    ("game/overworld-forest/loc-forestshop/gwylan-events.twee",
+     "Gwylan Ocean Breeze Watch"),                                           # 성인
+]
+
+
+def run_passage(path: Path, passage, max_units: int, out_handle=None) -> tuple[int, int, int]:
+    """Translate one passage; returns (units_ok, units_with_problems, total_units)."""
+    data = path.read_bytes()
+    artifact = mask_passage(data, passage)
+    units = chunk_passage(passage, artifact, data)
+    print(f"passage: {passage.name} ({len(units)} units, {len(artifact.masked_text)} chars)")
+    ok = 0
+    problems = 0
+    translated_units: list[TranslatedUnit] = []
+    for index, unit in enumerate(units[:max_units]):
+        tu = translate_unit(unit, index, len(units))
+        probs = verify_placeholders(unit, tu.translated_text)
+        if probs:
+            problems += 1
+            print(f"  unit {index + 1}: PLACEHOLDER PROBLEM {probs}")
+            print(f"    original: {unit.masked_text[:200]!r}")
+            print(f"    translated: {tu.translated_text[:200]!r}")
+        else:
+            ok += 1
+        translated_units.append(tu)
+        if out_handle is not None:
+            row = {
+                "source_path": unit.source_path,
+                "passage_name": unit.passage_name,
+                "unit_index": unit.unit_index,
+                "unit_count": unit.unit_count,
+                "char_count": unit.char_count,
+                "masked_text": unit.masked_text,
+                "translated_text": tu.translated_text,
+                "ancestors": unit.ancestors,
+                "placeholder_ok": not probs,
+            }
+            out_handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+    if len(translated_units) == len(units):
+        try:
+            restored = restore_translated(artifact, translated_units)
+            remaining = [ph.placeholder for ph in artifact.placeholders
+                         if ph.placeholder.encode("utf-8") in restored]
+            print(f"  restore: {len(restored)} bytes, remaining tokens: {len(remaining)}")
+        except Exception as exc:
+            print(f"  restore failed: {exc}")
+    return ok, problems, len(units[:max_units])
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Pilot translation with Gemini")
     parser.add_argument("--passage-name", type=str, default="")
+    parser.add_argument("--file", type=str, default="", help="twee file to scan")
     parser.add_argument("--max-units", type=int, default=6)
+    parser.add_argument("--batch", action="store_true", help="run BATCH_PASSAGES")
+    parser.add_argument("--out", type=str, default="", help="JSONL output path")
     args = parser.parse_args(argv)
 
-    picked: list[tuple[Path, object]] = []
-    for file in SAMPLE_FILES:
-        path = Path(file)
-        data = path.read_bytes()
-        source = parse_file(data, path.as_posix(), DEFAULT_VALUE_KIND_PATH)
-        for passage in source.passages:
-            if passage.is_opaque:
-                continue
-            if args.passage_name and passage.name != args.passage_name:
-                continue
-            picked.append((path, passage))
-    if not picked:
-        print("no passage matched")
-        return 1
+    out_handle = None
+    if args.out:
+        out_handle = open(args.out, "w", encoding="utf-8")
 
     total_ok = 0
     total_problems = 0
-    for path, passage in picked[:1]:
-        data = path.read_bytes()
-        artifact = mask_passage(data, passage)
-        units = chunk_passage(passage, artifact, data)
-        print(f"passage: {passage.name} ({len(units)} units, {len(artifact.masked_text)} chars)")
-        translated_units: list[TranslatedUnit] = []
-        for index, unit in enumerate(units[: args.max_units]):
-            print(f"  translating unit {index + 1}/{args.max_units} "
-                  f"({unit.char_count} chars, {len(unit.placeholders)} placeholders)...")
-            tu = translate_unit(unit, index, len(units))
-            problems = verify_placeholders(unit, tu.translated_text)
-            if problems:
-                total_problems += 1
-                print(f"    PLACEHOLDER PROBLEM: {problems}")
-                print(f"    original: {unit.masked_text[:200]!r}")
-                print(f"    translated: {tu.translated_text[:200]!r}")
-            else:
-                total_ok += 1
-            translated_units.append(tu)
+    total_units = 0
 
-        print("\n--- translated units (first 3) ---")
-        for tu in translated_units[:3]:
-            print(f"\n[unit {tu.unit.unit_index + 1}] {tu.translated_text[:250]}")
-            print(f"  [ok placeholders: {not verify_placeholders(tu.unit, tu.translated_text)}]")
+    if args.batch:
+        for file, passage_name in BATCH_PASSAGES:
+            path = Path(file)
+            data = path.read_bytes()
+            source = parse_file(data, path.as_posix(), DEFAULT_VALUE_KIND_PATH)
+            for passage in source.passages:
+                if passage.is_opaque:
+                    continue
+                if passage.name == passage_name:
+                    ok, problems, n = run_passage(path, passage, args.max_units, out_handle)
+                    total_ok += ok
+                    total_problems += problems
+                    total_units += n
+                    print()
+                    break
+    else:
+        files = [Path(args.file)] if args.file else [Path(f) for f in SAMPLE_FILES]
+        picked = []
+        for path in files:
+            data = path.read_bytes()
+            source = parse_file(data, path.as_posix(), DEFAULT_VALUE_KIND_PATH)
+            for passage in source.passages:
+                if passage.is_opaque:
+                    continue
+                if args.passage_name and passage.name != args.passage_name:
+                    continue
+                picked.append((path, passage))
+        if not picked:
+            print("no passage matched")
+            if out_handle:
+                out_handle.close()
+            return 1
+        for path, passage in picked[:1]:
+            ok, problems, n = run_passage(path, passage, args.max_units, out_handle)
+            total_ok += ok
+            total_problems += problems
+            total_units += n
 
-        # restore check on the whole passage (only units we translated)
-        if len(translated_units) == len(units):
-            try:
-                restored = restore_translated(artifact, translated_units)
-                remaining = [ph.placeholder for ph in artifact.placeholders
-                             if ph.placeholder.encode("utf-8") in restored]
-                print(f"\nrestore: {len(restored)} bytes")
-                print(f"placeholder tokens remaining: {len(remaining)}")
-                print(f"restore clean: {not remaining}")
-            except Exception as exc:
-                print(f"\nrestore failed: {exc}")
+    if out_handle:
+        out_handle.close()
+        print(f"saved: {args.out}")
 
-    print(f"\nplaceholder-clean units: {total_ok}, with problems: {total_problems}")
+    print(f"\nplaceholder-clean units: {total_ok}/{total_units}, with problems: {total_problems}")
     return 0 if total_problems == 0 else 2
 
 
