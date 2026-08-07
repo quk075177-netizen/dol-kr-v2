@@ -20,10 +20,16 @@ restore(mask(passage_bytes)) == passage_bytes
 - quote/backtick/regex/comment 안의 `>>`
 - 단일 `>`와 종결 `>>`
 - nested `[[...]]` 및 link delimiter
+- 순수 literal link label은 노출되고 동적 label은 전체 보호되는지
 - `if/elseif/else`, `switch/case/default`
 - nested container
 - malformed close와 unterminated token
 - widget definition 본문이 opaque인지
+- 중첩 widget 정의에서 바깥 definition만 opaque node가 되는지
+- `StoryData`/`StoryTitle`/`StoryInit`/`StoryInterface`/`StoryMenu`/`StoryShare` body가
+  macro scanner를 건너뛰는지
+- `[script]`와 `[stylesheet]` tag passage body가 통째로 opaque인지
+- UTF-8 BOM이 파일 prefix로 유지되고 모든 offset에 3바이트가 포함되는지
 - unknown/medium confidence argument가 노출되지 않는지
 - `get_ancestors`와 `get_siblings`의 순서·depth
 
@@ -31,12 +37,18 @@ restore(mask(passage_bytes)) == passage_bytes
 
 현재 `game/` 전체 642개 Twee 파일을 대상으로 한다.
 
+2026-08-07 corpus inventory에서는 특수 passage가 3개(`StoryData` 1개,
+`StoryTitle` 1개, `StoryInit` 1개)였고, `[script]`/`[stylesheet]` passage와
+UTF-8 BOM 파일은 발견되지 않았다. 중첩 widget 정의도 현재 원문에서는 발견되지
+않았지만, parser 경계 회귀를 막기 위해 단위 fixture에는 남겨 둔다.
+
 1. 파일 splitter round-trip
 2. 모든 passage의 tree span 유효성 검사
-3. sibling order가 원문 byte 순서와 일치하는지 검사
-4. 모든 node의 parent chain이 cycle 없이 root에 도달하는지 검사
-5. mask/restore byte-exact
-6. 동일 입력 2회 실행 결과 JSONL byte-identical
+3. 특수 passage와 `[script]`/`[stylesheet]` passage가 `passage_opaque`인지 검사
+4. sibling order가 원문 byte 순서와 일치하는지 검사
+5. 모든 node의 parent chain이 cycle 없이 root에 도달하는지 검사
+6. mask/restore byte-exact
+7. 동일 입력 2회 실행 결과 JSONL byte-identical
 
 ## Golden 데이터셋
 

@@ -68,9 +68,36 @@ definition header에서 얻는다. registry에 없는 macro는 leaf call로 보�
 `parseSquareBracketedMarkup`의 depth와 delimiter 규칙을 따른다.
 
 - target/link/setter는 보호
-- 순수 literal display label만 `text` 또는 `prose_text` 후보
-- `$`, `_`, backtick, `${...}`, 문자열 연결이 들어간 label은 전체 보호
+- 순수 literal display label만 `link_label` `prose_text` 후보로 노출
+- `$`, `_`, backtick, `${...}`, 문자열 연결이 들어간 label은 label 전체 보호
 - HTML tag와 comment는 node로 보호하고 내부 fake macro를 재스캔하지 않음
+
+순수 literal label 노출은 이번 구현의 확정 정책이다. “일반 prose로 노출할 수
+있지만 초기에는 통째로 보호한다”와 같은 유보적 예외를 두지 않는다. literal 여부를
+확정할 수 없거나 delimiter가 비정상인 link는 전체 보호하고 diagnostic을 남긴다.
+
+## Opaque passage 경계
+
+splitter가 다음 exact passage name을 만나면 body 전체를 opaque로 넘긴다.
+
+```text
+StoryData StoryTitle StoryInit StoryInterface StoryMenu StoryShare
+```
+
+`StoryData` JSON을 비롯해 이 passage들의 body는 이 문서의 macro boundary나
+argument lexer를 적용하지 않는다. passage header의 `[script]` 또는
+`[stylesheet]` tag도 동일하게 body 전체를 opaque로 만든다. opaque 범위 내부의
+매크로처럼 보이는 토큰은 nested event가 아니다. 내부 JSON·JS·CSS 문법은 검증하지
+않고, splitter가 판별할 수 있는 UTF-8·header·body 경계 문제만 diagnostic으로
+기록한다.
+
+## Widget definition 중첩
+
+widget prepass는 `<<widget>>`와 `<</widget>>`의 depth를 추적한다. 정의 본문 안의
+또 다른 widget 정의는 바깥 정의 범위에 묻히며, 바깥쪽 하나만 definition으로
+인식한다. 따라서 안쪽 header/body의 인자를 분류하거나 별도 CST 자식으로 만들지
+않는다. outer close가 없으면 body 끝까지를 opaque로 확장하고 malformed diagnostic을
+낸다.
 
 ## 최소 fixture
 
@@ -84,3 +111,7 @@ definition header에서 얻는다. registry에 없는 macro는 leaf call로 보�
 - malformed closing tag
 - 한글 앞뒤의 macro byte span
 - widget definition 안의 fake macro가 자식 node가 되지 않는지
+- widget definition 안에 또 다른 widget definition이 있는 중첩 케이스
+- `StoryData` JSON과 `StoryInit`/`StoryMenu` 등 특수 passage body가 재스캔되지 않는지
+- `[script]`/`[stylesheet]` tag passage의 JS/CSS가 통째로 opaque인지
+- BOM이 있는 UTF-8 파일에서 BOM이 prefix로 보존되고 byte span에 포함되는지

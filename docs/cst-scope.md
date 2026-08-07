@@ -40,6 +40,9 @@ JS 파일에는 passage가 없으므로 Twee parser에 억지로 포함하지 �
 
 - 모든 offset은 파일 기준 UTF-8 byte offset이다.
 - span은 0-based 반개구간 `[start, end)`다.
+- 파일 시작에 UTF-8 BOM(`EF BB BF`)이 있으면 BOM 3바이트도 파일 offset과
+  `prefix_span`에 포함한다. BOM은 passage header/body에 속하지 않지만 assemble 시
+  그대로 보존하며, 첫 `::` header는 BOM 뒤에서 인식한다.
 - passage-local offset이나 JavaScript UTF-16 index를 공개 결과에 사용하지 않는다.
 - 공백, 개행, 따옴표, escape, 대소문자, 주석을 정규화하지 않는다.
 - CST에서 원문을 재직렬화해 assemble하지 않는다.
@@ -86,6 +89,7 @@ children[]       자식 node를 원문 순서대로 보관
 | `prose_text` | 노출 가능한 매크로 인자 문자열 segment |
 | `protected_markup` | link target, HTML, comment, variable, expression 등 |
 | `widget_definition_opaque` | widget 정의 전체. 자식은 만들지 않음 |
+| `passage_opaque` | 특수 passage 또는 `[script]`/`[stylesheet]` passage의 body 전체. 자식은 만들지 않음 |
 
 ### 부모 관계 예시
 
@@ -143,13 +147,46 @@ tree.get_siblings(node_id)
 각 인자를 분류하거나 CST로 확장하지 않는다. 현재 원문에 `container` 위젯
 사용이 확인되면 정의 header에서 registry metadata만 수집한다.
 
+위젯 정의가 본문 안에서 다시 `<<widget ...>>`를 여는 경우에는 prepass가
+widget depth를 추적한다. 가장 바깥 `<<widget ...>> ... <</widget>>` 범위만
+하나의 `widget_definition_opaque` node로 기록하고, 안쪽 정의와 그 닫기 tag는
+별도 node로 승격하지 않고 바깥 opaque 본문에 포함한다. 바깥 닫기 tag를 찾지
+못하면 passage body 끝까지를 opaque 범위로 삼고 malformed diagnostic을 남긴다.
+
+## 특수 passage와 코드 passage
+
+다음 이름의 passage는 일반 SugarCube prose passage가 아니다.
+
+```text
+StoryData StoryTitle StoryInit StoryInterface StoryMenu StoryShare
+```
+
+splitter는 이 이름을 일반 passage와 똑같이 header/body span으로 보존하지만,
+scanner와 CST builder는 body를 통째로 `passage_opaque`로 기록한다. `StoryData`는
+JSON, 나머지는 설정·UI·초기화 코드 또는 엔진 전용 내용일 수 있으므로 이 레이어에서
+JSON을 파싱하거나 SugarCube macro를 재스캔하지 않는다. body 안의 `<<...>>`, HTML,
+link, 변수처럼 보이는 문자열도 모두 보호한다. opaque body 내부의 JSON·JS·CSS
+문법은 검증하거나 malformed diagnostic을 만들지 않으며, UTF-8·header·body 경계
+같은 splitter 수준의 문제만 진단한다. passage 이름 비교는 위 목록과의 exact match다.
+
+passage header의 tag token이 `[script]` 또는 `[stylesheet]`인 경우에도 같은
+정책을 적용한다. 이 body에는 순수 JavaScript/CSS가 올 수 있으므로 macro, link,
+HTML scanner를 실행하지 않고 전체를 `passage_opaque` 보호 span으로 둔다. 현재
+저장소 corpus에서는 이 두 tag가 발견되지 않았지만, 입력 glob이 `game/**/*.twee`
+전체인 만큼 회귀 fixture로 고정한다. `[widget]` tag만 있는 passage는 이 규칙에
+해당하지 않으며, 그 안의 일반 widget 정의 prepass 정책을 따른다.
+
 ## masking 경계
 
 `prose_text`와 일반 `text` leaf만 노출한다.
 
 보호 대상은 macro syntax, macro의 비-prose 인자, unknown/missing kind 인자,
 변수·표현식, link target/setter, HTML tag, comment, widget definition이다.
-표현식이나 문자열 연결이 포함된 link label은 초기 구현에서 전체 보호한다.
+`[[pure literal label|target]]`처럼 동적 요소가 전혀 없는 display label은
+`link_label` `prose_text` 후보로 노출한다. `$`, `_`, backtick, `${...}` 또는
+문자열 연결이 하나라도 있으면 label 전체와 target/setter를 함께 보호한다. 이
+결정은 초기 구현의 최종 정책이며, 순수 label을 통째로 보호한다는 별도 예외는
+두지 않는다.
 
 마스킹 출력은 원문 노출 segment와 placeholder의 순서 있는 조합이다.
 placeholder에는 원본 span과 복구용 원본 bytes를 연결한다. 입력 passage 안에
@@ -161,10 +198,11 @@ placeholder에는 원본 span과 복구용 원본 bytes를 연결한다. 입력 
 2. lossless Twee splitter
 3. boundary-only event scanner
 4. container/branch stack 기반 tree builder
-5. widget opaque prepass
-6. value-kind fail-safe 분류
-7. tree leaf 기반 masking/restore
-8. fixture와 golden 검증
+5. 특수/tag passage opaque 분류
+6. widget opaque prepass
+7. value-kind fail-safe 분류
+8. tree leaf 기반 masking/restore
+9. fixture와 golden 검증
 
 현재 flat-list WIP를 API만 확장해서 사용하지 않는다. tree builder와 masking을
 처음부터 같은 leaf span 모델 위에 맞춘다.
