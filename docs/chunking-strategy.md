@@ -256,8 +256,9 @@ branch는 이웃 branch와 병합하거나, 부모 container 단위로 유지하
 
 ### widget 정의와 opaque passage
 
-`widget_definition_opaque`와 `passage_opaque`는 노출 segment가 없다.
-분할 대상이 아니다. chunking 모듈은 이 passage들을 건너뛴다.
+`passage_opaque`(특수 passage, `[script]`/`[stylesheet]`)는 노출
+segment가 없다. 분할 대상이 아니다. 위젯 정의는 일반 container처럼
+노출 segment를 가지므로 분할 대상에 포함된다.
 
 ## 완료 기준 (초안)
 

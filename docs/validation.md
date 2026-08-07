@@ -142,9 +142,9 @@ kind의 회귀는 exit code 2를 낸다.
 - malformed_args 0, mismatched_close 0
 - unclosed_container 2, invalid_macro_name 5, malformed_macro 1,
   unterminated_comment 2 (모두 allowlist 매칭)
-- unclassified_argument 18
-- segments: link_label 32,908, macro_arg 952, plain_text 496,421
-- exposed segments 530,281, placeholders 528,336
+- unclassified_argument 9,072
+- segments: link_label 39,157, macro_arg 1,322, plain_text 759,058
+- exposed segments 799,537, placeholders 797,592
 - protected coverage 평균 0.674121
 
 ## Golden 데이터셋

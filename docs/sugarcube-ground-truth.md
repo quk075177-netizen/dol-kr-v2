@@ -91,13 +91,12 @@ argument lexer를 적용하지 않는다. passage header의 `[script]` 또는
 않고, splitter가 판별할 수 있는 UTF-8·header·body 경계 문제만 diagnostic으로
 기록한다.
 
-## Widget definition 중첩
+## Widget definition
 
-widget prepass는 `<<widget>>`와 `<</widget>>`의 depth를 추적한다. 정의 본문 안의
-또 다른 widget 정의는 바깥 정의 범위에 묻히며, 바깥쪽 하나만 definition으로
-인식한다. 따라서 안쪽 header/body의 인자를 분류하거나 별도 CST 자식으로 만들지
-않는다. outer close가 없으면 body 끝까지를 opaque로 확장하고 malformed diagnostic을
-낸다.
+`<<widget>>` 정의는 opaque가 아니라 일반 `macro_container`로 처리한다.
+정의 본문 안의 매크로/텍스트는 일반 passage body처럼 스캔한다. 중첩
+widget 정의는 container 중첩으로 바깥 위젯의 자식이 된다. outer close가
+없으면 `unclosed_container` diagnostic을 남긴다.
 
 ## 최소 fixture
 

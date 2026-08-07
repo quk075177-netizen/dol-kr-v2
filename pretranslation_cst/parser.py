@@ -151,16 +151,16 @@ def _can_start_regex(text: str, start: int, body_start: int) -> bool:
     return text[pos] in "([{:;,=!?&|+-*%^~<>"
 
 
+_SQUARE_OPENER_RE = re.compile(r"\[\[|\[[<>]?[Ii][Mm][Gg]\[")
+
+
 def _consume_square(text: str, start: int, limit: int | None = None) -> int | None:
     """Consume [[...]] or image square markup, including nested [[...]]."""
     limit = len(text) if limit is None else limit
-    if not text.startswith("[", start):
+    match = _SQUARE_OPENER_RE.match(text, start, limit)
+    if match is None:
         return None
-    opener = start + 1
-    while opener < limit and text[opener] in "<>IiMmGg":
-        opener += 1
-    if opener >= limit or text[opener] != "[":
-        return None
+    opener = match.end() - 1  # position of the inner "["
     pos = opener + 1
     depth = 1
     while pos < limit:
@@ -448,45 +448,6 @@ def _opaque_reason(passage: Passage) -> str | None:
     return None
 
 
-def _widget_definitions(source: TextSource, start: int, end: int) -> tuple[list[CstNode], list[Diagnostic]]:
-    definitions: list[CstNode] = []
-    diagnostics: list[Diagnostic] = []
-    open_stack: list[CstNode] = []
-    pos = start
-    while pos < end:
-        scan = _next_macro(source, pos, end)
-        if scan is None:
-            break
-        if scan.node is None:
-            pos = max(scan.end, pos + 1)
-            continue
-        node = scan.node
-        lower = node.name.lower()
-        if lower == "widget":
-            open_stack.append(node)
-        elif lower == "/widget" and open_stack:
-            opening = open_stack.pop()
-            if not open_stack:
-                opening.node_type = "widget_definition_opaque"
-                opening.role = "widget_definition"
-                opening.closing_span = node.span
-                opening.body_span = Span(opening.span.end, node.span.start)
-                opening.span = Span(opening.span.start, node.span.end)
-                definitions.append(opening)
-        pos = scan.end
-    if open_stack:
-        # Even a malformed nested definition stays buried in the outer opaque span.
-        opening = open_stack[0]
-        opening.node_type = "widget_definition_opaque"
-        opening.role = "widget_definition"
-        opening.malformed = True
-        opening.body_span = Span(opening.span.end, source.byte_start(end))
-        opening.span = Span(opening.span.start, source.byte_start(end))
-        definitions.append(opening)
-        diagnostics.append(Diagnostic("unclosed_widget", "widget definition has no closing tag", opening.span, "widget"))
-    return sorted(definitions, key=lambda node: node.span), diagnostics
-
-
 def _in_any(span: Span, ranges: Iterable[Span]) -> bool:
     return any(item.contains(span) or span.contains(item) for item in ranges)
 
@@ -573,7 +534,7 @@ def _consume_variable(text: str, start: int, limit: int) -> int:
     return pos
 
 
-SQUARE_MARKUP_START_RE = re.compile(r"\[\[|\[[<>]?[Ii][Mm][Gg]\[")
+SQUARE_MARKUP_START_RE = _SQUARE_OPENER_RE
 
 
 def _is_exposable_link_label(text: str) -> bool:
@@ -665,6 +626,13 @@ def _standalone_markup_nodes(
         markup_end = _consume_square(text, pos, end)
         if markup_end is None:
             pos += 1
+            continue
+        # A macro span that starts inside the markup would otherwise overlap
+        # as a sibling.  Skip the markup entirely when it swallows one of the
+        # ignored (macro/definition) spans.
+        markup_byte_end = source.byte_start(markup_end)
+        if any(item.start < markup_byte_end and item.end > byte_pos for item in ignored):
+            pos = markup_end
             continue
         markup = parse_square_markup(text, pos, markup_end)
         markup_node = CstNode(
@@ -767,7 +735,6 @@ def _assign_tree_metadata(passage: Passage) -> None:
 def _build_tree(
     passage: Passage,
     macros: list[CstNode],
-    definitions: list[CstNode],
     source: TextSource,
     registry: MacroRegistry,
     markup_nodes: list[CstNode] | None = None,
@@ -775,7 +742,7 @@ def _build_tree(
     root = CstNode(passage.body_span, "passage_root", role="root")
     passage.root = root
     markup_nodes = markup_nodes or []
-    all_events = sorted([*macros, *definitions, *markup_nodes], key=lambda node: (node.span.start, node.span.end))
+    all_events = sorted([*macros, *markup_nodes], key=lambda node: (node.span.start, node.span.end))
     stack: list[CstNode] = [root]
     last = passage.body_span.start
 
@@ -785,10 +752,6 @@ def _build_tree(
 
     for node in all_events:
         add_text(last, node.span.start, stack[-1])
-        if node.node_type == "widget_definition_opaque":
-            root.children.append(node)
-            last = node.span.end
-            continue
         if node.node_type == "protected_markup":
             stack[-1].children.append(node)
             passage.protected_spans.append(node.span)
@@ -896,10 +859,6 @@ def parse_passage(
         return passage
 
     value_kinds = _load_value_kinds(value_kind_path)
-    definitions, definition_diagnostics = _widget_definitions(source, start, end)
-    passage.diagnostics.extend(definition_diagnostics)
-    passage.protected_spans.extend(node.span for node in definitions)
-    definition_spans = [node.span for node in definitions]
     macros: list[CstNode] = []
     pos = start
     while pos < end:
@@ -913,9 +872,6 @@ def parse_passage(
         if scan.node is None:
             pos = max(scan.end, pos + 1)
             continue
-        if _in_any(scan.node.span, definition_spans):
-            pos = scan.end
-            continue
         node = scan.node
         spec = registry.get(node.name)
         _decode_macro_args(source, node, spec, passage.diagnostics)
@@ -925,10 +881,9 @@ def parse_passage(
         passage.nodes.append(node)
         passage.protected_spans.append(node.span)
         pos = scan.end
-    passage.nodes.extend(definitions)
-    markup_nodes = _standalone_markup_nodes(source, start, end, [*definition_spans, *(node.span for node in macros)])
-    _collect_markup(source, passage, start, end, [*definition_spans, *(node.span for node in macros), *(node.span for node in markup_nodes)])
-    _build_tree(passage, macros, definitions, source, registry, markup_nodes)
+    markup_nodes = _standalone_markup_nodes(source, start, end, [*(node.span for node in macros)])
+    _collect_markup(source, passage, start, end, [*(node.span for node in macros), *(node.span for node in markup_nodes)])
+    _build_tree(passage, macros, source, registry, markup_nodes)
     _collect_tree_exposure(passage)
     passage.protected_spans = _merge_spans(passage.protected_spans)
     passage.nodes.extend(markup_nodes)

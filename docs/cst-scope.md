@@ -88,8 +88,10 @@ children[]       자식 node를 원문 순서대로 보관
 | `macro_branch` | `else`, `elseif`, `case` 등 container 분기 |
 | `prose_text` | 노출 가능한 매크로 인자 문자열 segment |
 | `protected_markup` | link target, HTML, comment, variable, expression 등 |
-| `widget_definition_opaque` | widget 정의 전체. 자식은 만들지 않음 |
 | `passage_opaque` | 특수 passage 또는 `[script]`/`[stylesheet]` passage의 body 전체. 자식은 만들지 않음 |
+
+위젯 정의(`<<widget>>`)는 `macro_container`로 처리되며 본문 안에
+text/prose/macro 자식을 가질 수 있다.
 
 ### 부모 관계 예시
 
@@ -136,22 +138,23 @@ tree.get_siblings(node_id)
 
 ## 위젯 정의부
 
-`<<widget "name">> ... <</widget>>`은 호출이 아니라 정의다.
+`<<widget "name">> ... <</widget>>`은 호출이 아니라 정의지만, 정의
+본문 안에는 번역 대상 prose가 있다(UI 라벨, 대사, 상태 설명 등).
+따라서 위젯 정의는 opaque가 아니라 일반 `macro_container`로 처리한다.
 
-- 열기/닫기와 전체 범위는 `widget_definition_opaque` node로 기록한다.
-- 정의 본문 안에는 macro/text/prose 자식을 만들지 않는다.
+- `<<widget>>` 열기와 `<</widget>>` 닫기는 `macro_container` node로
+  기록한다.
+- 정의 본문 안의 macro/text/prose는 일반 passage body처럼 스캔해
+  CST 자식으로 만든다.
 - `[widget]` passage tag만으로 passage 전체를 제외하지 않는다.
-- 일반 passage의 `<<name ...>>` 호출만 CST와 masking 대상이다.
+- 위젯 안의 JS/주석/HTML은 기존 `_collect_markup` 경로로 보호된다.
+- 위젯 정의 안의 `<<set>>`, `<<if>>` 등은 일반 매크로와 동일하게
+  처리된다.
 
-정의 경계를 찾기 위한 prepass는 닫기 tag의 위치만 확인한다. 정의 본문 안의
-각 인자를 분류하거나 CST로 확장하지 않는다. 현재 원문에 `container` 위젯
-사용이 확인되면 정의 header에서 registry metadata만 수집한다.
-
-위젯 정의가 본문 안에서 다시 `<<widget ...>>`를 여는 경우에는 prepass가
-widget depth를 추적한다. 가장 바깥 `<<widget ...>> ... <</widget>>` 범위만
-하나의 `widget_definition_opaque` node로 기록하고, 안쪽 정의와 그 닫기 tag는
-별도 node로 승격하지 않고 바깥 opaque 본문에 포함한다. 바깥 닫기 tag를 찾지
-못하면 passage body 끝까지를 opaque 범위로 삼고 malformed diagnostic을 남긴다.
+위젯 정의가 본문 안에서 다시 `<<widget ...>>`를 여는 경우에는
+container 중첩으로 처리한다. 바깥 위젯이 안쪽 위젯을 자식으로
+포함한다. 닫기 tag를 찾지 못하면 `unclosed_container` diagnostic을
+남긴다.
 
 ## 특수 passage와 코드 passage
 

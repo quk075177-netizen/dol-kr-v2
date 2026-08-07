@@ -209,6 +209,16 @@ class SquareMarkupParserWiringTests(unittest.TestCase):
         self.assertEqual(body[standalone.start:standalone.end], b"Next")
         self.assertEqual(body[macro.start:macro.end], b"Next")
 
+    def test_square_opener_requires_exact_img_spelling(self) -> None:
+        body = b":: Links\n[Mg[src]] [G[src]] [Igno]] [[Real link|Target]]\n"
+        passage = self._passage(body)
+        labels = [span for span, kind in passage.exposed_candidates if kind == "link_label"]
+        self.assertEqual(len(labels), 1)
+        self.assertEqual(body[labels[0].start:labels[0].end], b"Real link")
+        artifact = mask_passage(body, passage)
+        self.assertIn("Real link", artifact.masked_text)
+        self.assertEqual(restore_mask(artifact), body[passage.body_span.start:passage.body_span.end])
+
     def test_left_arrow_standalone_exposes_the_label_after_the_arrow(self) -> None:
         body = b":: Links\n[[Passout home<-Everything fades to black...]]\n"
         passage = self._passage(body)

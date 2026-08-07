@@ -39,16 +39,18 @@ class PretranslationCstTests(unittest.TestCase):
         self.assertNotIn("heart.png", artifact.masked_text)
         self.assertEqual(restore_mask(artifact), source.passages[0].body_span and body[source.passages[0].body_span.start:source.passages[0].body_span.end])
 
-    def test_widget_body_is_opaque(self) -> None:
+    def test_widget_body_is_scanned_and_exposed(self) -> None:
         body = b':: Widgets [widget]\n<<widget "demo">>Hidden prose <<gagged_speech "no">><</widget>>\n:: Call\n<<demo>>Visible\n'
         source = parse_file(body, "fixture.twee", VALUE_KINDS)
-        definition = source.passages[0].nodes[0]
-        self.assertEqual(definition.role, "widget_definition")
-        self.assertFalse(any(node.name == "gagged_speech" for node in source.passages[0].nodes))
+        passage = source.passages[0]
+        widget = next(node for node in passage.nodes if node.name == "widget")
+        self.assertEqual(widget.node_type, "macro_container")
+        self.assertTrue(any(node.name == "gagged_speech" for node in passage.nodes))
         self.assertTrue(any(node.name == "demo" for node in source.passages[1].nodes))
-        artifact = mask_passage(body, source.passages[0])
-        self.assertNotIn("Hidden prose", artifact.masked_text)
-        self.assertEqual(restore_mask(artifact), body[source.passages[0].body_span.start:source.passages[0].body_span.end])
+        artifact = mask_passage(body, passage)
+        self.assertIn("Hidden prose", artifact.masked_text)
+        self.assertIn("no", artifact.masked_text)
+        self.assertEqual(restore_mask(artifact), body[passage.body_span.start:passage.body_span.end])
 
     def test_unclassified_is_protected_and_logged(self) -> None:
         body = b":: Test\n<<notInSchema \"Do not expose\">>\n"
@@ -95,12 +97,16 @@ class PretranslationCstTests(unittest.TestCase):
         self.assertNotIn("Dynamic $name", artifact.masked_text)
         self.assertEqual(restore_mask(artifact), body[source.passages[0].body_span.start:source.passages[0].body_span.end])
 
-    def test_nested_widget_only_outer_definition_is_recorded(self) -> None:
+    def test_nested_widget_is_a_child_of_outer_widget(self) -> None:
         body = b':: Widgets [widget]\n<<widget "outer">>outer <<widget "inner">>inner<</widget>> end<</widget>>\n:: Call\n<<outer>>shown\n'
         source = parse_file(body, "nested.twee", VALUE_KINDS)
-        definitions = [node for node in source.passages[0].nodes if node.role == "widget_definition"]
-        self.assertEqual(len(definitions), 1)
-        self.assertFalse(any(node.name == "inner" for node in source.passages[0].nodes))
+        passage = source.passages[0]
+        widgets = [node for node in passage.nodes if node.name == "widget"]
+        self.assertEqual(len(widgets), 2)
+        outer = next(node for node in passage.nodes if node.node_type == "macro_container" and node.name == "widget")
+        self.assertTrue(any(child.name == "widget" for child in outer.children))
+        inner = next(child for child in outer.children if child.name == "widget")
+        self.assertIn(outer, passage.get_ancestors(inner.node_id))
         self.assertEqual([node.name for node in source.passages[1].nodes], ["outer"])
 
     def test_bom_is_prefix_and_counts_in_byte_offsets(self) -> None:
