@@ -17,6 +17,7 @@
 | [value-kind-audit-roadmap.md](value-kind-audit-roadmap.md) | value-kind 분류 품질 검수 로드맵 (P1~P5) |
 | [worker-value-kind-audit.md](worker-value-kind-audit.md) | value-kind 분류 품질 검수 워커 지시문 |
 | [semantic-role-roadmap.md](semantic-role-roadmap.md) | 시맨틱 롤(어순/조사 힌트) 조사 로드맵 (S1~S5) |
+| [chunking-strategy.md](chunking-strategy.md) | 번역 유닛 분할(청킹) 전략 초안 — 트리 기반 문맥 유지 |
 
 `research/`는 vanilla/KO 대조, 호출부 분류, glossary 조사 같은 근거 자료와
 생성 데이터셋을 보관한다. 정책이 과거 조사 문서와 다르면 이 디렉터리의

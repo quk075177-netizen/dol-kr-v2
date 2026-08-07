@@ -23,6 +23,7 @@ Twee 레이어가 안정된 뒤 별도 frontend로 검토한다.
 - [CST 완성 진행 계획](docs/cst-completion-plan.md)
 - [value-kind 분류 품질 검수 로드맵](docs/value-kind-audit-roadmap.md)
 - [시맨틱 롤 조사 로드맵](docs/semantic-role-roadmap.md)
+- [번역 유닛 분할 전략](docs/chunking-strategy.md)
 - [문서 인덱스](docs/README.md)
 
 조사 원문과 생성된 데이터셋은 [research/](research/)에 보관한다. `research/`
