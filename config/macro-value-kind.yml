@@ -587,11 +587,12 @@
           "confidence": "high"
         },
         "1": {
-          "kind": "prose_text",
+          "kind": "arbitrary_text",
           "evidence": [
-            "llm"
+            "call"
           ],
-          "confidence": "high"
+          "confidence": "high",
+          "note": "party speech key (compared in $avery_party.current_speech)"
         }
       }
     },

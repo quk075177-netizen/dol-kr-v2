@@ -154,11 +154,34 @@ corpus_verify 및 macro_audit audit 명령에는 영향 없음(exit 0 유지).
 
 ```text
 $ time python3 -m pretranslation_cst.corpus_verify --root game
-real 1m39s
+real 1m39s   (개선 전, 2026-08-07)
+real 1m57s   (병렬화 후, 파일별 로드 밸런스로 real은 비슷, user 4m33s)
 ```
 
-이는 16,135개 passage를 파싱/mask/restore하는 것이므로 테스트와 별개.
-T1 이후에도 동일(1m45s). per-passage 성능은 회귀 없음.
+이건 16,135개 passage를 파싱/mask/restore하는 것이므로 테스트와 별개.
+per-passage 성능은 회귀 없음.
+
+### corpus_verify 병목 분석 (2026-08-07, 피드백 검증)
+
+세 가지 지적을 실측으로 검증했다.
+
+| 지적 | 판정 | 실측 |
+|---|---|---|
+| allowlist 매칭 O(D×A) | 구조 맞음, 실질 영향 없음 | entries 10개뿐 (O(D×A)=100회) |
+| `check_tree_invariants` sibling O(n²) | **확정 병목** | decoMod.twee 단일 파일 15.86s 중 invariant 체크 14.65s(92%). 형제 2,411개 부모에서 `list.index`+`in` 8,716,404회 `__eq__` |
+| 파일 병렬화 | 타당 | 적용 후 결정성 유지 |
+
+적용 수정:
+
+1. **sibling 체크 O(1)화**: `parent.children.index(node)`와 `node in parent.children`을
+   부모별 position cache(`{node_id: index}`)로 교체. 형제 많은 위젯 container에서
+   O(n²) → O(n). **decoMod.twee 15.86s → 0.64s (25x)**.
+2. **allowlist 인덱싱**: (path, passage, code) 키 인덱스 + `id(entry)` 기반
+   matched 추적으로 stale_entries를 루프 밖 1회 계산.
+3. **파일 병렬화**: `ProcessPoolExecutor` (max 16 워커). `executor.map`은 입력
+   순서를 보장해 결정적 출력 유지. 2회 실행 SHA-256 동일 확인.
+
+검증: 테스트 120개 통과, corpus_verify exit 0, 결정성 byte-identical.
 
 ## 검증
 
