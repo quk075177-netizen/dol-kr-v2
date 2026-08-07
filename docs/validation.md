@@ -68,6 +68,85 @@ python3 -m pretranslation_cst.verify /tmp/dolkr-cst-full.jsonl \
 `violations=0`이고 exit code가 0이어야 한다. `macro_missing`은 macro key 자체가
 없는 경우, `argument_missing`은 macro는 있지만 해당 인자 위치가 없는 경우다.
 
+## corpus 검증 명령
+
+전체 corpus 검증은 한 명령으로 재현한다. `/tmp/opencode` 산출물 없이
+`game/**/*.twee`를 직접 읽어 파싱·마스킹·복원하고 구조 불변식을 검사한다.
+
+```bash
+python3 -m pretranslation_cst.corpus_verify \
+  --root game \
+  --report corpus-verify-report.json
+```
+
+보고 항목:
+
+- file/passage 수 (passage가 없는 빈 파일도 file 수에 포함)
+- split round-trip: `split_twee` 결과의 `prefix_span` + 각 passage `source_span`
+  을 재조립해 원본 파일 byte와 비교 (중간 byte 누락·중복 탐지)
+- mask/restore round-trip 실패 (mask/restore byte-exact)
+- tree parent/span/sibling 불변식 실패 (kind별 집계 + 샘플)
+- diagnostic code별·(code, macro)별 개수
+- exposed segment kind별 개수와 placeholder 개수
+- passage별 protected coverage 비율과 body/protected byte 총합
+- baseline과의 delta 및 회귀 여부
+
+`--allowlist`와 `--baseline`으로 versioned allowlist와 baseline 파일 경로를
+지정한다(기본값 `pretranslation_cst/data/corpus-allowlist-v1.json`,
+`corpus-baseline-v1.json`). `--init-baseline`은 현재 실행 결과를 baseline으로
+기록한다. JSON report는 정렬된 key와 안정된 순서만 사용하므로 동일 입력에서
+두 번 실행해도 byte-identical이다.
+
+### exit code
+
+round-trip 실패와 구조 회귀를 bitmask로 구분한다.
+
+| code | 의미 |
+|------|------|
+| 0 | 통과 |
+| 1 | round-trip 실패 (decode/split/reassembly/restore) |
+| 2 | 구조 회귀 (tree 불변식, 미허용 diagnostic, corpus 수치 불일치) |
+| 3 | 1과 2 동시 발생 |
+
+`corpus.file_count`, `corpus.passage_count`, `corpus.twee_byte_count`가
+baseline과 다르면(감소뿐 아니라 어떤 방향이든) deviation으로 기록되고
+regression으로 판정되어 exit code 2를 낸다. 파일 중간 byte 누락은
+`twee_byte_count` 불일치로, passage 삭제는 `passage_count` 불일치로, 파일 삭제는
+`file_count` 불일치로 잡힌다.
+
+### versioned allowlist
+
+원문 자체가 malformed인 사례는 parser 결함과 섞지 않고
+`corpus-allowlist-v1.json`에 `path`(corpus root 기준 상대 경로), `passage`,
+`code`, byte `span`으로 기록한다. diagnostic이 code/path/passage/span 모두
+일치해야 allowlist에 매칭된 것으로 친다. 매칭되지 않은 구조 진단은
+`unexpected`로 집계되어 exit code 2를 낸다. `unclassified_argument`는 value-kind
+공백이므로 allowlist 없이 허용된다. 더 이상 발생하지 않는 allowlist 항목은
+`stale_entries`로 보고한다.
+
+### baseline
+
+`corpus-baseline-v1.json`은 corpus, diagnostic, segment kind, 회귀 규칙을 담는다.
+`corpus.file_count`/`passage_count`/`twee_byte_count` 불일치, `malformed_args`,
+`mismatched_close`, `unclosed_container` 등 defect code의 증가와 `link_label`,
+`macro_arg` 등 exposure kind의 감소를 증/감으로 판정하고
+`baseline.regression_reasons`에 적는다. corpus 수치와 defect code·exposure
+kind의 회귀는 exit code 2를 낸다.
+
+### 현재 기대값 (2026-08-07)
+
+- files 642 (passage 있는 파일 639, 빈 파일 3)
+- passages 16,135
+- restore failures 0, split failures 0
+- tree invariant failures 0
+- malformed_args 0, mismatched_close 0
+- unclosed_container 2, invalid_macro_name 5, malformed_macro 1,
+  unterminated_comment 2 (모두 allowlist 매칭)
+- unclassified_argument 23,206
+- segments: link_label 32,728, macro_arg 525, plain_text 496,421
+- exposed segments 529,674, placeholders 527,729
+- protected coverage 평균 0.674121
+
 ## Golden 데이터셋
 
 `research/golden/`을 검증 입력으로 사용한다.

@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "created": "2026-08-07",
+  "description": "Genuinely malformed SugarCube markup in game/**/*.twee, separated from parser defects. Paths are relative to the corpus root. A diagnostic matches when code, path, passage and byte span all agree.",
+  "entries": [
+    {
+      "path": "base-system/mirror.twee",
+      "passage": "Widgets Mirror",
+      "code": "invalid_macro_name",
+      "span": {"start": 81026, "end": 81028},
+      "note": "<< _trait>> has a space after the opening braces; the game renders a variable, not a macro call."
+    },
+    {
+      "path": "base-system/mirror.twee",
+      "passage": "Widgets Mirror",
+      "code": "invalid_macro_name",
+      "span": {"start": 81966, "end": 81968},
+      "note": "<< _trait>> has a space after the opening braces; the game renders a variable, not a macro call."
+    },
+    {
+      "path": "base-system/mirror.twee",
+      "passage": "Widgets Mirror",
+      "code": "invalid_macro_name",
+      "span": {"start": 82880, "end": 82882},
+      "note": "<< _trait>> has a space after the opening braces; the game renders a variable, not a macro call."
+    },
+    {
+      "path": "base-system/tools/dynamic-rendering.twee",
+      "passage": "Dynamic Rendering Widget",
+      "code": "invalid_macro_name",
+      "span": {"start": 441, "end": 443},
+      "note": "Inside an HTML attribute the source emits <<' + ... + '>> literally; the string is assembled at runtime."
+    },
+    {
+      "path": "overworld-forest/loc-forestshop/gwylan-clothes.twee",
+      "passage": "Gwylan Talk Clothes Eden 2",
+      "code": "malformed_macro",
+      "span": {"start": 72555, "end": 74014},
+      "note": "<<case \"meek \"shy\" \"special\">> is missing a closing quote; the macro body swallows the rest of the passage."
+    },
+    {
+      "path": "overworld-forest/loc-forestshop/gwylan-clothes.twee",
+      "passage": "Gwylan Talk Clothes Eden 2",
+      "code": "unclosed_container",
+      "span": {"start": 70443, "end": 74014},
+      "note": "Cascades from the malformed <<case ...>> quote in the same passage; <<if $phase is 1>> never sees its closing tag."
+    },
+    {
+      "path": "overworld-forest/loc-forestshop/gwylan-clothes.twee",
+      "passage": "Gwylan Talk Clothes Eden 2",
+      "code": "unclosed_container",
+      "span": {"start": 72525, "end": 74014},
+      "note": "Cascades from the malformed <<case ...>> quote in the same passage; <<switch $speech_attitude>> never sees its closing tag."
+    },
+    {
+      "path": "overworld-plains/loc-estate/cards.twee",
+      "passage": "Estate Voyeurism Masturbate End Dolp",
+      "code": "unterminated_comment",
+      "span": {"start": 129343, "end": 129598},
+      "note": "Unterminated /* block comment in the passage body."
+    },
+    {
+      "path": "overworld-town/loc-alley/events.twee",
+      "passage": "Alleyways Rescue Victim",
+      "code": "invalid_macro_name",
+      "span": {"start": 40346, "end": 40348},
+      "note": "<<<him>> has three opening braces; the extra < is rendered as text."
+    },
+    {
+      "path": "overworld-town/loc-pub/main.twee",
+      "passage": "Pub Brown Fox Unavailable",
+      "code": "unterminated_comment",
+      "span": {"start": 89573, "end": 89576},
+      "note": "Unterminated /* block comment at the end of the passage body."
+    }
+  ]
+}

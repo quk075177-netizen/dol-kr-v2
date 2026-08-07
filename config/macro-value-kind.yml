@@ -1,0 +1,7967 @@
+{
+  "schema_version": 1,
+  "version": "macro-value-kind/v1",
+  "generated": "2026-08-07",
+  "source_revision": "8024381cb8469202056f89b71247e573bf27ece4",
+  "categories": [
+    "named_npc",
+    "clothing",
+    "location",
+    "body_part",
+    "arbitrary_text",
+    "event_key",
+    "ui_icon",
+    "prose_text",
+    "structural"
+  ],
+  "macro_count": 605,
+  "macros": {
+    "acceptance": {
+      "name": "acceptance",
+      "aliases": [],
+      "calls": 87,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "acceptassignment": {
+      "name": "acceptassignment",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _assignment"
+        }
+      }
+    },
+    "acceptbrothelshow": {
+      "name": "acceptbrothelshow",
+      "aliases": [],
+      "calls": 11,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _show"
+        }
+      }
+    },
+    "actionstentacleadvcheckbox": {
+      "name": "actionstentacleadvcheckbox",
+      "aliases": [],
+      "calls": 45,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ]
+        },
+        "3": {
+          "note": "passed to >radiobutton()"
+        }
+      }
+    },
+    "add_bodywriting": {
+      "name": "add_bodywriting",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "add_link": {
+      "name": "add_link",
+      "aliases": [],
+      "calls": 77,
+      "args": {
+        "0": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "addclass": {
+      "name": "addclass",
+      "aliases": [],
+      "calls": 60,
+      "args": {}
+    },
+    "addconsumablecosmetics": {
+      "name": "addConsumableCosmetics",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "addevent": {
+      "name": "addevent",
+      "aliases": [],
+      "calls": 229,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "addinlineevent": {
+      "name": "addinlineevent",
+      "aliases": [],
+      "calls": 2069,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "addnnpcoutfit": {
+      "name": "addNNPCOutfit",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to _nam"
+        },
+        "1": {
+          "note": "assigned to $_newNPCOutfit"
+        }
+      }
+    },
+    "alarmstate": {
+      "name": "alarmstate",
+      "aliases": [],
+      "calls": 44,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "alexremytattooscheck": {
+      "name": "alexRemyTattoosCheck",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "animalicon": {
+      "name": "animalicon",
+      "aliases": [],
+      "calls": 52,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >icon()"
+        }
+      }
+    },
+    "animatemodel": {
+      "name": "animatemodel",
+      "aliases": [],
+      "calls": 10,
+      "args": {}
+    },
+    "antiqueicon": {
+      "name": "antiqueicon",
+      "aliases": [],
+      "calls": 28,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "applylube": {
+      "name": "applyLube",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "arousal": {
+      "name": "arousal",
+      "aliases": [],
+      "calls": 1538,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "numeric arousal amount"
+        },
+        "1": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "body-part/source selector"
+        }
+      }
+    },
+    "assignallnpcs": {
+      "name": "assignAllNPCs",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_characteristic"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_value"
+        }
+      }
+    },
+    "assigncombatdefaults": {
+      "name": "assignCombatDefaults",
+      "aliases": [],
+      "calls": 10,
+      "args": {}
+    },
+    "asylumbind": {
+      "name": "asylumBind",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "asylumhypnosiscommon": {
+      "name": "AsylumHypnosisCommon",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "assigned to $phase"
+        },
+        "1": {
+          "note": "assigned to _traitValue"
+        }
+      }
+    },
+    "asylumicon": {
+      "name": "asylumicon",
+      "aliases": [],
+      "calls": 16,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "avery_date_approach": {
+      "name": "avery_date_approach",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "avery_date_missed_approach": {
+      "name": "avery_date_missed_approach",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "avery_housework_change": {
+      "name": "avery_housework_change",
+      "aliases": [],
+      "calls": 58,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "avery_mansion_chase_location": {
+      "name": "avery_mansion_chase_location",
+      "aliases": [],
+      "calls": 43,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "avery_mansion_chase_trap": {
+      "name": "avery_mansion_chase_trap",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "avery_mansion_end_links": {
+      "name": "avery_mansion_end_links",
+      "aliases": [],
+      "calls": 35,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "avery_mansion_party_mood": {
+      "name": "avery_mansion_party_mood",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "avery_mansion_party_speech": {
+      "name": "avery_mansion_party_speech",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "1": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "avery_mansion_rage_party": {
+      "name": "avery_mansion_rage_party",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to $_dialog_type"
+        }
+      }
+    },
+    "averyofficewage": {
+      "name": "averyofficewage",
+      "aliases": [],
+      "calls": 21,
+      "args": {
+        "1": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "babyrentdisplay": {
+      "name": "babyRentDisplay",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >print()"
+        },
+        "1": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >print()"
+        },
+        "2": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >printmoney()"
+        }
+      }
+    },
+    "badendstatstitle": {
+      "name": "badEndStatsTitle",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "badendtracking": {
+      "name": "badEndTracking",
+      "aliases": [],
+      "calls": 37,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "badendtrackingend": {
+      "name": "badEndTrackingEnd",
+      "aliases": [],
+      "calls": 60,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "balloonrobinsabotaged": {
+      "name": "balloonRobinSabotaged",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "basespeech": {
+      "name": "basespeech",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "bathroomicon": {
+      "name": "bathroomicon",
+      "aliases": [],
+      "calls": 37,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "beachicon": {
+      "name": "beachicon",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "beast": {
+      "name": "beast",
+      "aliases": [],
+      "calls": 215,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "legacy NPCList index argument"
+        }
+      }
+    },
+    "becomepinch": {
+      "name": "becomePinch",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "bedclotheson": {
+      "name": "bedclotheson",
+      "aliases": [],
+      "calls": 20,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "bedicon": {
+      "name": "bedicon",
+      "aliases": [],
+      "calls": 35,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "bellydescription": {
+      "name": "bellyDescription",
+      "aliases": [],
+      "calls": 103,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_size"
+        }
+      }
+    },
+    "birdegglayevent": {
+      "name": "birdEggLayEvent",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to $birdEggContext"
+        }
+      }
+    },
+    "birdicon": {
+      "name": "birdicon",
+      "aliases": [],
+      "calls": 100,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "birthcradle": {
+      "name": "birthCradle",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "passed to >print()"
+        }
+      }
+    },
+    "birthui": {
+      "name": "birthUi",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >pregnancyFeats()"
+        },
+        "2": {
+          "note": "passed to >endNpcPregnancy()"
+        },
+        "3": {
+          "note": "passed to >link()"
+        },
+        "4": {
+          "note": "passed to >pass()"
+        }
+      }
+    },
+    "blackjackend": {
+      "name": "blackjackEnd",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_result"
+        }
+      }
+    },
+    "blackjackstart": {
+      "name": "blackjackStart",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "bleedingwardstart": {
+      "name": "bleedingWardStart",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "bodyliquid": {
+      "name": "bodyliquid",
+      "aliases": [],
+      "calls": 1973,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_bodypart"
+        },
+        "3": {
+          "note": "passed to >error()"
+        }
+      }
+    },
+    "bodypart_admire_chance": {
+      "name": "bodypart_admire_chance",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "passed to >bodypart_admire()"
+        }
+      }
+    },
+    "bodywriting_criminal": {
+      "name": "bodywriting_criminal",
+      "aliases": [],
+      "calls": 15,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >bodywriting_finalisation()"
+        },
+        "1": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >bodywriting_criminal_select()"
+        }
+      }
+    },
+    "bodywriting_npc_normal": {
+      "name": "bodywriting_npc_normal",
+      "aliases": [],
+      "calls": 10,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >bodywriting_finalisation()"
+        },
+        "1": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >add_bodywriting()"
+        }
+      }
+    },
+    "brothelicon": {
+      "name": "brothelicon",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "brothelvirginitybidders": {
+      "name": "brothelvirginitybidders",
+      "aliases": [],
+      "calls": 13,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "button": {
+      "name": "button",
+      "aliases": [],
+      "calls": 100,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "buytryonclothes": {
+      "name": "buyTryOnClothes",
+      "aliases": [],
+      "calls": 20,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        },
+        "1": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "canteenlunchoptions": {
+      "name": "canteenlunchoptions",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "canvasimg": {
+      "name": "canvasimg",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "passed to >animatemodel()"
+        }
+      }
+    },
+    "card_clothes_lost": {
+      "name": "card_clothes_lost",
+      "aliases": [],
+      "calls": 14,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_cloth_type"
+        }
+      }
+    },
+    "carriedclear": {
+      "name": "carriedClear",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "carriedsend": {
+      "name": "carriedSend",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "1": {
+          "note": "assigned to $_undressSlot"
+        }
+      }
+    },
+    "case": {
+      "name": "case",
+      "aliases": [],
+      "calls": 7866,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "catacombs_plunder": {
+      "name": "catacombs_plunder",
+      "aliases": [],
+      "calls": 14,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >print()"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $lock"
+        }
+      }
+    },
+    "catheterochromiatf": {
+      "name": "catHeterochromiaTF",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "caveicon": {
+      "name": "caveicon",
+      "aliases": [],
+      "calls": 45,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "changecheatclass": {
+      "name": "changeCheatClass",
+      "aliases": [],
+      "calls": 13,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >addclass()"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "changingroomsetup": {
+      "name": "changingRoomSetup",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _changingRoomGenderType"
+        }
+      }
+    },
+    "characterviewermodelclothescontrolscolour": {
+      "name": "characterViewerModelClothesControlsColour",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "cheatbodyliquid": {
+      "name": "cheatBodyLiquid",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "assigned to _semen"
+        }
+      }
+    },
+    "cheatparasitetoggle": {
+      "name": "cheatParasiteToggle",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _bodypart"
+        }
+      }
+    },
+    "cheatsection": {
+      "name": "cheatSection",
+      "aliases": [],
+      "calls": 27,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "cheatsparasiteoptions": {
+      "name": "cheatsParasiteOptions",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "passed to >cheatsParasite()"
+        }
+      }
+    },
+    "cheatsrep": {
+      "name": "cheatsRep",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >cheatsRep()"
+        }
+      }
+    },
+    "cheatvirginitytoggle": {
+      "name": "cheatVirginityToggle",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _type"
+        }
+      }
+    },
+    "checkbox": {
+      "name": "checkbox",
+      "aliases": [],
+      "calls": 318,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "childbathescene": {
+      "name": "childBatheScene",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to _flavour"
+        }
+      }
+    },
+    "childicon": {
+      "name": "childicon",
+      "aliases": [],
+      "calls": 14,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to _toy"
+        }
+      }
+    },
+    "childrenevents": {
+      "name": "childrenEvents",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "passed to >getChildrenIds()"
+        },
+        "1": {
+          "note": "assigned to $childPassageExit"
+        }
+      }
+    },
+    "childselect": {
+      "name": "childSelect",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "childselectrandom": {
+      "name": "childSelectRandom",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "choreicon": {
+      "name": "choreicon",
+      "aliases": [],
+      "calls": 39,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "classroomearslime": {
+      "name": "classRoomEarSlime",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "clearnpc": {
+      "name": "clearNPC",
+      "aliases": [],
+      "calls": 231,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_name"
+        }
+      }
+    },
+    "clotheson": {
+      "name": "clotheson",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >plantup()"
+        }
+      }
+    },
+    "clothingcaptionexposed": {
+      "name": "clothingCaptionExposed",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "assigned to $_outfitType"
+        }
+      }
+    },
+    "clothingcategoryicon": {
+      "name": "clothingcategoryicon",
+      "aliases": [],
+      "calls": 102,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "combatcrime": {
+      "name": "combatcrime",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "passed to >crimeType()"
+        }
+      }
+    },
+    "combathandguide": {
+      "name": "combathandguide",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "combathandhold": {
+      "name": "combathandhold",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "assigned to $_heldhand"
+        }
+      }
+    },
+    "combatmasturbate": {
+      "name": "combatMasturbate",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "combatrequestrefused": {
+      "name": "combatRequestRefused",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_action"
+        },
+        "1": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_target"
+        }
+      }
+    },
+    "compute": {
+      "name": "compute",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "condomdesc": {
+      "name": "condomDesc",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "1": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "condomicon": {
+      "name": "condomicon",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "cosmeticsgenericdepartment": {
+      "name": "CosmeticsGenericDepartment",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "cosmeticsicon": {
+      "name": "cosmeticsicon",
+      "aliases": [],
+      "calls": 13,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "creampie": {
+      "name": "creampie",
+      "aliases": [],
+      "calls": 19,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "1": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "crime": {
+      "name": "crime",
+      "aliases": [],
+      "calls": 334,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >crimeType()"
+        }
+      }
+    },
+    "crimeclear": {
+      "name": "crimeClear",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to _crimeClearType"
+        }
+      }
+    },
+    "crimeclearevent": {
+      "name": "crimeClearEvent",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to _crimeClearEvent"
+        }
+      }
+    },
+    "crimeicon": {
+      "name": "crimeicon",
+      "aliases": [],
+      "calls": 46,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "crimes": {
+      "name": "crimes",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "crimeup": {
+      "name": "crimeUp",
+      "aliases": [],
+      "calls": 348,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "crime amount"
+        },
+        "1": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "definition"
+          ],
+          "note": "crime type key"
+        },
+        "2": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "definition"
+          ],
+          "note": "optional crime description key"
+        }
+      }
+    },
+    "cumswallow": {
+      "name": "cumswallow",
+      "aliases": [],
+      "calls": 13,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _ejaculation_volume"
+        },
+        "2": {
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "cycle": {
+      "name": "cycle",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "damage_farm": {
+      "name": "damage_farm",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "1": {
+          "note": "passed to >clear_plot()"
+        }
+      }
+    },
+    "dancestudiointro": {
+      "name": "danceStudioIntro",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "debuggeneratedivs": {
+      "name": "debugGenerateDivs",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >capture()"
+        }
+      }
+    },
+    "desktext": {
+      "name": "deskText",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "destinationpoolchangingroom": {
+      "name": "destinationpoolchangingroom",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "dildoselfanusentrance": {
+      "name": "dildoSelfAnusEntrance",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "dildoselfpussyentrance": {
+      "name": "dildoSelfPussyEntrance",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "dismissavery": {
+      "name": "dismissAvery",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "displayfeatfake": {
+      "name": "displayFeatFake",
+      "aliases": [],
+      "calls": 17,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >print()"
+        }
+      }
+    },
+    "displaysettings": {
+      "name": "displaySettings",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $currentSettings"
+        }
+      }
+    },
+    "displaysubsection": {
+      "name": "displaySubsection",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to $currentSubsection"
+        }
+      }
+    },
+    "distracticon": {
+      "name": "distracticon",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "dolpsettingstabbutton": {
+      "name": "dolpSettingsTabButton",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "note": "passed to >button()"
+        },
+        "1": {
+          "note": "passed to >displayDoLP()"
+        }
+      }
+    },
+    "dooricon": {
+      "name": "dooricon",
+      "aliases": [],
+      "calls": 42,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "doubleslider": {
+      "name": "doubleslider",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "drainladderdownlink": {
+      "name": "drainladderdownlink",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "drench": {
+      "name": "drench",
+      "aliases": [],
+      "calls": 6,
+      "args": {}
+    },
+    "dynamic": {
+      "name": "dynamic",
+      "aliases": [],
+      "calls": 13,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "earnfeat": {
+      "name": "earnFeat",
+      "aliases": [],
+      "calls": 348,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "earslimecafelinks": {
+      "name": "earSlimeCafeLinks",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to _linkName"
+        }
+      }
+    },
+    "earslimepoundlinks": {
+      "name": "earSlimePoundLinks",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to _linkName"
+        }
+      }
+    },
+    "earslimeseenactions": {
+      "name": "earSlimeSeenActions",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "edenicon": {
+      "name": "edenicon",
+      "aliases": [],
+      "calls": 44,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "effectscoveranus": {
+      "name": "effectsCoverAnus",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "0": {
+          "note": "assigned to $_hands"
+        }
+      }
+    },
+    "effectscoverpenis": {
+      "name": "effectsCoverPenis",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "0": {
+          "note": "assigned to $_hands"
+        }
+      }
+    },
+    "effectscovervagina": {
+      "name": "effectsCoverVagina",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "0": {
+          "note": "assigned to $_hands"
+        }
+      }
+    },
+    "effectswater": {
+      "name": "effectswater",
+      "aliases": [],
+      "calls": 33,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "ejaculation": {
+      "name": "ejaculation",
+      "aliases": [],
+      "calls": 75,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >ejaculation()"
+        }
+      }
+    },
+    "enableschoolrescue": {
+      "name": "enableSchoolRescue",
+      "aliases": [],
+      "calls": 33,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "endcombat": {
+      "name": "endcombat",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "passed to >endevent()"
+        }
+      }
+    },
+    "endevent": {
+      "name": "endevent",
+      "aliases": [],
+      "calls": 54,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "endnpc": {
+      "name": "endnpc",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to _passargs"
+        }
+      }
+    },
+    "endnpcpregnancy": {
+      "name": "endNpcPregnancy",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "endplayerpregnancy": {
+      "name": "endPlayerPregnancy",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "error": {
+      "name": "error",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "exam": {
+      "name": "exam",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "passed to >run()"
+        }
+      }
+    },
+    "exam_result": {
+      "name": "exam_result",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to $_subject"
+        }
+      }
+    },
+    "exhibitionism": {
+      "name": "exhibitionism",
+      "aliases": [],
+      "calls": 19,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "exit": {
+      "name": "exit",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "exiticon": {
+      "name": "exiticon",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "faceundress": {
+      "name": "faceundress",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "passed to >generalUndress()"
+        }
+      }
+    },
+    "facewear": {
+      "name": "facewear",
+      "aliases": [],
+      "calls": 74,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "fadetext": {
+      "name": "fadeText",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "1": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "2": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "farm_assault_location": {
+      "name": "farm_assault_location",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "farm_text_many": {
+      "name": "farm_text_many",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "1": {
+          "note": "assigned to $_bgender"
+        }
+      }
+    },
+    "farmicon": {
+      "name": "farmicon",
+      "aliases": [],
+      "calls": 55,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "feetsend": {
+      "name": "feetsend",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "4": {
+          "note": "passed to >generalSend()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "feetundress": {
+      "name": "feetundress",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "medium",
+          "note": "passed to >generalUndress()"
+        }
+      }
+    },
+    "feetwear": {
+      "name": "feetwear",
+      "aliases": [],
+      "calls": 23,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "fertiliseparasites": {
+      "name": "fertiliseParasites",
+      "aliases": [],
+      "calls": 9,
+      "args": {}
+    },
+    "flight_hunt_get": {
+      "name": "flight_hunt_get",
+      "aliases": [],
+      "calls": 110,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_looted"
+        },
+        "1": {
+          "note": "assigned to $_amount"
+        },
+        "2": {
+          "note": "assigned to $_info"
+        },
+        "3": {
+          "note": "assigned to $_lootClothingIndex"
+        },
+        "7": {
+          "note": "passed to >generalWear()"
+        }
+      }
+    },
+    "flight_hunt_remove": {
+      "name": "flight_hunt_remove",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "note": "assigned to $_looted"
+        },
+        "1": {
+          "note": "assigned to $_amount"
+        }
+      }
+    },
+    "food_list": {
+      "name": "food_list",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "passed to >print()"
+        }
+      }
+    },
+    "foodicon": {
+      "name": "foodicon",
+      "aliases": [],
+      "calls": 210,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >icon()"
+        }
+      }
+    },
+    "foodstufficon": {
+      "name": "foodstufficon",
+      "aliases": [],
+      "calls": 188,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "foodstuffreport": {
+      "name": "foodstuffReport",
+      "aliases": [],
+      "calls": 10,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _name"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _quantity"
+        },
+        "2": {
+          "kind": "ui_icon",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _icon"
+        }
+      }
+    },
+    "foresthuntstart": {
+      "name": "foresthuntstart",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "foresticon": {
+      "name": "foresticon",
+      "aliases": [],
+      "calls": 22,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "forestrescue": {
+      "name": "forestRescue",
+      "aliases": [],
+      "calls": 6,
+      "args": {}
+    },
+    "forestrescuecheck": {
+      "name": "forestRescueCheck",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >gwylanRescueStats()"
+        }
+      }
+    },
+    "forestroadicon": {
+      "name": "forestroadicon",
+      "aliases": [],
+      "calls": 10,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >icon()"
+        }
+      }
+    },
+    "furnitureicon": {
+      "name": "furnitureicon",
+      "aliases": [],
+      "calls": 20,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >icon()"
+        }
+      }
+    },
+    "gagged_speech": {
+      "name": "gagged_speech",
+      "aliases": [],
+      "calls": 107,
+      "args": {
+        "0": {
+          "kind": "prose_text",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "gameicon": {
+      "name": "gameicon",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "gardenicon": {
+      "name": "gardenicon",
+      "aliases": [],
+      "calls": 23,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "gcrime": {
+      "name": "gcrime",
+      "aliases": [],
+      "calls": 19,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >crimeType()"
+        }
+      }
+    },
+    "gdom": {
+      "name": "gdom",
+      "aliases": [],
+      "calls": 77,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "gencolourselector": {
+      "name": "gencolourselector",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "generalon": {
+      "name": "generalOn",
+      "aliases": [],
+      "calls": 16,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_slot"
+        }
+      }
+    },
+    "generalruined": {
+      "name": "generalRuined",
+      "aliases": [],
+      "calls": 44,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >generalRuinedRebuy()"
+        },
+        "1": {
+          "note": "passed to >generalRuined()"
+        }
+      }
+    },
+    "generalsend": {
+      "name": "generalSend",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >sendToWardrobeFromDefault()"
+        },
+        "1": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "2": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "5": {
+          "note": "passed to >sendToWardrobeFromDefault()"
+        }
+      }
+    },
+    "generalsteal": {
+      "name": "generalSteal",
+      "aliases": [],
+      "calls": 17,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >generalRuined()"
+        },
+        "1": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "generalstrip": {
+      "name": "generalStrip",
+      "aliases": [],
+      "calls": 20,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _stripSlot"
+        }
+      }
+    },
+    "generalundress": {
+      "name": "generalUndress",
+      "aliases": [],
+      "calls": 20,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >storeItem()"
+        },
+        "1": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _undressSlot"
+        }
+      }
+    },
+    "generalwear": {
+      "name": "generalWear",
+      "aliases": [],
+      "calls": 18,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_slot"
+        },
+        "1": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "4": {
+          "note": "passed to >equipClothesItemFromDefault()"
+        }
+      }
+    },
+    "generatenpcnamehairandeyecolors": {
+      "name": "generateNPCNameHairAndEyeColors",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "generatesleeplinks": {
+      "name": "generateSleepLinks",
+      "aliases": [],
+      "calls": 21,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _sleep_passage"
+        }
+      }
+    },
+    "genitalstate": {
+      "name": "genitalstate",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "getnnpcclothes": {
+      "name": "getNNPCClothes",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to _nam"
+        }
+      }
+    },
+    "getouticon": {
+      "name": "getouticon",
+      "aliases": [],
+      "calls": 57,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "ggcrime": {
+      "name": "ggcrime",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >crimeType()"
+        }
+      }
+    },
+    "ggdom": {
+      "name": "ggdom",
+      "aliases": [],
+      "calls": 14,
+      "args": {}
+    },
+    "gggcrime": {
+      "name": "gggcrime",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >crimeType()"
+        }
+      }
+    },
+    "gggdom": {
+      "name": "gggdom",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "ggglove": {
+      "name": "ggglove",
+      "aliases": [],
+      "calls": 10,
+      "args": {}
+    },
+    "ggglust": {
+      "name": "ggglust",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "gggperlove": {
+      "name": "gggperlove",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "gggrespect": {
+      "name": "gggrespect",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "gglove": {
+      "name": "gglove",
+      "aliases": [],
+      "calls": 18,
+      "args": {}
+    },
+    "gglust": {
+      "name": "gglust",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "ggperlove": {
+      "name": "ggperlove",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "ggrespect": {
+      "name": "ggrespect",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "gifticon": {
+      "name": "gifticon",
+      "aliases": [],
+      "calls": 28,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "giftsextoys": {
+      "name": "giftSexToys",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >giveNNPCnewstrapon()"
+        }
+      }
+    },
+    "ginsecurity": {
+      "name": "ginsecurity",
+      "aliases": [],
+      "calls": 187,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "give_gift": {
+      "name": "give_gift",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "givennpcnewstrapon": {
+      "name": "giveNNPCnewstrapon",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to $_name"
+        }
+      }
+    },
+    "glideicon": {
+      "name": "glideicon",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to _direction"
+        }
+      }
+    },
+    "gloryholeserviceeffects": {
+      "name": "gloryHoleServiceEffects",
+      "aliases": [],
+      "calls": 20,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        },
+        "1": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "gloryholeserviceinit": {
+      "name": "gloryHoleServiceInit",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "glove": {
+      "name": "glove",
+      "aliases": [],
+      "calls": 103,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "glust": {
+      "name": "glust",
+      "aliases": [],
+      "calls": 13,
+      "args": {}
+    },
+    "gperlove": {
+      "name": "gperlove",
+      "aliases": [],
+      "calls": 15,
+      "args": {}
+    },
+    "grespect": {
+      "name": "grespect",
+      "aliases": [],
+      "calls": 24,
+      "args": {}
+    },
+    "gsydneytoy": {
+      "name": "gsydneytoy",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "guard_skill_text": {
+      "name": "guard_skill_text",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "gwylancommand": {
+      "name": "gwylanCommand",
+      "aliases": [],
+      "calls": 32,
+      "args": {
+        "0": {
+          "kind": "prose_text",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_gwylanCommand"
+        },
+        "1": {
+          "note": "assigned to $_hypnosis_level"
+        }
+      }
+    },
+    "gwylandesc": {
+      "name": "gwylanDesc",
+      "aliases": [],
+      "calls": 10,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "gwylanhypnoname": {
+      "name": "gwylanHypnoName",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "gwylanhypnonote": {
+      "name": "gwylanHypnoNote",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_level"
+        }
+      }
+    },
+    "gwylanhypnosis": {
+      "name": "gwylanHypnosis",
+      "aliases": [],
+      "calls": 56,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_trait"
+        },
+        "1": {
+          "note": "assigned to $_duration"
+        },
+        "2": {
+          "note": "assigned to $_level"
+        }
+      }
+    },
+    "gwylanrequestend": {
+      "name": "gwylanRequestEnd",
+      "aliases": [],
+      "calls": 18,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_silent"
+        }
+      }
+    },
+    "gwylanrescueapology": {
+      "name": "gwylanRescueApology",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "gwylanritualorgasm": {
+      "name": "gwylanRitualOrgasm",
+      "aliases": [],
+      "calls": 18,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "gwylanritualpenetrate": {
+      "name": "gwylanRitualPenetrate",
+      "aliases": [],
+      "calls": 43,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_gwylanPart"
+        },
+        "1": {
+          "note": "assigned to $_playerPart"
+        }
+      }
+    },
+    "gwylansong": {
+      "name": "gwylanSong",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "hairdressericon": {
+      "name": "hairdressericon",
+      "aliases": [],
+      "calls": 14,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "hand_section_two": {
+      "name": "hand_section_two",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to $_hand"
+        }
+      }
+    },
+    "handheldsend": {
+      "name": "handheldsend",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "4": {
+          "note": "passed to >generalSend()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "handheldundress": {
+      "name": "handheldundress",
+      "aliases": [],
+      "calls": 24,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >generalUndress()"
+        }
+      }
+    },
+    "handheldwear": {
+      "name": "handheldwear",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "handsactionsstrugglecolumnradio": {
+      "name": "handsActionsStruggleColumnRadio",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "note": "assigned to _hpart"
+        }
+      }
+    },
+    "handsactionsstruggleradio": {
+      "name": "handsActionsStruggleRadio",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "note": "assigned to _hpart"
+        }
+      }
+    },
+    "handsstrugglefreebodypart": {
+      "name": "handsstrugglefreebodypart",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "assigned to _hand"
+        },
+        "1": {
+          "note": "assigned to _style"
+        }
+      }
+    },
+    "handsundress": {
+      "name": "handsundress",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >generalUndress()"
+        }
+      }
+    },
+    "handswear": {
+      "name": "handswear",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "has": {
+      "name": "has",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "hatchui": {
+      "name": "hatchUi",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "1": {
+          "note": "passed to >link()"
+        },
+        "2": {
+          "note": "passed to >pass()"
+        }
+      }
+    },
+    "hcchallengesummary": {
+      "name": "hcChallengeSummary",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "hcforest": {
+      "name": "hcForest",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "hcicon": {
+      "name": "hcicon",
+      "aliases": [],
+      "calls": 18,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_thing"
+        }
+      }
+    },
+    "he": {
+      "name": "He",
+      "aliases": [],
+      "calls": 13,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >personselect()"
+        }
+      }
+    },
+    "headsend": {
+      "name": "headsend",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "4": {
+          "note": "passed to >generalSend()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "headundress": {
+      "name": "headundress",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "passed to >generalUndress()"
+        }
+      }
+    },
+    "headwear": {
+      "name": "headwear",
+      "aliases": [],
+      "calls": 28,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "heelsicon": {
+      "name": "heelsicon",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "heldsextoy": {
+      "name": "heldSexToy",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "hidelayer": {
+      "name": "hidelayer",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >run()"
+        }
+      }
+    },
+    "him": {
+      "name": "him",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "his": {
+      "name": "his",
+      "aliases": [],
+      "calls": 15,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "hopelesscycleoutfit": {
+      "name": "hopelessCycleOutfit",
+      "aliases": [],
+      "calls": 10,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "hypnosisicon": {
+      "name": "hypnosisicon",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "hypnosistext": {
+      "name": "hypnosisText",
+      "aliases": [],
+      "calls": 139,
+      "args": {
+        "0": {
+          "kind": "prose_text",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "icon": {
+      "name": "icon",
+      "aliases": [],
+      "calls": 1092,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "iconui": {
+      "name": "iconUi",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "if": {
+      "name": "if",
+      "aliases": [],
+      "calls": 17,
+      "args": {}
+    },
+    "impregnateparasite": {
+      "name": "impregnateParasite",
+      "aliases": [],
+      "calls": 7,
+      "args": {}
+    },
+    "include": {
+      "name": "include",
+      "aliases": [],
+      "calls": 121,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "ingredientssupplied": {
+      "name": "ingredientsSupplied",
+      "aliases": [],
+      "calls": 10,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >run()"
+        }
+      }
+    },
+    "ingredientssuppliessteal": {
+      "name": "ingredientsSuppliesSteal",
+      "aliases": [],
+      "calls": 25,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >run()"
+        }
+      }
+    },
+    "initnnpcclothes": {
+      "name": "initNNPCClothes",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to _nam"
+        }
+      }
+    },
+    "initnpc": {
+      "name": "initnpc",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "assigned to _nam"
+        }
+      }
+    },
+    "initnpcbasemaxorgasm": {
+      "name": "initNPCBaseMaxOrgasm",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "passed to >initNPCBaseMaxOrgasmSingle()"
+        }
+      }
+    },
+    "initnpcgender": {
+      "name": "initnpcgender",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "passed to >initnpcgendersingle()"
+        }
+      }
+    },
+    "initnpcskin": {
+      "name": "initnpcskin",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "passed to >initnpcskinsingle()"
+        }
+      }
+    },
+    "initwraith": {
+      "name": "initWraith",
+      "aliases": [],
+      "calls": 38,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "insecurity": {
+      "name": "insecurity",
+      "aliases": [],
+      "calls": 189,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "inspectionexpect": {
+      "name": "inspectionexpect",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "assigned to _expectedGender"
+        }
+      }
+    },
+    "insufficientquantity": {
+      "name": "insufficientQuantity",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _color"
+        },
+        "2": {
+          "kind": "ui_icon",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _icon"
+        }
+      }
+    },
+    "insufficientstat": {
+      "name": "insufficientStat",
+      "aliases": [],
+      "calls": 221,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        },
+        "2": {
+          "note": "assigned to $_color"
+        }
+      }
+    },
+    "integritycheck": {
+      "name": "integritycheck",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "internet_photo": {
+      "name": "internet_photo",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "islandicon": {
+      "name": "islandicon",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "it": {
+      "name": "it",
+      "aliases": [],
+      "calls": 11,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "itis": {
+      "name": "itis",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "journalinventory": {
+      "name": "journalInventory",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to $_filter"
+        }
+      }
+    },
+    "kisswraith": {
+      "name": "kissWraith",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "kitchenicon": {
+      "name": "kitchenicon",
+      "aliases": [],
+      "calls": 17,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >icon()"
+        }
+      }
+    },
+    "kylarmanoricon": {
+      "name": "kylarmanoricon",
+      "aliases": [],
+      "calls": 10,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >icon()"
+        }
+      }
+    },
+    "kylaroptions": {
+      "name": "kylaroptions",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "kylaroptionsleave": {
+      "name": "kylaroptionsleave",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "kylarrandomunderwear": {
+      "name": "kylarRandomUnderwear",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_underwearGender"
+        }
+      }
+    },
+    "lakeicon": {
+      "name": "lakeicon",
+      "aliases": [],
+      "calls": 43,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "ldom": {
+      "name": "ldom",
+      "aliases": [],
+      "calls": 17,
+      "args": {}
+    },
+    "learn_recipe": {
+      "name": "learn_recipe",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "passed to >foodstufficon()"
+        }
+      }
+    },
+    "legssend": {
+      "name": "legssend",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "4": {
+          "note": "passed to >generalSend()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "legsundress": {
+      "name": "legsundress",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >generalUndress()"
+        }
+      }
+    },
+    "legswear": {
+      "name": "legswear",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "lessonend": {
+      "name": "lessonEnd",
+      "aliases": [],
+      "calls": 29,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >storeon()"
+        },
+        "1": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >print()"
+        }
+      }
+    },
+    "lessonevents": {
+      "name": "lessonEvents",
+      "aliases": [],
+      "calls": 22,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_mod"
+        }
+      }
+    },
+    "lgrace": {
+      "name": "lgrace",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "link": {
+      "name": "link",
+      "aliases": [],
+      "calls": 822,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "linkreplace": {
+      "name": "linkreplace",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "listbox": {
+      "name": "listbox",
+      "aliases": [],
+      "calls": 203,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "listsleepoutfits": {
+      "name": "listsleepoutfits",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "livestock_cows": {
+      "name": "livestock_cows",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "lldom": {
+      "name": "lldom",
+      "aliases": [],
+      "calls": 8,
+      "args": {}
+    },
+    "llgrace": {
+      "name": "llgrace",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "llldom": {
+      "name": "llldom",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "llllove": {
+      "name": "llllove",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "llllust": {
+      "name": "llllust",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "lllove": {
+      "name": "lllove",
+      "aliases": [],
+      "calls": 9,
+      "args": {}
+    },
+    "lllust": {
+      "name": "lllust",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "llove": {
+      "name": "llove",
+      "aliases": [],
+      "calls": 38,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "llperlove": {
+      "name": "llperlove",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "llust": {
+      "name": "llust",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "loadnpc": {
+      "name": "loadNPC",
+      "aliases": [],
+      "calls": 473,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "NPCList destination slot"
+        },
+        "1": {
+          "kind": "named_npc",
+          "evidence": [
+            "definition"
+          ],
+          "note": "persistent NPC key"
+        }
+      }
+    },
+    "location": {
+      "name": "location",
+      "aliases": [],
+      "calls": 432,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to _location"
+        }
+      }
+    },
+    "lockericon": {
+      "name": "lockericon",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "lockicon": {
+      "name": "lockicon",
+      "aliases": [],
+      "calls": 98,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "loveicon": {
+      "name": "loveicon",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "loveinterestadd": {
+      "name": "loveInterestAdd",
+      "aliases": [],
+      "calls": 33,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_LI"
+        }
+      }
+    },
+    "loveinterestremove": {
+      "name": "loveInterestRemove",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "assigned to $_LI"
+        }
+      }
+    },
+    "lowersend": {
+      "name": "lowersend",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "4": {
+          "note": "passed to >generalSend()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "lowerundress": {
+      "name": "lowerundress",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >generalUndress()"
+        }
+      }
+    },
+    "lowerwear": {
+      "name": "lowerwear",
+      "aliases": [],
+      "calls": 169,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "lperlove": {
+      "name": "lperlove",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "machine_speed": {
+      "name": "machine_speed",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "makeuppresetsitem": {
+      "name": "makeupPresetsItem",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "passed to >for()"
+        },
+        "1": {
+          "note": "passed to >print()"
+        }
+      }
+    },
+    "maninit": {
+      "name": "maninit",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $enemytype"
+        }
+      }
+    },
+    "map": {
+      "name": "map",
+      "aliases": [],
+      "calls": 36,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "masturbationaudienceincrement": {
+      "name": "masturbationAudienceIncrement",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "masturbationcontrols": {
+      "name": "masturbationControls",
+      "aliases": [],
+      "calls": 21,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >skipToOrgasm()"
+        },
+        "1": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_passage"
+        }
+      }
+    },
+    "mathswhitneygropeorgasm": {
+      "name": "mathsWhitneyGropeOrgasm",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to $_accident"
+        }
+      }
+    },
+    "menstruationcycle": {
+      "name": "menstruationCycle",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "mirror": {
+      "name": "mirror",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >mirrorDisplay()"
+        }
+      }
+    },
+    "mirrorbodywriting": {
+      "name": "mirrorBodywriting",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to _array"
+        }
+      }
+    },
+    "mirrorhairdisplay": {
+      "name": "mirrorhairdisplay",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "assigned to _hairCategory"
+        },
+        "1": {
+          "note": "passed to >mirrorhairControls()"
+        }
+      }
+    },
+    "mirrorhairdisplaylinks": {
+      "name": "mirrorhairdisplayLinks",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "mirroricon": {
+      "name": "mirroricon",
+      "aliases": [],
+      "calls": 11,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "mirrormakeuppart": {
+      "name": "mirrorMakeupPart",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "mirrorwet": {
+      "name": "mirrorwet",
+      "aliases": [],
+      "calls": 15,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_part"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_semen"
+        },
+        "2": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_slime"
+        },
+        "3": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_nectar"
+        }
+      }
+    },
+    "mmagymintro": {
+      "name": "mmaGymIntro",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to $mmaGymIntroExit"
+        }
+      }
+    },
+    "mobilestatscolor": {
+      "name": "mobileStatsColor",
+      "aliases": [],
+      "calls": 11,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "money": {
+      "name": "money",
+      "aliases": [],
+      "calls": 766,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "money amount in pennies"
+        },
+        "1": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ],
+          "note": "money source key"
+        },
+        "2": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "optional bookkeeping object"
+        }
+      }
+    },
+    "moneygain": {
+      "name": "moneyGain",
+      "aliases": [],
+      "calls": 297,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "base amount"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "variation toggle"
+        },
+        "2": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "stolen-money toggle"
+        },
+        "3": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "definition"
+          ],
+          "note": "money source key"
+        }
+      }
+    },
+    "moneystatscompare": {
+      "name": "moneyStatsCompare",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "moneystatstitle": {
+      "name": "moneyStatsTitle",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "mooricon": {
+      "name": "mooricon",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "museumantiquestatus": {
+      "name": "museumAntiqueStatus",
+      "aliases": [],
+      "calls": 163,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >museumClearHint()"
+        },
+        "1": {
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "museumclearhint": {
+      "name": "museumClearHint",
+      "aliases": [],
+      "calls": 63,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >run()"
+        }
+      }
+    },
+    "museumicon": {
+      "name": "museumicon",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "museumpaintingget": {
+      "name": "museumPaintingGet",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "assigned to $_painting"
+        }
+      }
+    },
+    "necksend": {
+      "name": "necksend",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "4": {
+          "note": "passed to >generalSend()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "neckundress": {
+      "name": "neckundress",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "passed to >generalUndress()"
+        }
+      }
+    },
+    "neckwear": {
+      "name": "neckwear",
+      "aliases": [],
+      "calls": 17,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "neutral": {
+      "name": "neutral",
+      "aliases": [],
+      "calls": 1301,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "interaction amount"
+        },
+        "1": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "body-part/source selector"
+        },
+        "2": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "optional enemy index"
+        }
+      }
+    },
+    "nightmarecheck": {
+      "name": "nightmareCheck",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $nightmareRedirect"
+        }
+      }
+    },
+    "nightmarestart": {
+      "name": "nightmareStart",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $activeNightmare"
+        }
+      }
+    },
+    "nnpc_brother": {
+      "name": "nnpc_Brother",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >nnpc_brother()"
+        }
+      }
+    },
+    "nnpc_daughter": {
+      "name": "nnpc_daughter",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "nnpc_gender": {
+      "name": "nnpc_gender",
+      "aliases": [],
+      "calls": 53,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "nnpc_gendery": {
+      "name": "nnpc_gendery",
+      "aliases": [],
+      "calls": 87,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "nnpc_genitals": {
+      "name": "nnpc_genitals",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "nnpc_girlfriend": {
+      "name": "nnpc_girlfriend",
+      "aliases": [],
+      "calls": 34,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "nnpc_he": {
+      "name": "nnpc_He",
+      "aliases": [],
+      "calls": 607,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >nnpc_he()"
+        }
+      }
+    },
+    "nnpc_hers": {
+      "name": "nnpc_hers",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "nnpc_hes": {
+      "name": "nnpc_hes",
+      "aliases": [],
+      "calls": 84,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >nnpc_hes()"
+        }
+      }
+    },
+    "nnpc_him": {
+      "name": "nnpc_him",
+      "aliases": [],
+      "calls": 484,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >nnpc_him()"
+        }
+      }
+    },
+    "nnpc_himself": {
+      "name": "nnpc_himself",
+      "aliases": [],
+      "calls": 32,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "nnpc_his": {
+      "name": "nnpc_his",
+      "aliases": [],
+      "calls": 609,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >nnpc_his()"
+        }
+      }
+    },
+    "nnpc_lass": {
+      "name": "nnpc_lass",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "nnpc_maam": {
+      "name": "nnpc_maam",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >nnpc_maam()"
+        }
+      }
+    },
+    "nnpc_master": {
+      "name": "nnpc_master",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "nnpc_monk": {
+      "name": "nnpc_monk",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >nnpc_monk()"
+        }
+      }
+    },
+    "nnpc_mother": {
+      "name": "nnpc_mother",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >nnpc_mother()"
+        }
+      }
+    },
+    "nnpc_mrs": {
+      "name": "nnpc_Mrs",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >nnpc_mrs()"
+        }
+      }
+    },
+    "nnpc_mum": {
+      "name": "nnpc_Mum",
+      "aliases": [],
+      "calls": 45,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >nnpc_mum()"
+        }
+      }
+    },
+    "nnpc_mummy": {
+      "name": "nnpc_mummy",
+      "aliases": [],
+      "calls": 11,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >nnpc_mummy()"
+        }
+      }
+    },
+    "nnpc_title": {
+      "name": "nnpc_title",
+      "aliases": [],
+      "calls": 77,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >nnpc_title()"
+        }
+      }
+    },
+    "nnpc_waiter": {
+      "name": "nnpc_waiter",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "nnpc_wife": {
+      "name": "nnpc_wife",
+      "aliases": [],
+      "calls": 57,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "note": {
+      "name": "note",
+      "aliases": [],
+      "calls": 324,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >print()"
+        }
+      }
+    },
+    "npc": {
+      "name": "npc",
+      "aliases": [],
+      "calls": 646,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >setKnowsAboutPregnancy()"
+        },
+        "1": {
+          "note": "assigned to _npcno"
+        }
+      }
+    },
+    "npc_hes": {
+      "name": "npc_Hes",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "npc_him": {
+      "name": "npc_him",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "npchaircolour": {
+      "name": "npcHairColour",
+      "aliases": [],
+      "calls": 13,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "npchurt": {
+      "name": "npcHurt",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "npcincr": {
+      "name": "npcincr",
+      "aliases": [],
+      "calls": 263,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to _nam"
+        },
+        "1": {
+          "note": "assigned to _var"
+        },
+        "2": {
+          "note": "assigned to _val"
+        },
+        "3": {
+          "note": "assigned to _cheat"
+        }
+      }
+    },
+    "npcrelationship": {
+      "name": "npcrelationship",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to _npc"
+        }
+      }
+    },
+    "npcvirginitytakenbyother": {
+      "name": "NPCVirginityTakenByOther",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_npcId"
+        },
+        "1": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_vType"
+        },
+        "2": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_takerDesc"
+        }
+      }
+    },
+    "npcvirginitywarning": {
+      "name": "NPCvirginitywarning",
+      "aliases": [],
+      "calls": 41,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ]
+        },
+        "1": {
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "number": {
+      "name": "number",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "assigned to $_x"
+        }
+      }
+    },
+    "numberbox": {
+      "name": "numberbox",
+      "aliases": [],
+      "calls": 26,
+      "args": {}
+    },
+    "numberify": {
+      "name": "numberify",
+      "aliases": [],
+      "calls": 20,
+      "args": {}
+    },
+    "numberslider": {
+      "name": "numberslider",
+      "aliases": [],
+      "calls": 94,
+      "args": {}
+    },
+    "numberstepper": {
+      "name": "numberStepper",
+      "aliases": [],
+      "calls": 171,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "officeicon": {
+      "name": "officeicon",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "oldwardrobelist": {
+      "name": "oldWardrobeList",
+      "aliases": [],
+      "calls": 24,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _wardrobe_list"
+        },
+        "1": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _showType"
+        }
+      }
+    },
+    "option": {
+      "name": "option",
+      "aliases": [],
+      "calls": 312,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "optionsthemedefault": {
+      "name": "optionsThemeDefault",
+      "aliases": [],
+      "calls": 10,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >print()"
+        }
+      }
+    },
+    "oralpassage": {
+      "name": "oralpassage",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "passed to >takeVirginity()"
+        }
+      }
+    },
+    "orgasmlocation": {
+      "name": "orgasmLocation",
+      "aliases": [],
+      "calls": 86,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "overlayreplace": {
+      "name": "overlayReplace",
+      "aliases": [],
+      "calls": 26,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _key"
+        }
+      }
+    },
+    "overlowerwear": {
+      "name": "overlowerwear",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "overupperwear": {
+      "name": "overupperwear",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "overworld_nickname": {
+      "name": "overworld_nickname",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "pain": {
+      "name": "pain",
+      "aliases": [],
+      "calls": 1056,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "pain amount"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "optional pain modifier"
+        }
+      }
+    },
+    "parkicon": {
+      "name": "parkicon",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "pass": {
+      "name": "pass",
+      "aliases": [],
+      "calls": 4948,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "time amount"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "time unit"
+        }
+      }
+    },
+    "passagestrip": {
+      "name": "passagestrip",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "passoutshop": {
+      "name": "passoutshop",
+      "aliases": [],
+      "calls": 19,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >pregnancyPassout()"
+        }
+      }
+    },
+    "pcpetname": {
+      "name": "pcpetname",
+      "aliases": [],
+      "calls": 465,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_npc"
+        },
+        "1": {
+          "note": "assigned to $_mod"
+        }
+      }
+    },
+    "person": {
+      "name": "person",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "persons": {
+      "name": "persons",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "passed to >person()"
+        }
+      }
+    },
+    "personsimple": {
+      "name": "personsimple",
+      "aliases": [],
+      "calls": 21,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "petshopicon": {
+      "name": "petshopicon",
+      "aliases": [],
+      "calls": 32,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "pickupsextoy": {
+      "name": "pickupSexToy",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to $_hand"
+        }
+      }
+    },
+    "pillicon": {
+      "name": "pillicon",
+      "aliases": [],
+      "calls": 15,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "plant_details": {
+      "name": "plant_details",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "passed to >plant_details()"
+        }
+      }
+    },
+    "plantlower": {
+      "name": "plantlower",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "plantupper": {
+      "name": "plantupper",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "playerpregnancy": {
+      "name": "playerPregnancy",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "plural": {
+      "name": "plural",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "poppyicon": {
+      "name": "poppyicon",
+      "aliases": [],
+      "calls": 20,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "portalpantiesclear": {
+      "name": "portalPantiesClear",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "portalpantiesdisplayitem": {
+      "name": "portalPantiesDisplayItem",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "portalpantiesdisplayvirginity": {
+      "name": "portalPantiesDisplayVirginity",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "passed to >pain()"
+        }
+      }
+    },
+    "portalpantiesfuck": {
+      "name": "portalPantiesFuck",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "passed to >switch()"
+        },
+        "1": {
+          "note": "passed to >arousal()"
+        }
+      }
+    },
+    "possessedword": {
+      "name": "possessedWord",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >print()"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_colour"
+        }
+      }
+    },
+    "pregnancybabytext": {
+      "name": "pregnancyBabyText",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "pregnancyfeats": {
+      "name": "pregnancyFeats",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "pregnancyicon": {
+      "name": "pregnancyicon",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "pregnancypassout": {
+      "name": "pregnancyPassout",
+      "aliases": [],
+      "calls": 87,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "pregnancytest": {
+      "name": "pregnancyTest",
+      "aliases": [],
+      "calls": 13,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $lastPassage"
+        }
+      }
+    },
+    "presets": {
+      "name": "presets",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "note": "passed to >switch()"
+        },
+        "1": {
+          "note": "assigned to _presetPage"
+        },
+        "2": {
+          "note": "assigned to _preset"
+        }
+      }
+    },
+    "print": {
+      "name": "print",
+      "aliases": [],
+      "calls": 42,
+      "args": {}
+    },
+    "printmoney": {
+      "name": "printmoney",
+      "aliases": [],
+      "calls": 532,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "amount in pennies"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "optional highlight class or toggle"
+        }
+      }
+    },
+    "printshopcolouroptions": {
+      "name": "printShopColourOptions",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "passed to >capture()"
+        }
+      }
+    },
+    "prisoncrimeup": {
+      "name": "prisoncrimeUp",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "prisonicon": {
+      "name": "prisonicon",
+      "aliases": [],
+      "calls": 51,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >icon()"
+        }
+      }
+    },
+    "procedureicon": {
+      "name": "procedureicon",
+      "aliases": [],
+      "calls": 42,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "producestatstitle": {
+      "name": "produceStatsTitle",
+      "aliases": [],
+      "calls": 14,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "pubfamecomplete": {
+      "name": "pubfameComplete",
+      "aliases": [],
+      "calls": 54,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_task"
+        },
+        "1": {
+          "note": "assigned to $_modifier"
+        }
+      }
+    },
+    "pull_leash": {
+      "name": "pull_leash",
+      "aliases": [],
+      "calls": 15,
+      "args": {
+        "0": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_pull"
+        }
+      }
+    },
+    "pushclothingcaption": {
+      "name": "pushClothingCaption",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "1": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "radiobutton": {
+      "name": "radiobutton",
+      "aliases": [],
+      "calls": 1907,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "radiovar": {
+      "name": "radiovar",
+      "aliases": [],
+      "calls": 78,
+      "args": {}
+    },
+    "rangeslider": {
+      "name": "rangeslider",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "rebuyicon": {
+      "name": "rebuyicon",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "recordanussperm": {
+      "name": "recordAnusSperm",
+      "aliases": [],
+      "calls": 55,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "recordvaginalsperm": {
+      "name": "recordVaginalSperm",
+      "aliases": [],
+      "calls": 66,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "remove": {
+      "name": "remove",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "removebabyintro": {
+      "name": "removeBabyIntro",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "removebuttplug": {
+      "name": "removeButtplug",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "removeclass": {
+      "name": "removeclass",
+      "aliases": [],
+      "calls": 81,
+      "args": {}
+    },
+    "removeparasite": {
+      "name": "removeparasite",
+      "aliases": [],
+      "calls": 10,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _temp0"
+        }
+      }
+    },
+    "rendermodel": {
+      "name": "rendermodel",
+      "aliases": [],
+      "calls": 14,
+      "args": {}
+    },
+    "replace": {
+      "name": "replace",
+      "aliases": [],
+      "calls": 545,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "robinicon": {
+      "name": "robinicon",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >icon()"
+        }
+      }
+    },
+    "robinpunishment": {
+      "name": "robinPunishment",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _event"
+        }
+      }
+    },
+    "runicon": {
+      "name": "runicon",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to _direction"
+        }
+      }
+    },
+    "savefavoritefood": {
+      "name": "saveFavoriteFood",
+      "aliases": [],
+      "calls": 25,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >run()"
+        },
+        "1": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "saveloadcache": {
+      "name": "saveLoadCache",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "say_brown_fox": {
+      "name": "say_brown_fox",
+      "aliases": [],
+      "calls": 31,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "school_skill_up_text": {
+      "name": "school_skill_up_text",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to $_subject"
+        }
+      }
+    },
+    "schoolicon": {
+      "name": "schoolicon",
+      "aliases": [],
+      "calls": 142,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "schoolskillgeneral": {
+      "name": "schoolskillgeneral",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to $_subject"
+        },
+        "1": {
+          "note": "assigned to $_gain"
+        }
+      }
+    },
+    "schoolwalkchat": {
+      "name": "schoolWalkChat",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "scienceicon": {
+      "name": "scienceicon",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "seenpassage": {
+      "name": "seenPassage",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "passed to >run()"
+        }
+      }
+    },
+    "seize_stolen_goods": {
+      "name": "seize_stolen_goods",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "select_random_clothes_limited": {
+      "name": "select_random_clothes_limited",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "selectmodel": {
+      "name": "selectmodel",
+      "aliases": [],
+      "calls": 30,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "selectnpcwithpartinposition": {
+      "name": "selectNpcWithPartInPosition",
+      "aliases": [],
+      "calls": 67,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_part"
+        },
+        "1": {
+          "note": "assigned to $_position"
+        }
+      }
+    },
+    "selectnpcwithpartinpositionanus": {
+      "name": "selectNpcWithPartInPositionAnus",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "sendtowardrobefromdefault": {
+      "name": "sendToWardrobeFromDefault",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to $_location"
+        },
+        "1": {
+          "note": "assigned to $_slot"
+        }
+      }
+    },
+    "setbabyintro": {
+      "name": "setBabyIntro",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "setknowsaboutpregnancy": {
+      "name": "setKnowsAboutPregnancy",
+      "aliases": [],
+      "calls": 35,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "settalkedaboutpregnancy": {
+      "name": "setTalkedAboutPregnancy",
+      "aliases": [],
+      "calls": 16,
+      "args": {}
+    },
+    "settingstabbutton": {
+      "name": "settingsTabButton",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >button()"
+        },
+        "1": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "settowertemp": {
+      "name": "setTowerTemp",
+      "aliases": [],
+      "calls": 11,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "sewericon": {
+      "name": "sewericon",
+      "aliases": [],
+      "calls": 53,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "sexactiondifficulty": {
+      "name": "sexactiondifficulty",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "sextoysicon": {
+      "name": "sextoysicon",
+      "aliases": [],
+      "calls": 34,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "shopbuyv2": {
+      "name": "shopbuyv2",
+      "aliases": [],
+      "calls": 55,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to _slot"
+        },
+        "1": {
+          "note": "assigned to _action"
+        },
+        "2": {
+          "note": "assigned to _subaction"
+        },
+        "3": {
+          "note": "assigned to _choice_index"
+        },
+        "4": {
+          "note": "assigned to _amount"
+        }
+      }
+    },
+    "shophuntaction": {
+      "name": "shopHuntAction",
+      "aliases": [],
+      "calls": 31,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "shophuntactorsetstate": {
+      "name": "shopHuntActorSetState",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to $_actor"
+        },
+        "1": {
+          "note": "assigned to $_state"
+        },
+        "2": {
+          "note": "assigned to $_target"
+        }
+      }
+    },
+    "shophuntcreateactor": {
+      "name": "shopHuntCreateActor",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        },
+        "1": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "shophuntdebug": {
+      "name": "shopHuntDebug",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "shophunticon": {
+      "name": "shopHuntIcon",
+      "aliases": [],
+      "calls": 11,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >icon()"
+        },
+        "1": {
+          "kind": "ui_icon",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_overlay"
+        }
+      }
+    },
+    "shophuntmess": {
+      "name": "shopHuntMess",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to $_value"
+        },
+        "1": {
+          "note": "assigned to $_events"
+        }
+      }
+    },
+    "shophuntpronoun": {
+      "name": "shopHuntPronoun",
+      "aliases": [],
+      "calls": 143,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_word"
+        },
+        "1": {
+          "note": "assigned to $shopHuntActive"
+        }
+      }
+    },
+    "shophuntresistgrip": {
+      "name": "shopHuntResistGrip",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "shophuntshuffle": {
+      "name": "shopHuntShuffle",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "shopicon": {
+      "name": "shopicon",
+      "aliases": [],
+      "calls": 116,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "showlayer": {
+      "name": "showlayer",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >run()"
+        }
+      }
+    },
+    "showunderequip": {
+      "name": "ShowUnderEquip",
+      "aliases": [],
+      "calls": 36,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "shredderactions": {
+      "name": "shredderactions",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _slot"
+        }
+      }
+    },
+    "sidebartime": {
+      "name": "sidebarTime",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "passed to >sidebarBadEndTimeLabel()"
+        }
+      }
+    },
+    "skinicon": {
+      "name": "skinicon",
+      "aliases": [],
+      "calls": 132,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "skulduggerycheck": {
+      "name": "skulduggerycheck",
+      "aliases": [],
+      "calls": 30,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "skyscrapericon": {
+      "name": "skyscrapericon",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "slimeeventend": {
+      "name": "slimeEventEnd",
+      "aliases": [],
+      "calls": 14,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "slimewakebodyliquid": {
+      "name": "slimeWakeBodyliquid",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "assigned to _liquid"
+        }
+      }
+    },
+    "socialiseicon": {
+      "name": "socialiseicon",
+      "aliases": [],
+      "calls": 209,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "spaicon": {
+      "name": "spaicon",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "specialclothesunlock": {
+      "name": "specialClothesUnlock",
+      "aliases": [],
+      "calls": 96,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "speechwraith": {
+      "name": "speechWraith",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "assigned to $_npcWraith"
+        }
+      }
+    },
+    "spray": {
+      "name": "spray",
+      "aliases": [],
+      "calls": 21,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "spray charge delta"
+        }
+      }
+    },
+    "stairsicon": {
+      "name": "stairsicon",
+      "aliases": [],
+      "calls": 19,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to _direction"
+        },
+        "1": {
+          "note": "assigned to _location"
+        }
+      }
+    },
+    "stallicon": {
+      "name": "stallicon",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "startbrothelshow": {
+      "name": "startbrothelshow",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _show"
+        }
+      }
+    },
+    "startoptionscomplexitybutton": {
+      "name": "startOptionsComplexityButton",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "passed to >button()"
+        },
+        "1": {
+          "note": "assigned to _selectedStart"
+        }
+      }
+    },
+    "stealclothes": {
+      "name": "stealclothes",
+      "aliases": [],
+      "calls": 5,
+      "args": {
+        "0": {
+          "note": "assigned to _temp_steal"
+        }
+      }
+    },
+    "stockholmtrait": {
+      "name": "stockholmTrait",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "passed to >print()"
+        }
+      }
+    },
+    "storeactions": {
+      "name": "storeactions",
+      "aliases": [],
+      "calls": 13,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "medium",
+          "note": "assigned to _temp_strip"
+        }
+      }
+    },
+    "storeload": {
+      "name": "storeload",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >run()"
+        },
+        "1": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >run()"
+        }
+      }
+    },
+    "storeon": {
+      "name": "storeon",
+      "aliases": [],
+      "calls": 258,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to _store_temp"
+        },
+        "1": {
+          "note": "assigned to _store_option"
+        }
+      }
+    },
+    "storeonfeet": {
+      "name": "storeonfeet",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "1": {
+          "note": "passed to >generalStoreon()"
+        }
+      }
+    },
+    "storeonhandheld": {
+      "name": "storeonhandheld",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "1": {
+          "note": "passed to >generalStoreon()"
+        }
+      }
+    },
+    "storeonhead": {
+      "name": "storeonhead",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "1": {
+          "note": "passed to >generalStoreon()"
+        }
+      }
+    },
+    "storeonlower": {
+      "name": "storeonlower",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "1": {
+          "note": "passed to >generalStoreon()"
+        }
+      }
+    },
+    "storeonneck": {
+      "name": "storeonneck",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "1": {
+          "note": "passed to >generalStoreon()"
+        }
+      }
+    },
+    "storeonupper": {
+      "name": "storeonupper",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "1": {
+          "note": "passed to >generalStoreon()"
+        }
+      }
+    },
+    "stress": {
+      "name": "stress",
+      "aliases": [],
+      "calls": 4075,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "stress amount"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "optional multiplier"
+        }
+      }
+    },
+    "strip": {
+      "name": "strip",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "strokerselfpenisentrance": {
+      "name": "strokerSelfPenisEntrance",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "struggle_defense_init": {
+      "name": "struggle_defense_init",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "struggle_name": {
+      "name": "struggle_name",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to $_loc"
+        }
+      }
+    },
+    "struggle_part_init": {
+      "name": "struggle_part_init",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_part"
+        }
+      }
+    },
+    "struggleclearactions": {
+      "name": "struggleClearActions",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "subsectionsettingstabbutton": {
+      "name": "subsectionSettingsTabButton",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >button()"
+        },
+        "1": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >displaySubsection()"
+        }
+      }
+    },
+    "sunscreenapply": {
+      "name": "sunscreenApply",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "supermarketdisplay": {
+      "name": "supermarketDisplay",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "assigned to _selectedShop"
+        }
+      }
+    },
+    "swarminit": {
+      "name": "swarminit",
+      "aliases": [],
+      "calls": 21,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "1": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "2": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "3": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "4": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "5": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "6": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "swimicon": {
+      "name": "swimicon",
+      "aliases": [],
+      "calls": 73,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "sydneygenitals": {
+      "name": "sydneyGenitals",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "symbol": {
+      "name": "symbol",
+      "aliases": [],
+      "calls": 9,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "tabletext": {
+      "name": "tableText",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "takehandholdingvirginity": {
+      "name": "takeHandholdingVirginity",
+      "aliases": [],
+      "calls": 134,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_fullDescription"
+        },
+        "1": {
+          "note": "passed to >switch()"
+        },
+        "2": {
+          "note": "assigned to $_handTentacle"
+        }
+      }
+    },
+    "takekissvirginity": {
+      "name": "takeKissVirginity",
+      "aliases": [],
+      "calls": 190,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_fullDescription"
+        },
+        "1": {
+          "note": "assigned to $_kissType"
+        },
+        "2": {
+          "note": "assigned to $_type"
+        }
+      }
+    },
+    "takenpcvirginity": {
+      "name": "takeNPCVirginity",
+      "aliases": [],
+      "calls": 26,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_npcId"
+        },
+        "1": {
+          "kind": "body_part",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_vType"
+        }
+      }
+    },
+    "taketemplevirginity": {
+      "name": "takeTempleVirginity",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "takevirginity": {
+      "name": "takeVirginity",
+      "aliases": [],
+      "calls": 40,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_taker"
+        },
+        "1": {
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "targetlistbox": {
+      "name": "targetListBox",
+      "aliases": [],
+      "calls": 60,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >optionsfrom()"
+        },
+        "2": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _listBoxReceiver"
+        }
+      }
+    },
+    "techicon": {
+      "name": "techicon",
+      "aliases": [],
+      "calls": 45,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >icon()"
+        }
+      }
+    },
+    "temple_title": {
+      "name": "temple_title",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "named_npc",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "templeicon": {
+      "name": "templeicon",
+      "aliases": [],
+      "calls": 143,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "tending_give": {
+      "name": "tending_give",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_type"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "tentacle_record": {
+      "name": "tentacle_record",
+      "aliases": [],
+      "calls": 50,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_type"
+        },
+        "1": {
+          "note": "assigned to $_amount"
+        }
+      }
+    },
+    "tentacle_skin": {
+      "name": "tentacle_skin",
+      "aliases": [],
+      "calls": 41,
+      "args": {
+        "0": {
+          "kind": "body_part",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to _bodypart"
+        }
+      }
+    },
+    "tentacleicon": {
+      "name": "tentacleicon",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "textarea": {
+      "name": "textarea",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "textbox": {
+      "name": "textbox",
+      "aliases": [],
+      "calls": 20,
+      "args": {}
+    },
+    "tficon": {
+      "name": "tficon",
+      "aliases": [],
+      "calls": 60,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >iconUi()"
+        }
+      }
+    },
+    "that": {
+      "name": "that",
+      "aliases": [],
+      "calls": 10,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "timetrackingend": {
+      "name": "timeTrackingEnd",
+      "aliases": [],
+      "calls": 19,
+      "args": {}
+    },
+    "timetrackingmanual": {
+      "name": "timeTrackingManual",
+      "aliases": [],
+      "calls": 6,
+      "args": {}
+    },
+    "timetrackingstart": {
+      "name": "timeTrackingStart",
+      "aliases": [],
+      "calls": 14,
+      "args": {}
+    },
+    "timetrackingstartdancejobs": {
+      "name": "timeTrackingStartDanceJobs",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >timeTrackingStart()"
+        }
+      }
+    },
+    "tipreceive": {
+      "name": "tipreceive",
+      "aliases": [],
+      "calls": 65,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >money()"
+        }
+      }
+    },
+    "tipset": {
+      "name": "tipset",
+      "aliases": [],
+      "calls": 35,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "tml": {
+      "name": "tml",
+      "aliases": [],
+      "calls": 16,
+      "args": {}
+    },
+    "toggleclass": {
+      "name": "toggleclass",
+      "aliases": [],
+      "calls": 15,
+      "args": {}
+    },
+    "togglefacelayer": {
+      "name": "toggleFaceLayer",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "togglehoodlink": {
+      "name": "toggleHoodLink",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "note": "passed to >toggleHood()"
+        }
+      }
+    },
+    "transform": {
+      "name": "transform",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "trauma": {
+      "name": "trauma",
+      "aliases": [],
+      "calls": 2227,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ],
+          "note": "trauma amount"
+        }
+      }
+    },
+    "undergroundreturntocell": {
+      "name": "undergroundReturnToCell",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "undergroundrobintopic": {
+      "name": "undergroundRobinTopic",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        },
+        "1": {
+          "note": "assigned to $_state"
+        }
+      }
+    },
+    "underlowersend": {
+      "name": "underlowersend",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "4": {
+          "note": "passed to >generalSend()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "underlowerundress": {
+      "name": "underlowerundress",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "passed to >generalUndress()"
+        }
+      }
+    },
+    "underlowerwear": {
+      "name": "underlowerwear",
+      "aliases": [],
+      "calls": 27,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "underuppersend": {
+      "name": "underuppersend",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "4": {
+          "note": "passed to >generalSend()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "underupperundress": {
+      "name": "underupperundress",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "passed to >generalUndress()"
+        }
+      }
+    },
+    "underupperwear": {
+      "name": "underupperwear",
+      "aliases": [],
+      "calls": 17,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "underworld_nickname": {
+      "name": "underworld_nickname",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "undress": {
+      "name": "undress",
+      "aliases": [],
+      "calls": 53,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to $_location"
+        }
+      }
+    },
+    "undressclothes": {
+      "name": "undressclothes",
+      "aliases": [],
+      "calls": 15,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_location"
+        }
+      }
+    },
+    "undresskeepslot": {
+      "name": "undressKeepSlot",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "0": {
+          "note": "assigned to $_location"
+        },
+        "1": {
+          "note": "passed to >for()"
+        }
+      }
+    },
+    "undressmid": {
+      "name": "undressmid",
+      "aliases": [],
+      "calls": 8,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_location"
+        }
+      }
+    },
+    "undressoverclothes": {
+      "name": "undressOverClothes",
+      "aliases": [],
+      "calls": 20,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_location"
+        }
+      }
+    },
+    "undresssleep": {
+      "name": "undressSleep",
+      "aliases": [],
+      "calls": 12,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to $_location"
+        }
+      }
+    },
+    "updatefeatspointsmenu": {
+      "name": "updateFeatsPointsMenu",
+      "aliases": [],
+      "calls": 4,
+      "args": {
+        "2": {
+          "note": "assigned to _cost"
+        }
+      }
+    },
+    "updatefoodstuffvariables": {
+      "name": "updateFoodstuffVariables",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "assigned to $_oldKey"
+        },
+        "1": {
+          "note": "assigned to $_newKey"
+        }
+      }
+    },
+    "updateowned": {
+      "name": "updateOwned",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "passed to >updateStoredSlot()"
+        }
+      }
+    },
+    "updatepersistentnpcs": {
+      "name": "updatePersistentNPCs",
+      "aliases": [],
+      "calls": 5,
+      "args": {}
+    },
+    "updaterecordedsperm": {
+      "name": "updateRecordedSperm",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "updatewardrobe": {
+      "name": "updatewardrobe",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "1": {
+          "note": "assigned to $_slot"
+        }
+      }
+    },
+    "uppersend": {
+      "name": "uppersend",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "4": {
+          "note": "passed to >generalSend()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "upperundress": {
+      "name": "upperundress",
+      "aliases": [],
+      "calls": 7,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >generalUndress()"
+        }
+      }
+    },
+    "upperwear": {
+      "name": "upperwear",
+      "aliases": [],
+      "calls": 223,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "definition"
+          ],
+          "note": "clothing name; generalWear resolves name->index"
+        },
+        "3": {
+          "note": "passed to >generalWear()"
+        },
+        "1": {
+          "note": "colour (optional)"
+        },
+        "2": {
+          "note": "accessory colour (optional)"
+        }
+      }
+    },
+    "violence": {
+      "name": "violence",
+      "aliases": [],
+      "calls": 883,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "violence amount"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "stress modifier"
+        },
+        "2": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "trauma modifier"
+        },
+        "3": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "pain modifier"
+        },
+        "4": {
+          "kind": "structural",
+          "evidence": [
+            "definition"
+          ],
+          "note": "unused NPC id"
+        }
+      }
+    },
+    "virginitylosttext": {
+      "name": "virginitylosttext",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "voice": {
+      "name": "voice",
+      "aliases": [],
+      "calls": 22,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "vore_img": {
+      "name": "vore_img",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "walkicon": {
+      "name": "walkicon",
+      "aliases": [],
+      "calls": 1,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to _direction"
+        }
+      }
+    },
+    "wardrobesend": {
+      "name": "wardrobeSend",
+      "aliases": [],
+      "calls": 1,
+      "args": {}
+    },
+    "washrecordedsperm": {
+      "name": "washRecordedSperm",
+      "aliases": [],
+      "calls": 4,
+      "args": {}
+    },
+    "watericon": {
+      "name": "watericon",
+      "aliases": [],
+      "calls": 13,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "assigned to _key"
+        }
+      }
+    },
+    "wearandtear": {
+      "name": "wearandtear",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "wearlink_norefresh": {
+      "name": "wearlink_norefresh",
+      "aliases": [],
+      "calls": 6,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >link()"
+        },
+        "2": {
+          "note": "passed to >capture()"
+        }
+      }
+    },
+    "wearprop": {
+      "name": "wearProp",
+      "aliases": [],
+      "calls": 1449,
+      "args": {
+        "0": {
+          "kind": "clothing",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "wheeze": {
+      "name": "wheeze",
+      "aliases": [],
+      "calls": 22,
+      "args": {
+        "0": {
+          "kind": "prose_text",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "assigned to _action"
+        },
+        "1": {
+          "kind": "structural",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "whitneyroofrulebreak": {
+      "name": "whitneyRoofRuleBreak",
+      "aliases": [],
+      "calls": 3,
+      "args": {
+        "0": {
+          "note": "passed to >print()"
+        },
+        "1": {
+          "note": "assigned to $_whitneyMadAtUnderwear"
+        }
+      }
+    },
+    "whunt": {
+      "name": "wHunt",
+      "aliases": [],
+      "calls": 29,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high",
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "widget": {
+      "name": "widget",
+      "aliases": [],
+      "calls": 5137,
+      "args": {
+        "0": {
+          "kind": "structural",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "wolf_cave_singular": {
+      "name": "wolf_cave_singular",
+      "aliases": [],
+      "calls": 2,
+      "args": {
+        "0": {
+          "note": "assigned to _wolves_singular"
+        }
+      }
+    },
+    "wolfcaveicon": {
+      "name": "wolfcaveicon",
+      "aliases": [],
+      "calls": 29,
+      "args": {
+        "0": {
+          "kind": "ui_icon",
+          "evidence": [
+            "call"
+          ],
+          "note": "passed to >switch()"
+        }
+      }
+    },
+    "word": {
+      "name": "word",
+      "aliases": [],
+      "calls": 3,
+      "args": {}
+    },
+    "world_corruption": {
+      "name": "world_corruption",
+      "aliases": [],
+      "calls": 42,
+      "args": {
+        "0": {
+          "kind": "arbitrary_text",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    },
+    "wpersist": {
+      "name": "wPersist",
+      "aliases": [],
+      "calls": 2,
+      "args": {}
+    },
+    "wraithpossess": {
+      "name": "wraithPossess",
+      "aliases": [],
+      "calls": 11,
+      "args": {
+        "0": {
+          "kind": "location",
+          "evidence": [
+            "llm"
+          ],
+          "confidence": "high"
+        }
+      }
+    },
+    "your_bird_text": {
+      "name": "your_bird_text",
+      "aliases": [],
+      "calls": 175,
+      "args": {
+        "0": {
+          "kind": "event_key",
+          "evidence": [
+            "call"
+          ]
+        }
+      }
+    }
+  }
+}

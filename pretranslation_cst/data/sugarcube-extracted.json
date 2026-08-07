@@ -1,0 +1,616 @@
+{
+ "macros": {
+  "-": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/print.js:14",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "=": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/print.js:14",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "actions": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/deprecated-macros.js:20",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube_deprecated",
+   "tag_raw": [],
+   "tags": []
+  },
+  "addclass": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/addclass-toggleclass.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "append": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/append-prepend-replace.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "audio": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/audio-macros.js:896",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "back": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/back-return.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "break": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/for-break-continue.js:392",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "button": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/button-link.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "cacheaudio": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/audio-macros.js:896",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "capture": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/capture.js:14",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "checkbox": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/checkbox.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "choice": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/deprecated-macros.js:104",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube_deprecated",
+   "tag_raw": [],
+   "tags": []
+  },
+  "continue": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/for-break-continue.js:392",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "copy": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/copy.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "createaudiogroup": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/audio-macros.js:896",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "createplaylist": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/audio-macros.js:896",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "cycle": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/cycle-listbox.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [
+    "optionsfrom"
+   ],
+   "tags": [
+    "option",
+    "optionsfrom"
+   ]
+  },
+  "do": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/do-redo.js:33",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "done": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/done.js:14",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "for": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/for-break-continue.js:17",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "goto": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/goto.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "if": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/if.js:14",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [
+    "else",
+    "elseif"
+   ],
+   "tags": [
+    "elseif",
+    "else"
+   ]
+  },
+  "include": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/include.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "link": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/button-link.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "linkappend": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/linkappend-linkprepend-linkreplace.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "linkprepend": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/linkappend-linkprepend-linkreplace.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "linkreplace": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/linkappend-linkprepend-linkreplace.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "listbox": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/cycle-listbox.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [
+    "optionsfrom"
+   ],
+   "tags": [
+    "option",
+    "optionsfrom"
+   ]
+  },
+  "masteraudio": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/audio-macros.js:896",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "nobr": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/nobr.js:14",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "numberbox": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/numberbox.js:44",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "playlist": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/audio-macros.js:896",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "prepend": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/append-prepend-replace.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "print": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/print.js:14",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "radiobutton": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/radiobutton.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "redo": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/do-redo.js:123",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "remove": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/remove.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "removeaudiogroup": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/audio-macros.js:896",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "removeclass": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/removeclass.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "removeplaylist": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/audio-macros.js:896",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "repeat": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/repeat-stop.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "replace": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/append-prepend-replace.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "return": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/back-return.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "run": {
+   "alias_of": "set",
+   "container": false,
+   "evidence": "src/macro/macros/set-run.js:39",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "script": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/script.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "set": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/set-run.js:14",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "silent": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/silent.js:14",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "silently": {
+   "alias_of": "silent",
+   "container": true,
+   "evidence": "src/macro/deprecated-macros.js:15",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube_deprecated",
+   "tag_raw": [],
+   "tags": []
+  },
+  "stop": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/repeat-stop.js:129",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "switch": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/switch.js:14",
+   "main_raw": true,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": [
+    "case",
+    "default"
+   ]
+  },
+  "textarea": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/textarea.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "textbox": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/textbox.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "timed": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/timed.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": [
+    "next"
+   ]
+  },
+  "toggleclass": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/addclass-toggleclass.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "type": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/type.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "unset": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/unset.js:14",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "waitforaudio": {
+   "alias_of": null,
+   "container": false,
+   "evidence": "src/macro/macros/audio-macros.js:896",
+   "main_raw": true,
+   "skip_args_all": true,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  },
+  "widget": {
+   "alias_of": null,
+   "container": true,
+   "evidence": "src/macro/macros/widget.js:14",
+   "main_raw": false,
+   "skip_args_all": false,
+   "source_kind": "sugarcube",
+   "tag_raw": [],
+   "tags": []
+  }
+ },
+ "pinned_source": "sugarcube-2 at /tmp/opencode/sugarcube-2"
+}
