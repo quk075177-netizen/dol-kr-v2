@@ -1,10 +1,15 @@
 """Register triple-match KO passages as reuse records.
 
-Reads ``research/golden/corpus-triple-match.jsonl`` (Git-excluded), filters
-passages without ``【 】`` markers (the 3,169 "immediately usable" subset),
-normalises markers, verifies the KO body with our own parser pipeline and
-the skeleton-preservation check, then appends passage-level records to the
-reuse store (``work/translations/ko-reuse.jsonl``, Git-excluded).
+Reads ``research/golden/corpus-triple-match.jsonl`` (Git-excluded), covers
+both the no-marker subset and the ``【 】`` marker subset: markers are
+normalised to ``{{post:...}}`` and statically resolved where the preceding
+value is a fixed string, the KO body is verified with our own parser
+pipeline and the skeleton-preservation check, then passage-level records
+are appended to the reuse store (``work/translations/ko-reuse.jsonl``,
+Git-excluded).
+
+Records whose source_text_hash already exists in the store are skipped, so
+re-running is idempotent.
 
 Usage:
     python3 -m translation.register_ko_reuse [--triple-match PATH] [--out PATH]
@@ -22,9 +27,12 @@ from pretranslation_cst.masking import mask_passage
 from pretranslation_cst.parser import parse_file
 from pretranslation_cst.paths import DEFAULT_VALUE_KIND_PATH
 
+from translation.assemble_game_ko import macro_sequence
+
 from .post import normalize_markers, resolve_static
 from .store import (
     append_record,
+    load_translations,
     passage_placeholder_signature,
     source_hash,
 )
@@ -44,6 +52,13 @@ def match_boundaries(source: str, translated: str) -> str:
 
 def make_record(row: dict, ko_normalized: str, *, level: str) -> dict:
     source_body = row["source_body"]
+    markers = "{{post:" in ko_normalized
+    if markers:
+        post_status = "runtime_remaining"
+    elif "【" in row["ko_body"]:
+        post_status = "static_done"
+    else:
+        post_status = "none"
     return {
         "record_id": f"tr_{source_hash(source_body)[:12]}_ko",
         "source_text_hash": source_hash(source_body),
@@ -57,7 +72,7 @@ def make_record(row: dict, ko_normalized: str, *, level: str) -> dict:
         "temperature": None,
         "created_at": datetime.now(ZoneInfo("Asia/Seoul")).isoformat(timespec="seconds"),
         "placeholder_ok": True,
-        "post_status": "static_done" if "{{post:" in ko_normalized else "none",
+        "post_status": post_status,
         "source": "ko_reuse",
         "level": level,
     }
@@ -75,18 +90,26 @@ def register_ko_reuse(
     stats = {
         "total": 0,
         "no_marker": 0,
+        "with_marker": 0,
+        "already_registered": 0,
         "registered": 0,
         "skipped": {},
         "skipped_records": [],
     }
+    existing = load_translations(out_path)
     p = Path(triple_match_path)
     with p.open(encoding="utf-8") as fh:
         for line in fh:
             row = json.loads(line)
             stats["total"] += 1
-            if marker_re.search(row["ko_body"]):
+            if marker_re.search(row["ko_body"]) or "{{post:" in row["ko_body"]:
+                stats["with_marker"] += 1
+            else:
+                stats["no_marker"] += 1
+            source_body = row["source_body"]
+            if source_hash(source_body) in existing:
+                stats["already_registered"] += 1
                 continue
-            stats["no_marker"] += 1
             error = _verify_passage(row)
             if error:
                 stats["skipped"][error] = stats["skipped"].get(error, 0) + 1
@@ -99,6 +122,7 @@ def register_ko_reuse(
             ko_normalized = match_boundaries(row["source_body"], ko_normalized)
             record = make_record(row, ko_normalized, level="passage")
             append_record(record, out_path)
+            existing.setdefault(record["source_text_hash"], []).append(record)
             stats["registered"] += 1
 
     if report_path is not None:
@@ -110,7 +134,8 @@ def register_ko_reuse(
 
 def _verify_passage(row: dict) -> str | None:
     """Verify the KO body is structurally equivalent to the source body
-    under OUR parser: both must produce the same protected-span sequence.
+    under OUR parser: both must produce the same macro-token sequence and
+    the same protected-span sequence.
 
     triple-match already guarantees skeleton equality; this is the
     belt-and-braces check before registering a KO body as a translation.
@@ -129,6 +154,10 @@ def _verify_passage(row: dict) -> str | None:
         )
         if src_passage is None or ko_passage is None:
             return "passage_not_found"
+        if macro_sequence(row["source_body"].encode("utf-8")) != macro_sequence(
+            row["ko_body"].encode("utf-8")
+        ):
+            return "macro_sequence_mismatch"
         src_sig = passage_placeholder_signature(mask_passage(src_synthetic, src_passage))
         ko_sig = passage_placeholder_signature(mask_passage(ko_synthetic, ko_passage))
         if src_sig != ko_sig:

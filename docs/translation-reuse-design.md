@@ -139,11 +139,17 @@ corpus-triple-match.jsonl (KO body, 【 】마커 포함)
 
 ### R3. 3-match 등록 스크립트 (`translation/register_ko_reuse.py`) — 완료
 
-- triple-match JSONL → 마커 없는 3,169 passage 필터 → **우리 파서로
-  source/KO 양쪽 합성 파일 파싱 → 보호 스팬 시퀀스 대칭 검사** →
-  `work/translations/ko-reuse.jsonl` 등록 (Git 제외)
-- 등록: **3,151건** (유니크 hash 3,132), 제외: skeleton_mismatch 18
-  (KO가 구조 변경한 실제 사례 — 검사가 걸러냄)
+- triple-match JSONL 전체(7,206 passage, 마커 유무 무관) → **우리 파서로
+  source/KO 양쪽 합성 파일 파싱 → 보호 스팬 시퀀스 대칭 검사 +
+  macro_sequence 대칭 검사** → `work/translations/ko-reuse.jsonl` 등록
+  (Git 제외). 재실행 멱등 (기등록 hash는 already_registered).
+- 등록: **7,137건** (마커 없음 3,157 + 마커 있음 3,978), 제외:
+  skeleton_mismatch 58 + macro_sequence_mismatch 9 (링크 라벨 내부
+  매크로 드롭 — 레거시 KO 결함. 파서 시그니처 검사로 안 잡히는 갭을
+  macro_sequence 검사로 보완, 2026-08-08 발견·반영)
+- 마커 있는 3,978건은 `post_status=runtime_remaining` — 레거시 【 】마커
+  13,066개 전량이 런타임 값 앞에 있어 정적 치환 0건 (문서 §3.5의 91.8%보다
+  실제는 100%). PO2 런타임 helper가 처리.
 - game/ 실제 파일과 passage body hash 일치: 샘플 100/100
 
 ### R4. request_id — 부분 완료
