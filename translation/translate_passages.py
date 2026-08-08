@@ -323,27 +323,39 @@ def repair_separator_newlines(artifact, joined: str) -> str:
     """Deterministically restore the whitespace separator gaps.  The masked
     reference guarantees the gap was whitespace-only, so replacing whatever
     whitespace (or nothing) the translation left with the original gap
-    reproduces the original structure and rendering exactly."""
+    reproduces the original structure and rendering exactly.
+
+    Order-independent: each token is located on its own (``joined.find``),
+    so Option E reorders of display-only tokens do not break the repair —
+    a monotonic cursor would walk past a moved token and abort the whole
+    repair early."""
     masked = artifact.masked_text
-    out: list[str] = []
-    cursor = 0
+    edits: list[tuple[int, str]] = []  # (token end position, source gap)
     for index, placeholder in enumerate(artifact.placeholders):
         token = placeholder.placeholder
-        idx = joined.find(token, cursor)
-        if idx < 0:
-            return joined  # missing placeholder — restore will raise loudly
-        after = idx + len(token)
         m_idx = masked.find(token)
         m_gap = _separator_gap(masked, m_idx + len(token), _next_tokens(artifact, index))
-        if m_gap is not None:
-            t_gap = _leading_whitespace(joined, after)
-            if t_gap != m_gap:
-                out.append(joined[cursor:after])
-                out.append(m_gap)
-                cursor = after + len(t_gap)
-                continue
-        out.append(joined[cursor : idx + len(token)])
-        cursor = after
+        if m_gap is None:
+            continue
+        t_idx = joined.find(token)
+        if t_idx < 0:
+            continue  # missing placeholder — restore will raise loudly
+        after = t_idx + len(token)
+        t_gap = _leading_whitespace(joined, after)
+        if t_gap != m_gap:
+            edits.append((after, m_gap))
+    if not edits:
+        return joined
+    edits.sort()
+    out: list[str] = []
+    cursor = 0
+    for position, gap in edits:
+        if position < cursor:
+            continue  # inside a whitespace run already replaced
+        run_end = position + len(_leading_whitespace(joined, position))
+        out.append(joined[cursor:position])
+        out.append(gap)
+        cursor = run_end
     out.append(joined[cursor:])
     return "".join(out)
 
@@ -526,7 +538,23 @@ def _resolve_unit(
                 _dump_failure(debug_dir, passage_name, last_reason, units,
                               _dump_texts(translated_units, tu, index, total))
                 return None, last_reason, l2_retries_used, escalated
-    return post_process(tu.translated_text), None, l2_retries_used, escalated
+    processed = post_process(tu.translated_text)
+    if verify_malformed_post_markers(processed):
+        # the model typo'd a {{post:...}} marker (missing/dropped brace) —
+        # escalate the unit; a malformed marker would otherwise surface only
+        # at the joined check after every unit was translated
+        if escalation_model is None:
+            _dump_failure(debug_dir, passage_name, "malformed_post_marker", units,
+                          _dump_texts(translated_units, tu, index, total))
+            return None, "malformed_post_marker", l2_retries_used, escalated
+        tu = translate_unit(unit, index, total, model=escalation_model)
+        escalated = True
+        processed = post_process(tu.translated_text)
+        if verify_placeholders(unit, tu.translated_text) or verify_malformed_post_markers(processed):
+            _dump_failure(debug_dir, passage_name, "malformed_post_marker", units,
+                          _dump_texts(translated_units, tu, index, total))
+            return None, "malformed_post_marker", l2_retries_used, escalated
+    return processed, None, l2_retries_used, escalated
 
 
 def translate_passage(

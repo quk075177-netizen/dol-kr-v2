@@ -83,6 +83,33 @@ class TranslatePassagesTests(unittest.TestCase):
         self.assertEqual(len(verify_separator_newlines(artifact, repaired)), 0)
         self.assertIn(tokens[0] + " " + tokens[1], repaired)
 
+    def test_separator_repair_survives_reordered_tokens(self) -> None:
+        # Option E tolerates reorders of display-only tokens; the separator
+        # repair must not abort on the moved token (monotonic cursor bug)
+        # — otherwise every later separator stays broken and L3 merges spans.
+        from pretranslation_cst.masking import mask_passage
+
+        raw = (
+            b":: One\n\n"
+            b"$a says as $b reaches for $c phone.\n"
+            b"<br><br>\n"
+            b"$d moves in front of $e desk.\n\n"
+        )
+        source = parse_file(raw, str(self.file), DEFAULT_VALUE_KIND_PATH)
+        passage = next(p for p in source.passages if p.name == "One")
+        artifact = mask_passage(raw, passage)
+        tokens = [ph.placeholder for ph in artifact.placeholders]
+        self.assertEqual(len(tokens), 6)  # $a $b $c <br><br> $d $e
+        # swap $b/$c (reordered), and drop the "\n" separator before <br><br>
+        joined = (
+            tokens[0] + " says as " + tokens[2] + " reaches for " + tokens[1]
+            + " phone." + tokens[3] + tokens[4] + " moves in front of desk."
+        )
+        repaired = repair_separator_newlines(artifact, joined)
+        self.assertEqual(len(verify_separator_newlines(artifact, repaired)), 0)
+        self.assertIn(tokens[3] + "\n", repaired)
+        self.assertIn("\n" + tokens[4], repaired)
+
     def test_separator_repair_multi_char_gap(self) -> None:
         # A "\n\n" paragraph-break gap must be restored as "\n\n", not a
         # single "\n" (shrunken gaps silently lose paragraph breaks).
