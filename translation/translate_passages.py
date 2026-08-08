@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import re
 import sys
 from datetime import datetime
@@ -30,7 +31,12 @@ from pretranslation_cst.chunking import chunk_passage
 from pretranslation_cst.masking import mask_passage
 from pretranslation_cst.parser import parse_file
 from pretranslation_cst.paths import DEFAULT_VALUE_KIND_PATH
-from translation.client import TranslatedUnit, translate_unit, verify_placeholders
+from translation.client import (
+    TranslatedUnit,
+    restore_joined,
+    translate_unit,
+    verify_placeholders,
+)
 from translation.post import post_process, remaining_dynamic_markers
 from translation.store import (
     append_record,
@@ -76,22 +82,44 @@ def _skeleton_ok(source_artifact, translated_body: bytes, passage_name: str, sou
 
 _PLACEHOLDER_RE = re.compile(r"<0\d{6}>")
 
+# malformed {{post:...}} markers: closing brace missing, or closed with a
+# single '}' (e.g. "{{post:이가}" — the LLM typo'd the marker)
+_MALFORMED_POST_RE = re.compile(r"\{\{post:[^}]*$|" r"\{\{post:[^}]*\}(?!\})")
 
-def _placeholder_only_gap(text: str, start: int) -> bool:
-    """True when the text after ``start`` is whitespace up to the next
-    placeholder token (i.e. the two protected spans are line-separated)."""
+
+def verify_malformed_post_markers(text: str) -> list[str]:
+    """Detect structurally broken ``{{post:...}}`` markers in translated text
+    (unclosed or single-brace closed).  They are not placeholders, so the
+    placeholder/skeleton checks never see them."""
+    return [match.group(0) for match in _MALFORMED_POST_RE.finditer(text)]
+
+
+def _separator_gap(text: str, start: int) -> str | None:
+    """The whitespace-only gap between a placeholder (ending at ``start``)
+    and the next placeholder token, or None when the gap contains non-
+    whitespace (or there is no next placeholder)."""
     match = _PLACEHOLDER_RE.search(text, start)
     if match is None:
-        return False
-    return not text[start : match.start()].strip()
+        return None
+    gap = text[start : match.start()]
+    if not gap.strip():
+        return gap
+    return None
+
+
+def _leading_whitespace(text: str, start: int) -> str:
+    run = 0
+    while start + run < len(text) and text[start + run].isspace():
+        run += 1
+    return text[start : start + run]
 
 
 def verify_separator_newlines(artifact, joined: str) -> list[str]:
     """Find placeholders whose whitespace separator (the only thing between
-    them and the next protected span) was dropped in the joined translated
-    text.  Such merges break the parser signature even though every
-    placeholder survived.  Runs on the JOINED text so unit boundaries are
-    covered."""
+    them and the next protected span) changed in the joined translated text:
+    dropped entirely, or shrunk (e.g. ``\\n\\n`` paragraph break → ``\\n``).
+    Such changes merge spans in the parser or silently alter rendering.
+    Runs on the JOINED text so unit boundaries are covered."""
     problems: list[str] = []
     masked = artifact.masked_text
     for placeholder in artifact.placeholders:
@@ -100,20 +128,20 @@ def verify_separator_newlines(artifact, joined: str) -> list[str]:
         t_idx = joined.find(token)
         if m_idx < 0 or t_idx < 0:
             continue  # placeholder drop is handled elsewhere
-        after = m_idx + len(token)
-        m_sep = masked[after] if after < len(masked) else ""
-        t_after_pos = t_idx + len(token)
-        t_sep = joined[t_after_pos] if t_after_pos < len(joined) else ""
-        if m_sep.isspace() and _placeholder_only_gap(masked, after) and not t_sep.isspace():
+        m_gap = _separator_gap(masked, m_idx + len(token))
+        if m_gap is None:
+            continue
+        t_gap = _leading_whitespace(joined, t_idx + len(token))
+        if t_gap != m_gap:
             problems.append(token)
     return problems
 
 
 def repair_separator_newlines(artifact, joined: str) -> str:
-    """Deterministically restore the dropped whitespace separators.  The
-    masked reference guarantees only whitespace sat between the two protected
-    spans, so re-inserting the original separator right after the placeholder
-    reproduces the original structure exactly."""
+    """Deterministically restore the whitespace separator gaps.  The masked
+    reference guarantees the gap was whitespace-only, so replacing whatever
+    whitespace (or nothing) the translation left with the original gap
+    reproduces the original structure and rendering exactly."""
     masked = artifact.masked_text
     out: list[str] = []
     cursor = 0
@@ -122,33 +150,20 @@ def repair_separator_newlines(artifact, joined: str) -> str:
         idx = joined.find(token, cursor)
         if idx < 0:
             return joined  # missing placeholder — restore will raise loudly
-        out.append(joined[cursor : idx + len(token)])
         after = idx + len(token)
         m_idx = masked.find(token)
-        m_after_pos = m_idx + len(token)
-        m_sep = masked[m_after_pos] if m_after_pos < len(masked) else ""
-        t_sep = joined[after : after + 1]
-        if (
-            m_sep.isspace()
-            and _placeholder_only_gap(masked, m_after_pos)
-            and not t_sep.isspace()
-        ):
-            out.append(m_sep)
+        m_gap = _separator_gap(masked, m_idx + len(token))
+        if m_gap is not None:
+            t_gap = _leading_whitespace(joined, after)
+            if t_gap != m_gap:
+                out.append(joined[cursor:after])
+                out.append(m_gap)
+                cursor = after + len(t_gap)
+                continue
+        out.append(joined[cursor : idx + len(token)])
         cursor = after
     out.append(joined[cursor:])
     return "".join(out)
-
-
-def restore_joined(artifact, joined: str) -> bytes:
-    """Substitute placeholders in order in a joined translated text."""
-    for placeholder in artifact.placeholders:
-        occurrences = joined.count(placeholder.placeholder)
-        if occurrences != 1:
-            raise ValueError(
-                f"placeholder {placeholder.placeholder} occurs {occurrences} times"
-            )
-        joined = joined.replace(placeholder.placeholder, placeholder.original_text, 1)
-    return joined.encode("utf-8")
 
 
 def translate_passage(
@@ -159,6 +174,7 @@ def translate_passage(
     store_records: dict[str, list[dict]],
     force: bool = False,
     game_root: Path | None = None,
+    debug_dir: Path | None = None,
 ) -> tuple[dict | None, str]:
     """Translate one passage fully.  Returns (record, reason): record is
     None when the passage was skipped (reason="skipped") or failed
@@ -175,19 +191,34 @@ def translate_passage(
     for index, unit in enumerate(units):
         tu = translate_unit(unit, index, len(units))
         if verify_placeholders(unit, tu.translated_text):
+            _dump_failure(debug_dir, passage.name, "placeholder_drop", units,
+                          [tu.translated_text if i == index else None for i in range(len(units))])
             return None, "placeholder_drop"
         tu.translated_text = post_process(tu.translated_text)
         translated_units.append(tu)
 
     joined = "".join(tu.translated_text for tu in translated_units)
+    joined_original = joined
     joined = repair_separator_newlines(artifact, joined)
+    repaired = joined != joined_original
+
+    malformed = verify_malformed_post_markers(joined)
+    if malformed:
+        _dump_failure(debug_dir, passage.name, "malformed_post_marker", units,
+                      [tu.translated_text for tu in translated_units])
+        return None, "malformed_post_marker"
+
     try:
         restored = restore_joined(artifact, joined)
     except ValueError:
+        _dump_failure(debug_dir, passage.name, "restore_failed", units,
+                      [tu.translated_text for tu in translated_units])
         return None, "restore_failed"
     translated_text = restored.decode("utf-8")
 
     if not _skeleton_ok(artifact, restored, passage.name, artifact.source_path):
+        _dump_failure(debug_dir, passage.name, "skeleton_mismatch", units,
+                      [tu.translated_text for tu in translated_units])
         return None, "skeleton_mismatch"
 
     markers = remaining_dynamic_markers(translated_text)
@@ -207,8 +238,36 @@ def translate_passage(
         "post_status": "runtime_remaining" if markers else "static_done",
         "source": "gemini",
         "level": "passage",
+        "repaired": repaired,
     }
     return record, "ok"
+
+
+def _dump_failure(
+    debug_dir: Path | None,
+    passage_name: str,
+    reason: str,
+    units,
+    translated_texts: list[str | None],
+) -> None:
+    """Write per-unit masked/translated texts for a failed passage so the
+    failure can be analysed without re-translating (LLM output is
+    non-deterministic)."""
+    if debug_dir is None:
+        return
+    debug_dir.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {
+            "unit_index": index + 1,
+            "masked_text": unit.masked_text,
+            "translated_text": translated_texts[index] if index < len(translated_texts) else None,
+        }
+        for index, unit in enumerate(units)
+    ]
+    payload = {"passage": passage_name, "reason": reason, "units": rows}
+    path = debug_dir / f"{passage_name}.jsonl"
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
 
 
 def _rel_source_path(path: Path, game_root: Path | None) -> str:
@@ -219,7 +278,10 @@ def _rel_source_path(path: Path, game_root: Path | None) -> str:
         try:
             return path.resolve().relative_to(game_root.resolve()).as_posix()
         except ValueError:
-            pass
+            logging.warning(
+                "path %s is outside game root %s; storing as-is",
+                path, game_root,
+            )
     return path.as_posix()
 
 
@@ -251,6 +313,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--game-root", type=str, default="game",
                         help="game tree root for relative source_path")
     parser.add_argument("--force", action="store_true", help="re-translate even if stored")
+    parser.add_argument(
+        "--debug-dir", type=str, default="",
+        help="dump per-unit texts of failed passages here (JSONL per passage)",
+    )
     args = parser.parse_args(argv)
 
     if not args.passages_file and not (args.file and args.passage_name):
@@ -258,6 +324,7 @@ def main(argv: list[str] | None = None) -> int:
 
     store_path = Path(args.store)
     game_root = Path(args.game_root)
+    debug_dir = Path(args.debug_dir) if args.debug_dir else None
     records = load_translations(store_path)
     request_id = args.request_id or next_request_id(records)
 
@@ -279,10 +346,17 @@ def main(argv: list[str] | None = None) -> int:
         except (ValueError, OSError) as exc:
             stats["failed"].append({"passage": passage_name, "reason": str(exc)})
             continue
-        record, reason = translate_passage(
-            path, passage, request_id=request_id, store_records=records,
-            force=args.force, game_root=game_root,
-        )
+        try:
+            record, reason = translate_passage(
+                path, passage, request_id=request_id, store_records=records,
+                force=args.force, game_root=game_root, debug_dir=debug_dir,
+            )
+        except Exception as exc:
+            # an unexpected failure (network/quota/... ) must not abort the
+            # whole batch — record it and move to the next passage
+            stats["failed"].append({"passage": passage_name, "reason": f"exception: {exc}"})
+            print(f"EXCEPTION: {passage_name} ({type(exc).__name__}: {exc})")
+            continue
         if record is None:
             if reason == "skipped":
                 stats["skipped"] += 1
@@ -295,7 +369,7 @@ def main(argv: list[str] | None = None) -> int:
         records.setdefault(record["source_text_hash"], []).append(record)
         stats["translated"] += 1
         print(f"translated: {passage_name} ({len(record['translated_text'])} chars, "
-              f"post_status={record['post_status']})")
+              f"post_status={record['post_status']}, repaired={record.get('repaired', False)})")
 
     print(json.dumps(stats, ensure_ascii=False, indent=2))
     return 0 if not stats["failed"] else 2

@@ -197,6 +197,25 @@ uv run python -m translation.translate_passages \
 python3 build/verify.py
 ```
 
+## 9. 리뷰 반영 이력 (2026-08-08)
+
+| 항목 | 리뷰 지적 | 판정 | 반영 |
+|---|---|---|---|
+| Q1 L2 도입 | 관측 없이 만들지 말 것 — skeleton 사유 세분화 먼저 | **동의 (보류)** | 미구현 — H2 덤프로 관측 후 결정 |
+| Q2 자동 재번역 | 구조 위반은 재시도 무효 — 덤프 후 수동 | **동의** | 재시도 루프 만들지 않음 (기존 유지) |
+| Q3 repair 품질 조작 | 아님, 단 `repaired` 플래그 권장 | **동의** | 레코드에 `repaired: bool` 추가 (실측 True) |
+| Q4 ASCII 파서 fix | 안전 (SugarCube 스펙) | **동의** | 무변경 |
+| 🟡 repair 갭 1글자 뭉갬 | `\n\n`→`\n` 문단 구분 소실 — 전체 갭 복원 필요 | **버그 확정** | `_separator_gap`/`_leading_whitespace`로 전체 갭 비교·복원. `verify`도 갭 축소 감지로 강화. 테스트 추가 |
+| 🟡 배치 예외 크래시 | `translate_passage` 예외 시 전체 중단 | **버그 확정** | per-passage try/except → `stats["failed"]`에 `exception: ...` 기록 후 계속 |
+| 새 이슈 1 post 마커 미검증 | `{{post:...}}` 오타가 검증 사각지대 | **타당** | `verify_malformed_post_markers` (닫힘 누락/단일 `}`) — 실패 사유 `malformed_post_marker`, 테스트 추가 |
+| 새 이슈 2 `_get_model` 캐싱 | 다중 모델 시 무시됨 | **인지만** | 무변경 (문서에 기록) |
+| 새 이슈 3 API 재시도 부재 | 429/500/timeout propagate → 배치 크래시 | **버그 확정** | `_generate`에 API 레벨 재시도 3회 + backoff (콘텐츠 재시도와 분리) |
+| 새 이슈 4 restore 중복 | `restore_translated`/`restore_joined` 로직 이원화 | **타당** | `restore_joined`를 client.py로 승격, `restore_translated`가 위임 |
+| 사소 `_rel_source_path` | game_root 밖 경로 조용히 원본 반환 (라운드 7 재발 위험) | **타당** | `logging.warning` 추가 |
+| 정정 | `verify_placeholders` 반환값 역전 — 버그 아님 | **확인됨** | 무변경 (list[str] 의미, 문서 §3에 시그니처 명시됨) |
+
+미반영(후순위): L2, 자동 재번역 루프, `_get_model` 캐시 개선, H3.
+
 ## 8. 이번에 잡은 버그 3건 (로그)
 
 1. **[widget] 코드 passage 번역** — 어셈블러가 제외하는 정책과 불일치.

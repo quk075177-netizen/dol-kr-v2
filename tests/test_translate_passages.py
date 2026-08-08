@@ -16,6 +16,7 @@ from translation.translate_passages import (
     next_request_id,
     repair_separator_newlines,
     translate_passage,
+    verify_malformed_post_markers,
     verify_separator_newlines,
 )
 TWO = (
@@ -77,6 +78,49 @@ class TranslatePassagesTests(unittest.TestCase):
         repaired = repair_separator_newlines(artifact, joined)
         self.assertEqual(len(verify_separator_newlines(artifact, repaired)), 0)
         self.assertIn(tokens[0] + " " + tokens[1], repaired)
+
+    def test_separator_repair_multi_char_gap(self) -> None:
+        # A "\n\n" paragraph-break gap must be restored as "\n\n", not a
+        # single "\n" (shrunken gaps silently lose paragraph breaks).
+        from pretranslation_cst.masking import mask_passage
+
+        raw = b":: One\n\nBefore $x\n\n$y after.\n\n"
+        source = parse_file(raw, str(self.file), DEFAULT_VALUE_KIND_PATH)
+        passage = next(p for p in source.passages if p.name == "One")
+        artifact = mask_passage(raw, passage)
+        tokens = [ph.placeholder for ph in artifact.placeholders]
+        joined = tokens[0] + "\n" + tokens[1] + " after.\n"  # \n\n shrunk to \n
+        self.assertEqual(len(verify_separator_newlines(artifact, joined)), 1)
+        repaired = repair_separator_newlines(artifact, joined)
+        self.assertIn(tokens[0] + "\n\n" + tokens[1], repaired)
+        self.assertEqual(len(verify_separator_newlines(artifact, repaired)), 0)
+
+    def test_malformed_post_markers(self) -> None:
+        self.assertEqual(verify_malformed_post_markers("x {{post:이가}} y"), [])
+        self.assertEqual(len(verify_malformed_post_markers("x {{post:이가} y")), 1)
+        self.assertEqual(len(verify_malformed_post_markers("x {{post:이가 y")), 1)
+        self.assertEqual(
+            len(verify_malformed_post_markers("a {{post:을를}} b {{post:은는} c")), 1
+        )
+
+    def test_repaired_flag(self) -> None:
+        from translation.client import TranslatedUnit
+
+        def fake_translate(unit, index=0, total=1):
+            # identity, but drop the whitespace separator between variables
+            return TranslatedUnit(unit=unit, translated_text=unit.masked_text)
+
+        data = self.file.read_bytes()
+        source = parse_file(data, str(self.file), DEFAULT_VALUE_KIND_PATH)
+        passage = next(p for p in source.passages if p.name == "One")
+        # identity translation never changes separators → repaired False
+        with mock.patch("translation.translate_passages.translate_unit", fake_translate):
+            record, reason = translate_passage(
+                self.file, passage, request_id="req_test", store_records={}
+            )
+        self.assertEqual(reason, "ok")
+        assert record is not None
+        self.assertFalse(record["repaired"])
 
     def test_rel_source_path(self) -> None:
         game = self.root / "game"

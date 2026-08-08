@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import json
 import re
+import sys
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -99,16 +101,33 @@ def _generate(
     project: str = PROJECT_ID,
     location: str = DEFAULT_LOCATION,
     model: str = DEFAULT_MODEL,
+    max_api_retries: int = 3,
 ) -> str:
+    """Call the model with retries for transient API failures (rate limit,
+    server errors, timeouts).  Content-level issues (placeholder drops) are
+    handled separately by ``translate_unit``."""
     model_obj = _get_model(project=project, location=location, model=model)
     request_contents = [
         Content(role=item.get("role", "user"), parts=[Part.from_text(item["parts"][0]["text"])])
         for item in contents
     ]
-    response = model_obj.generate_content(request_contents)
-    if not response.candidates:
-        raise RuntimeError(f"no candidates: {response}")
-    return "".join(part.text or "" for part in response.candidates[0].content.parts)
+    for attempt in range(max_api_retries + 1):
+        try:
+            response = model_obj.generate_content(request_contents)
+            if not response.candidates:
+                raise RuntimeError(f"no candidates: {response}")
+            return "".join(part.text or "" for part in response.candidates[0].content.parts)
+        except Exception as exc:
+            if attempt == max_api_retries:
+                raise
+            delay = 1.0 * (attempt + 1)
+            print(
+                f"[retry {attempt + 1}/{max_api_retries}] API error: {type(exc).__name__}: "
+                f"{exc} (retrying in {delay}s)",
+                file=sys.stderr,
+            )
+            time.sleep(delay)
+    raise RuntimeError("unreachable")
 
 
 @dataclass
@@ -186,15 +205,8 @@ def verify_placeholders(unit: TranslateUnit, translated: str) -> list[str]:
     return problems
 
 
-def restore_translated(artifact: MaskArtifact, translated_units: list[TranslatedUnit]) -> bytes:
-    """Reassemble the translated passage and restore placeholders to original
-    bytes.  Returns the final translated file passage bytes.
-
-    The joined translated text is a drop-in for the original masked text, so
-    ``restore_mask``-style substitution works on the whole passage.
-    """
-    joined = "".join(tu.translated_text for tu in translated_units)
-    # substitute placeholders in order (each must occur exactly once)
+def restore_joined(artifact: MaskArtifact, joined: str) -> bytes:
+    """Substitute placeholders in order in a joined translated text."""
     for placeholder in artifact.placeholders:
         occurrences = joined.count(placeholder.placeholder)
         if occurrences != 1:
@@ -203,6 +215,17 @@ def restore_translated(artifact: MaskArtifact, translated_units: list[Translated
             )
         joined = joined.replace(placeholder.placeholder, placeholder.original_text, 1)
     return joined.encode("utf-8")
+
+
+def restore_translated(artifact: MaskArtifact, translated_units: list[TranslatedUnit]) -> bytes:
+    """Reassemble the translated passage and restore placeholders to original
+    bytes.  Returns the final translated file passage bytes.
+
+    The joined translated text is a drop-in for the original masked text, so
+    ``restore_mask``-style substitution works on the whole passage.
+    """
+    joined = "".join(tu.translated_text for tu in translated_units)
+    return restore_joined(artifact, joined)
 
 
 def find_untranslated_placeholders(artifact: MaskArtifact, translated: str) -> list[Placeholder]:
