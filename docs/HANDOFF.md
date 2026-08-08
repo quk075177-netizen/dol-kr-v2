@@ -44,7 +44,10 @@ CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿
   "created_at": "KST ISO", "placeholder_ok": true,
   "post_status": "static_done | runtime_remaining | none",
   "source": "ko_reuse | gemini", "level": "passage",
-  "repaired": false          // gemini 전용: 스팬 분리자 갭 복구 여부
+  "repaired": false,          // gemini 전용: 스팬 분리자 갭 복구 여부
+  "escalated": true|false,    // gemini 전용: 승격/2차 시도 사용 여부
+  "escalated_units": 0,       // gemini 전용: 유닛 승격 횟수
+  "tier": "base | escalated"  // gemini 전용: 최종 사용 티어
 }
 ```
 
@@ -181,8 +184,13 @@ uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감�
   items 배열 + response_schema(JSON). 프로토콜 실패(JSON/requestId 불일치)는
   해당 배치 per-unit 폴백. **승격**: L1/L2 실패 유닛은 `--escalation-model`
   (기본 gemini-2.5-flash)로 단일 재시도 — lite의 결정적 드롭 해소. 레코드에
-  `escalated` 필드. 실측: Farm Work(100유닛) 배치 7회+승격 24회 ≈33회 호출로
-  성공 (per-unit 100+회 대비 ~3배 절감, 드롭 0 수렴)
+  `escalated`(bool)/`escalated_units`/`tier` 필드. **실패 정책 (2티어)**:
+  1차 lite(일시 오류는 동일 티어 재시도 내장) → L1/L2 실패 유닛 flash 승격 →
+  L3 skeleton_mismatch는 passage 전체 flash 재시도 1회(내부 승격 비활성) →
+  또 실패 시 실패 로그만 (자동 재시도 종료). **`--journal <path>`**: 유닛
+  결과/패시지 결과를 응답마다 즉시 flush 저장 (크래시 안전). 실측: Farm
+  Work(100유닛) 배치 7회+승격 24회 ≈33회 호출로 성공 (per-unit 대비 ~3배
+  절감, 드롭 0 수렴)
 - 설정: ADC는 `gcloud auth application-default login`
 - 모든 산출물은 `/tmp/opencode/`에 저장 (repo Git 제외)
 

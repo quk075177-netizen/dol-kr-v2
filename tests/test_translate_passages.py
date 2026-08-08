@@ -479,7 +479,9 @@ class TranslatePassagesTests(unittest.TestCase):
             )
         self.assertEqual(reason, "ok")
         assert record is not None
-        self.assertEqual(record["escalated"], 1)
+        self.assertIs(record["escalated"], True)
+        self.assertEqual(record["escalated_units"], 1)
+        self.assertEqual(record["tier"], "escalated")
 
     def test_translate_passage_batch_fallback_on_protocol_error(self) -> None:
         # batch request fails (bad JSON) → per-unit fallback for that batch
@@ -502,7 +504,79 @@ class TranslatePassagesTests(unittest.TestCase):
             )
         self.assertEqual(reason, "ok")
         assert record is not None
-        self.assertEqual(record["escalated"], 0)
+        self.assertIs(record["escalated"], False)
+        self.assertEqual(record["tier"], "base")
+
+    def test_translate_passage_l3_escalation_retry(self) -> None:
+        # tier 2: skeleton_mismatch at L3 → whole-passage retry with the
+        # escalation model (escalation disabled inside), record marked
+        from translation.client import TranslatedUnit
+
+        def fake_translate(unit, index=0, total=1, hint=None, model=None):
+            return TranslatedUnit(unit=unit, translated_text=unit.masked_text)
+
+        calls = {"skeleton": 0}
+
+        def fake_skeleton_ok(*args, **kwargs):
+            calls["skeleton"] += 1
+            return calls["skeleton"] > 1  # first (base) run fails L3, retry passes
+
+        with mock.patch("translation.translate_passages.translate_unit", fake_translate), \
+             mock.patch("translation.translate_passages._skeleton_ok", fake_skeleton_ok):
+            record, reason = translate_passage(
+                self.file, self._passage("One"), request_id="req_test",
+                store_records={},
+            )
+        self.assertEqual(reason, "ok")
+        assert record is not None
+        self.assertIs(record["escalated"], True)
+        self.assertEqual(record["tier"], "escalated")
+        self.assertEqual(record["model"], "gemini-2.5-flash")
+
+    def test_translate_passage_l3_escalation_terminal_failure(self) -> None:
+        # both tiers fail L3 → terminal, no further attempts
+        from translation.client import TranslatedUnit
+
+        def fake_translate(unit, index=0, total=1, hint=None, model=None):
+            return TranslatedUnit(unit=unit, translated_text=unit.masked_text)
+
+        with mock.patch("translation.translate_passages.translate_unit", fake_translate), \
+             mock.patch("translation.translate_passages._skeleton_ok", return_value=False):
+            record, reason = translate_passage(
+                self.file, self._passage("One"), request_id="req_test",
+                store_records={},
+            )
+        self.assertIsNone(record)
+        self.assertEqual(reason, "skeleton_mismatch")
+
+    def test_translate_passage_journal_streams_per_unit(self) -> None:
+        from translation.client import TranslatedUnit
+        import tempfile
+
+        def fake_translate(unit, index=0, total=1, hint=None, model=None):
+            return TranslatedUnit(unit=unit, translated_text=unit.masked_text)
+
+        journal_path = Path(tempfile.mktemp(suffix=".jsonl"))
+        try:
+            with mock.patch("translation.translate_passages.translate_unit", fake_translate):
+                record, reason = translate_passage(
+                    self.file, self._passage("One"), request_id="req_test",
+                    store_records={}, journal=journal_path,
+                )
+            self.assertEqual(reason, "ok")
+            lines = [json.loads(l) for l in journal_path.read_text(encoding="utf-8").splitlines()]
+            kinds = [l["kind"] for l in lines]
+            self.assertIn("unit", kinds)
+            self.assertIn("passage", kinds)
+            unit_lines = [l for l in lines if l["kind"] == "unit"]
+            self.assertEqual(unit_lines[0]["status"], "ok")
+            self.assertIn("translated_text", unit_lines[0])
+            passage_line = [l for l in lines if l["kind"] == "passage"][0]
+            self.assertEqual(passage_line["status"], "ok")
+            assert record is not None
+            self.assertEqual(passage_line["record_id"], record["record_id"])
+        finally:
+            journal_path.unlink(missing_ok=True)
 
     def test_translate_passage_l2_retry_drop_reports_placeholder_drop(self) -> None:
         # The L2 retry loop must report the retry's own failure mode, not a

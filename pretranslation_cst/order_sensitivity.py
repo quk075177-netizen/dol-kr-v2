@@ -16,7 +16,7 @@ span is insensitive iff ALL of its kinds are insensitive (a merged span
 like ``<<set $x to 1>><<he>>`` must stay sensitive).  Extend the lists
 only for reorders of macros verified to be display-only.
 
-See tmp/reorder-analysis.md §7 for the design and impact scope.
+See reorder-analysis.md §7 for the design and impact scope.
 """
 
 from __future__ import annotations

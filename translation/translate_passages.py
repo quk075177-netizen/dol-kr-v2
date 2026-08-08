@@ -12,10 +12,23 @@ Units get two verification layers before joining:
 - L1 (``verify_placeholders``): every own placeholder token survives
   exactly once — retried inside ``translate_unit``.
 - L2 (``verify_unit_structure``): the own tokens stay in source order
-  (``reorder``), and no foreign/hallucinated placeholder-like token
-  appears (``foreign_token`` / ``format_hallucination``) — flagged units
-  are retried with a targeted hint, then the passage fails fast with the
-  L2 code instead of wasting a full-passage restore/signature failure.
+  (``reorder`` — order-insensitive display tokens may move, Option E), and
+  no foreign/hallucinated placeholder-like token appears (``foreign_token``
+  / ``format_hallucination``) — flagged units are retried with a targeted
+  hint, then the passage fails fast with the L2 code instead of wasting a
+  full-passage restore/signature failure.
+
+Failure policy (2 tiers, no further auto-escalation):
+
+- tier 1 (``model``, default flash-lite): transient API errors retry on
+  the same tier inside the client; unit-level L1/L2 failures escalate to
+  ``escalation_model`` (default flash)
+- tier 2: a joined-level ``skeleton_mismatch`` re-runs the whole passage
+  with ``escalation_model`` once (escalation disabled inside); a second
+  failure is terminal and only logged
+
+``--journal`` streams one JSON line per unit result and per passage
+outcome (flushed per write), so progress survives a crash.
 
 Passages already present in the store are skipped unless ``--force``.
 
@@ -82,7 +95,7 @@ def _canonical_signature(signature: list[str], sensitive: list[bool]) -> list[st
     Order-sensitive tokens keep their exact positions; runs of
     order-insensitive tokens between them are sorted, so their internal
     order does not matter.  Two signatures with the same canonical form
-    restore to identical rendered structure (see tmp/reorder-analysis.md
+    restore to identical rendered structure (see reorder-analysis.md
     §7 — Option E).
     """
     out: list[str] = []
@@ -337,6 +350,63 @@ def repair_separator_newlines(artifact, joined: str) -> str:
 DEFAULT_ESCALATION_MODEL = "gemini-2.5-flash"
 
 
+def _journal_write(journal: Path | None, payload: dict) -> None:
+    """Append one JSON line to the journal and flush immediately, so a
+    crash never loses the responses already processed."""
+    if journal is None:
+        return
+    journal.parent.mkdir(parents=True, exist_ok=True)
+    with journal.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
+        fh.flush()
+
+
+def _journal_unit(
+    journal: Path | None,
+    request_id: str,
+    source_path: str,
+    passage_name: str,
+    index: int,
+    total: int,
+    translated_text: str | None,
+    reason: str | None,
+    escalated: bool,
+    model: str,
+) -> None:
+    _journal_write(journal, {
+        "kind": "unit",
+        "request_id": request_id,
+        "source_path": source_path,
+        "passage_name": passage_name,
+        "unit_index": index + 1,
+        "unit_count": total,
+        "status": "ok" if reason is None else reason,
+        "escalated": escalated,
+        "model": model,
+        "translated_text": translated_text,
+    })
+
+
+def _journal_passage(
+    journal: Path | None,
+    request_id: str,
+    source_path: str,
+    passage_name: str,
+    status: str,
+    reason: str | None,
+    record_id: str | None,
+) -> None:
+    _journal_write(journal, {
+        "kind": "passage",
+        "request_id": request_id,
+        "source_path": source_path,
+        "passage_name": passage_name,
+        "status": status,
+        "reason": reason,
+        "record_id": record_id,
+    })
+
+
 def _resolve_unit(
     unit,
     index: int,
@@ -344,7 +414,7 @@ def _resolve_unit(
     tu: TranslatedUnit,
     *,
     model: str,
-    escalation_model: str,
+    escalation_model: str | None,
     translated_units: list[TranslatedUnit],
     debug_dir: Path | None,
     passage_name: str,
@@ -352,12 +422,19 @@ def _resolve_unit(
 ) -> tuple[str | None, str | None, int, bool]:
     """Run L1/L2 checks on one unit's first output, with hint retries and
     model escalation.  Returns (post-processed text, failure reason, l2
-    retries used, escalated).  On failure text is None and reason set."""
+    retries used, escalated).  On failure text is None and reason set.
+
+    Escalation is skipped when ``escalation_model`` is None (the L3 retry
+    pass runs with escalation disabled — no further auto-escalation)."""
     l2_retries_used = 0
     escalated = False
     if verify_placeholders(unit, tu.translated_text):
         # placeholder drop: hint retries do not fix drops (observed) —
         # escalate to the stronger model directly
+        if escalation_model is None:
+            _dump_failure(debug_dir, passage_name, "placeholder_drop", units,
+                          _dump_texts(translated_units, tu, index, total))
+            return None, "placeholder_drop", l2_retries_used, escalated
         tu = translate_unit(unit, index, total, model=escalation_model)
         escalated = True
         if verify_placeholders(unit, tu.translated_text):
@@ -386,6 +463,10 @@ def _resolve_unit(
                 break
             last_reason = problems[0]
         if not recovered:
+            if escalation_model is None:
+                _dump_failure(debug_dir, passage_name, last_reason, units,
+                              _dump_texts(translated_units, tu, index, total))
+                return None, last_reason, l2_retries_used, escalated
             # model escalation: the stronger model may avoid the structure
             # problem (or convert it into an L1/L2 checkable one)
             tu = translate_unit(
@@ -418,8 +499,10 @@ def translate_passage(
     game_root: Path | None = None,
     debug_dir: Path | None = None,
     model: str | None = None,
-    escalation_model: str = DEFAULT_ESCALATION_MODEL,
+    escalation_model: str | None = DEFAULT_ESCALATION_MODEL,
     batch_size: int = 1,
+    allow_escalation: bool = True,
+    journal: Path | None = None,
 ) -> tuple[dict | None, str]:
     """Translate one passage fully.  Returns (record, reason): record is
     None when the passage was skipped (reason="skipped") or failed
@@ -427,7 +510,19 @@ def translate_passage(
 
     ``batch_size > 1`` translates the units in batched API requests
     (``translate_units_batch``) with per-unit validation and model
-    escalation for the failing units."""
+    escalation for the failing units.
+
+    Failure policy (2 tiers, no further auto-escalation):
+    - tier 1 (``model``, default flash-lite): transient API errors are
+      retried on the same tier inside the client; unit-level L1/L2 failures
+      escalate to ``escalation_model`` (default flash)
+    - tier 2: a joined-level ``skeleton_mismatch`` re-runs the whole
+      passage with ``escalation_model`` once (``allow_escalation=False``
+      inside — no further escalation); a second failure is terminal
+
+    ``journal`` (optional) streams one JSON line per unit result and per
+    passage outcome — flushed after every write so progress survives a
+    crash."""
     data = path.read_bytes()
     artifact = mask_passage(data, passage)
     source_path = _rel_source_path(path, game_root)
@@ -445,12 +540,15 @@ def translate_passage(
             tu = translate_unit(unit, index, len(units), model=base_model)
             text, reason, used, esc = _resolve_unit(
                 unit, index, len(units), tu,
-                model=base_model, escalation_model=escalation_model,
+                model=base_model, escalation_model=escalation_model if allow_escalation else None,
                 translated_units=translated_units, debug_dir=debug_dir,
                 passage_name=passage.name, units=units,
             )
             l2_retries += used
             escalated += esc
+            _journal_unit(journal, request_id, source_path, passage.name,
+                          index, len(units), text if reason is None else None,
+                          reason, esc, base_model)
             if reason is not None:
                 return None, reason
             translated_units.append(TranslatedUnit(unit, text if text is not None else ""))
@@ -472,12 +570,15 @@ def translate_passage(
                 tu = TranslatedUnit(unit, text)
                 resolved, reason, used, esc = _resolve_unit(
                     unit, index, len(units), tu,
-                    model=base_model, escalation_model=escalation_model,
+                    model=base_model, escalation_model=escalation_model if allow_escalation else None,
                     translated_units=translated_units, debug_dir=debug_dir,
                     passage_name=passage.name, units=units,
                 )
                 l2_retries += used
                 escalated += esc
+                _journal_unit(journal, request_id, source_path, passage.name,
+                              index, len(units), resolved if reason is None else None,
+                              reason, esc, base_model)
                 if reason is not None:
                     return None, reason
                 translated_units.append(TranslatedUnit(unit, resolved if resolved is not None else ""))
@@ -504,6 +605,23 @@ def translate_passage(
     if not _skeleton_ok(artifact, restored, passage.name, artifact.source_path):
         _dump_failure(debug_dir, passage.name, "skeleton_mismatch", units,
                       [tu.translated_text for tu in translated_units])
+        if allow_escalation and escalation_model:
+            # tier 2: whole-passage retry with the upper tier, escalation
+            # disabled inside — a second failure is terminal
+            print(f"[L3 escalation] {passage.name}: re-running with {escalation_model}")
+            record, reason = translate_passage(
+                path, passage, request_id=request_id, store_records=store_records,
+                force=True, game_root=game_root, debug_dir=debug_dir,
+                model=escalation_model, escalation_model=None,
+                batch_size=batch_size, allow_escalation=False, journal=journal,
+            )
+            if record is not None:
+                record["escalated"] = True
+                record["tier"] = "escalated"
+                _journal_passage(journal, request_id, source_path, passage.name,
+                                 "ok", None, record["record_id"])
+                return record, "ok"
+            return None, reason
         return None, "skeleton_mismatch"
 
     markers = remaining_dynamic_markers(translated_text)
@@ -526,8 +644,12 @@ def translate_passage(
         "repaired": repaired,
         "l2_retries": l2_retries,
         "api_calls": len(units) + l2_retries,
-        "escalated": escalated,
+        "escalated": escalated > 0,
+        "escalated_units": escalated,
+        "tier": "escalated" if escalated > 0 else "base",
     }
+    _journal_passage(journal, request_id, source_path, passage.name,
+                     "ok", None, record["record_id"])
     return record, "ok"
 
 
@@ -633,6 +755,11 @@ def main(argv: list[str] | None = None) -> int:
         "--batch-size", type=int, default=16,
         help="units per API request (1 = per-unit calls; default 16)",
     )
+    parser.add_argument(
+        "--journal", type=str, default="",
+        help="stream one JSON line per unit result and passage outcome here "
+             "(flushed per write — survives crashes)",
+    )
     args = parser.parse_args(argv)
 
     if not args.passages_file and not (args.file and args.passage_name):
@@ -641,6 +768,7 @@ def main(argv: list[str] | None = None) -> int:
     store_path = Path(args.store)
     game_root = Path(args.game_root)
     debug_dir = Path(args.debug_dir) if args.debug_dir else None
+    journal = Path(args.journal) if args.journal else None
     records = load_translations(store_path)
     request_id = args.request_id or next_request_id(records)
 
@@ -669,11 +797,14 @@ def main(argv: list[str] | None = None) -> int:
                 model=args.model or None,
                 escalation_model=args.escalation_model,
                 batch_size=args.batch_size,
+                journal=journal,
             )
         except Exception as exc:
             # an unexpected failure (network/quota/... ) must not abort the
             # whole batch — record it and move to the next passage
             stats["failed"].append({"passage": passage_name, "reason": f"exception: {exc}"})
+            _journal_passage(journal, request_id, path.as_posix(), passage_name,
+                             "failed", f"exception: {exc}", None)
             print(f"EXCEPTION: {passage_name} ({type(exc).__name__}: {exc})")
             continue
         if record is None:
@@ -682,6 +813,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"skip (already stored): {passage_name}")
             else:
                 stats["failed"].append({"passage": passage_name, "reason": reason})
+                _journal_passage(journal, request_id, path.as_posix(), passage_name,
+                                 "failed", reason, None)
                 print(f"FAILED: {passage_name} ({reason})")
             continue
         append_record(record, store_path)
