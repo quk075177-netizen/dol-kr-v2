@@ -20,6 +20,26 @@ CST 파서 (완료) → value-kind 분류 (완료, unclassified 0)
 - 3-match 재사용: `work/translations/ko-reuse.jsonl` 3,151건 등록 (Git 제외),
   파일럿 `--store` passage-level 재사용 실측
 - unknown_macro: 238 → 6 (exit/exitAll 엔진 패치 + SC 누락 보완, baseline 갱신)
+
+## 빌드/스모크 체인 (2026-08-08 구성)
+
+```text
+work/translations/ko-reuse.jsonl → translation/assemble_game_ko.py → game_ko/
+  → build/dol_build.py compile → build/dol-plus-ko.html
+  → browser_smoke.py run --passage-list → build/browser-smoke/report.json
+```
+
+- 어셈블러: game/ 트리 복사 + passage body 스플라이스 (span 기반, 드리프트 검증,
+  [widget]/[script]/[stylesheet] passage 제외, 경계 newline 보존, 매크로 구조
+  재검증). 소요: 3,151건 ≈ 5~6분 (verify 포함)
+- 컴파일: tweego 캐시 후 ~2초 (첫 부트스트랩 다운로드 ~14초)
+- 스모크: ~6초, UI 7종 + passage-list 전수 검증 (textMatch)
+- 실측: ko-reuse 3,151 passage 전체 어셈블 → 빌드 → 스모크 통과
+  (pageErrors 0, text mismatch 0, 위젯 passage는 컴파일에서 제외됨)
+- 주의: ko-reuse KO body는 trailing newline이 없는 형식 — 어셈블러가
+  원본 경계 공백 보존으로 처리 (아니면 다음 passage 헤더가 흡수됨)
+- git: build/dol_build.py, build-tools.lock.json, browser_smoke.*, 어셈블러는
+  커밋 대상. 산출물(build/*.html, game_ko/, .cache/)은 gitignore
 - 테스트 132개 통과, corpus_verify exit 0 (baseline matched)
 
 ## 이관 전 확인 사항 (미해결)

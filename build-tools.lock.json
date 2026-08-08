@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "https://gitgud.io/Frostberg/degrees-of-lewdity-plus",
+    "ref": "8024381cb8469202056f89b71247e573bf27ece4"
+  },
+  "modulesArchive": {
+    "url": "https://gitgud.io/api/v4/projects/Frostberg%2Fdegrees-of-lewdity-plus/repository/archive.tar.gz?sha=8024381cb8469202056f89b71247e573bf27ece4&path=modules",
+    "sha256": "16de6495489c34a47f3ed4269d365c7f4b3cd909b2b597fad17dcdce24df4dde",
+    "treeSha256": "2f11dc476fc26f2f12877761c988a0d37fc02693ea5eb93a6b1f69bbfa8a2d88",
+    "fileCount": 51
+  },
+  "platforms": {
+    "linux-x86_64": {
+      "executable": "tweego",
+      "files": [
+        {
+          "source": "devTools/tweego/tweego_linux64",
+          "destination": "tweego",
+          "sha256": "54b274966fe9d5c10288995aa8bbd56a0d93912c29d90a732acd4b1a3bc3e5e6",
+          "executable": true
+        }
+      ]
+    }
+  },
+  "commonFiles": [
+    {
+      "source": "devTools/head.html",
+      "destination": "head.html",
+      "sha256": "6fe02674f12e65947593f84dc5316aacc949153c5234ec8f7021e12cdc30b245"
+    },
+    {
+      "source": "devTools/tweego/storyFormats/sugarcube-2/format.js",
+      "destination": "storyFormats/sugarcube-2/format.js",
+      "sha256": "b45ffa82d5b1f47fe1505f12f7bca849c7d28f953af02fe9fd6fb543c1119ab8"
+    },
+    {
+      "source": "devTools/tweego/storyFormats/sugarcube-2/icon.svg",
+      "destination": "storyFormats/sugarcube-2/icon.svg",
+      "sha256": "8a93fab081f23fe641f018b811db88e4fddbcdab2039847895533afceaa8783d"
+    },
+    {
+      "source": "devTools/tweego/storyFormats/sugarcube-2/LICENSE",
+      "destination": "storyFormats/sugarcube-2/LICENSE",
+      "sha256": "46d6d9d5c642a35faa706c1e178969e012943febfc8ed8e90224543134f7dc1c"
+    }
+  ]
+}
