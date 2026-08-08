@@ -194,6 +194,24 @@ class TranslatePassagesTests(unittest.TestCase):
         unit2 = self._unit_with("\n\t", [])
         self.assertEqual(verify_unit_structure(unit2, "\n\t"), [])
 
+    def test_verify_unit_structure_prompt_echo(self) -> None:
+        # the model echoed its own prompt (with post markers attached) —
+        # tokens survive so L1/L2 placeholder checks pass, but the echoed
+        # scaffolding ("following_context:") is re-parsed as a variable at
+        # L3 and the joined skeleton collapses (observed: Schism Gold
+        # Refuse).  Detect the scaffolding early.
+        from translation.translate_passages import verify_unit_structure
+
+        unit = self._unit_with("You shake your head.", ["<0000000>"])
+        echo = (
+            'Unit 1/2 of passage "X" (game/a.twee).\n'
+            "following_context: 'Rest'\n\n--- TRANSLATE THIS ---\n"
+            "<0000000> You shake your head."
+        )
+        self.assertIn("prompt_echo", verify_unit_structure(unit, echo))
+        self.assertEqual(
+            verify_unit_structure(unit, "<0000000> 너는 고개를 저었다."), [])
+
     def _unit_with_sensitivity(self, masked_text: str, ph_tokens: list[str], sensitive: bool):
         unit = self._unit_with(masked_text, ph_tokens)
         for ph in unit.placeholders:

@@ -161,6 +161,30 @@ def _prose_gap_problems(unit, translated: str) -> list[str]:
     return []
 
 
+# prompt scaffolding markers — the model echoing the prompt back (possibly
+# with post markers attached) passes L1/L2 (tokens preserved) and only
+# explodes at L3, when the echoed "following_context:" gets re-parsed as a
+# variable span; catch it early instead
+_PROMPT_ECHO_MARKERS = (
+    "--- TRANSLATE THIS ---",
+    "following_context:",
+    "preceding_context:",
+    "ancestors:",
+    "of passage ",
+)
+
+
+def _prompt_echo_problems(translated: str) -> list[str]:
+    """``prompt_echo``: the output contains prompt scaffolding — the model
+    returned its own input (with or without edits) instead of a Korean
+    translation (observed 2026-08-08: Schism Gold Refuse, where the echoed
+    ``following_context:`` text was re-parsed as a variable span and the
+    joined skeleton collapsed)."""
+    if any(marker in translated for marker in _PROMPT_ECHO_MARKERS):
+        return ["prompt_echo"]
+    return []
+
+
 def _content_dropped(unit, translated: str) -> list[str]:
     """``content_drop``: the unit carries real content but the output is
     whitespace-only — the model deleted the text entirely.  Placeholder
@@ -202,6 +226,7 @@ def verify_unit_structure(unit, translated: str) -> list[str]:
     own = [ph.placeholder for ph in unit.placeholders]
     own_set = set(own)
     problems: list[str] = _content_dropped(unit, translated)
+    problems.extend(_prompt_echo_problems(translated))
     own_digits = {_token_digit_count(t) for t in own}
     for token in _TOKEN_RE.findall(translated):
         if token in own_set:
@@ -253,6 +278,11 @@ def _l2_retry_hint(problems: list[str]) -> str:
         hint += (
             " The unit text is not empty — output a Korean translation of"
             " it; never return only whitespace."
+        )
+    if "prompt_echo" in problems:
+        hint += (
+            " Do not echo the prompt or its fields — output only the Korean"
+            " translation of the unit text, with nothing else."
         )
     return hint
 

@@ -73,3 +73,20 @@
 ### 스모크/검증 체인
 - 223개 테스트 통과, corpus_verify baseline matched,
   어셈블 verify_failed 0 (풀 체인은 마일스톤에서 재실행 예정).
+
+### stage-1 100 passage 마무리 (완료)
+- 최종: **99/100 메인 스토어 등록, 어셈블 verify_failed 0**.
+- 실패 8건 재던지기: rerun으로 3건 회복 (PassageFooter/Poppy Orphanage
+  Handoff/Gwylan Ritual Strip), 나머지 5건 분석 중 **버그 5 발견** →
+  prompt_echo 검사로 4건 회복, Eden Collar Remove만 잔류 (L3 전용
+  실패, 비결정성 — 성공 이력 있음, 재던지기 큐 대기).
+
+### 버그 5: prompt_echo (완료)
+- 모델이 **프롬프트를 그대로 에코** (post 마커만 붙임)해도 L1/L2
+  (토큰 보존)는 통과하고, 에코된 `following_context:`가 재파싱에서
+  `_context` 변수 스팬이 되어 L3 시그니처가 붕괴하던 낭비 패턴
+  (실측: Schism Gold Refuse).
+- L2 `prompt_echo` 검사 추가: 출력에 프롬프트 스캐폴딩
+  (`--- TRANSLATE THIS ---`/`following_context:`/`ancestors:`/...)
+  포함 시 조기 실패 → 힌트 재시도 + flash 승격 → 실제 번역 생산.
+  적용 후 4건의 결정적 실패가 전부 회복.

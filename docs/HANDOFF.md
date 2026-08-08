@@ -48,8 +48,14 @@ CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿
       통째 삭제돼도 검사가 못 잡던 갭 (실측 "The "→"\t",
       "gives you a satisfied smile when "→" "). L2 `content_drop`
       추가 (콘텐츠 유닛의 공백 전용 출력 = 실패).
+  → prompt_echo 검출 (버그 5): 모델이 프롬프트를 에코해도 L1/L2 통과,
+      에코된 `following_context:`가 재파싱에서 변수 스팬이 되어 L3에서
+     만 붕괴하던 패턴. L2 `prompt_echo` 조기 검출로 해소
+      (stage-1 잔여 실패 4건 전부 회복).
   → verify.py 시간 측정 + --no-smoke (개발 루프는 유닛 테스트 +
       corpus_verify + assemble만, 풀 체인은 마일스톤에서만)
+  → stage-1 100 passage: **99/100 등록** (Eden Collar Remove만
+      재던지기 큐 — 비결정성), 어셈블 verify_failed 0
 ```
 
 - 전체 corpus: 642 files / 16,135 passages, round-trip 0, tree invariants 0
