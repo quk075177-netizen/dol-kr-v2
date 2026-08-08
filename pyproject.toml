@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
-    "google-cloud-aiplatform>=1.90",
+    "google-genai>=1.0",
 ]
 
 [project.optional-dependencies]

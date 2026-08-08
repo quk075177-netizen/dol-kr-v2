@@ -1,7 +1,8 @@
 # 후속 작업 제안 (2026-08-08)
 
 기준일: 2026-08-08
-상태: 1순위 완료, 2순위 구현+리뷰 반영 완료 (실측 1 passage)
+상태: 1순위 완료, 2순위-1 실행 완료 (관측 1회차), 2순위-2 완료,
+      2순위-3/4 대기, 2순위-2 중간 발견 3건 반영 (macro_sequence 검증 등)
 
 ## 완료된 기반
 
@@ -18,16 +19,40 @@
 
 ## 2순위 확장 — Gemini 풀패시지 번역 (진행 중)
 
-1. **대표 유형별 배치** — `--passages-file`(JSONL)로 유형별 passage
-   묶음 번역. 전투(561유닛)·설정(331유닛) 등 대형 passage의 성능·실패율
-   측정 (L2 도입 판단의 관측 데이터 수집).
-2. **마커 있는 3-match passage 등록** — post 정적 치환 후 등록 (3순위
-   PO2와 연계). 완료 시 번역 커버리지 44% → 100%.
+1. **대표 유형별 배치** — 실행 완료 (2026-08-08, 2회차 관측).
+   `--passages-file`로 대화/이벤트/성인 21 passage (~1,325 유닛) 배치:
+   성공 2/21 (9.5%), 유닛 실패율 ≈1.3%. 관측 리포트:
+   `/tmp/opencode/batch-p2-1-report.md`, 실패 덤프
+   `/tmp/opencode/batch-debug/`. **실패 모드 4종**: placeholder_drop
+   (결정적 — 같은 유닛 재실패), reorder(skeleton_mismatch), 타 유닛
+   토큰 환각(restore_failed), **placeholder 형식 환각**(7자리 토큰
+   passage에서 프롬프트 예시의 6자리 `<000000>` 삽입 — skeleton_mismatch).
+   전투(561유닛)·설정(331유닛)은 [widget] 코드 passage라 러너가 거절 —
+   비-위젯 최대 passage(38~122유닛)로 측정.
+2. **마커 있는 3-match passage 등록** — **완료** (2026-08-08). 마커 있는
+   4,037 passage 중 3,978건 등록 (post_status=runtime_remaining 3,983 전체),
+   레거시 【 】→{{post:...}} 전량 매핑, 정적 치환 0건 (전 마커가 런타임 값 앞 —
+   문서의 91.8%보다 높음). 등록 검증 보강 3건:
+   - `macro_sequence` 검사 추가 — 링크 라벨 내부 매크로 드롭(레거시 KO
+     결함)이 파서 시그니처 검사로 안 잡히는 갭 해결 (8건 퇴출 → 재등록
+     자동 스킵, 어셈블 verify_failed 0)
+   - 등록 멱등성: 이미 있는 hash는 `already_registered`로 스킵
+   - `post_status` 정확화: 마커 잔존 = `runtime_remaining` (기존
+     `static_done` 오분류 수정)
+   완료 시 번역 커버리지 18.8% → 43.5% (7,011/16,133 passage, 스모크 실측).
+   잔여: state=empty/excluded 595건 중 ko_body≈source_body(영어 그대로)
+   90건은 find_passage_reuse 블로커 — 후순위 정리 대상.
 3. **전체 16,135 passage** — 비용 큰 마지막 단계. request_id 배치 추적,
    R2 unit-level 재사용 연동 (배치 내 동일 문장 hit).
-4. **실패 관측 후 L2 결정** — `skeleton_mismatch` 사유 세분화
-   (`separator_repair_failed` vs 기타) 로그 후, 잔존 실패가 실측되면
-   유닛 단위 조기 검사 도입. 지금은 만들지 않음.
+4. **실패 관측 후 L2 결정** — 관측 데이터 확보 (2/21 성공, 실패 모드 4종
+   분류). `skeleton_mismatch` 사유 세분화(reorder / 형식 환각 / separator)
+   확인: Farm Work u92·Temple Test u3 (reorder), Mansion Steal Stash Calm
+   (형식 환각). 유닛 단위 조기 검사 3종(타 유닛 토큰 금지, 순서 검사,
+   placeholder 형식 검증)이 규칙 기반으로 passage 성공률을 크게 올릴
+   수 있다는 게 관측 결론. placeholder_drop은 결정적(같은 유닛 재실패) —
+   유닛 분할/프롬프트 강화/리뷰 플래그 대상. **즉시 개선 가능 1건**:
+   `SYSTEM_PROMPT`의 `<000000>` 예시가 형식 환각(모드 4) 유발 — 예시
+   제거/형식 고정 문구 권고.
 
 ## 3순위 — post 시스템 완성
 

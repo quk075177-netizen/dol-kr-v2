@@ -7,6 +7,16 @@ body, the body is skeleton-verified with our own parser, and a
 ``level="passage"`` record (source=gemini) is appended to the store the
 assembler reads.
 
+Units get two verification layers before joining:
+
+- L1 (``verify_placeholders``): every own placeholder token survives
+  exactly once — retried inside ``translate_unit``.
+- L2 (``verify_unit_structure``): the own tokens stay in source order
+  (``reorder``), and no foreign/hallucinated placeholder-like token
+  appears (``foreign_token`` / ``format_hallucination``) — flagged units
+  are retried with a targeted hint, then the passage fails fast with the
+  L2 code instead of wasting a full-passage restore/signature failure.
+
 Passages already present in the store are skipped unless ``--force``.
 
 Usage:
@@ -80,7 +90,108 @@ def _skeleton_ok(source_artifact, translated_body: bytes, passage_name: str, sou
     return passage_placeholder_signature(source_artifact) == passage_placeholder_signature(ko_artifact)
 
 
-_PLACEHOLDER_RE = re.compile(r"<0\d{6}>")
+# any placeholder-like token the model might emit (including wrong-digit
+# hallucinations like <000000> when the masker grew the prefix to <0000000>,
+# and underscore-prefixed tokens when the masker's collision loop fired)
+_TOKEN_RE = re.compile(r"<0[\d_]+>")
+
+L2_RETRIES = 2
+
+
+def _token_digit_count(token: str) -> int:
+    """Number of characters inside a <0NNNNN> token (format fingerprint)."""
+    return len(token) - 2
+
+
+def _prose_gap_problems(unit, translated: str) -> list[str]:
+    """``prose_drop``: two own tokens are adjacent in the translation while
+    the source had non-whitespace text between them — the model moved or
+    merged the prose across the token boundary (e.g. ``<<He>> points at
+    <<him>>`` → ``<<He>><<him>>을 가리키며``).  Whitespace-only source gaps
+    are the separator-repair's job and are not flagged here."""
+    masked = unit.masked_text
+    own = [ph.placeholder for ph in unit.placeholders]
+    if len(own) < 2:
+        return []
+    pos: list[int] = []
+    cursor = 0
+    for token in own:
+        idx = masked.find(token, cursor)
+        if idx < 0:
+            return []
+        pos.append(idx)
+        cursor = idx + len(token)
+    for i in range(len(own) - 1):
+        src_gap = masked[pos[i] + len(own[i]) : pos[i + 1]]
+        if not src_gap.strip():
+            continue
+        t_idx = translated.find(own[i])
+        n_idx = (
+            translated.find(own[i + 1], t_idx + len(own[i])) if t_idx >= 0 else -1
+        )
+        if t_idx < 0 or n_idx < 0:
+            return []
+        if not translated[t_idx + len(own[i]) : n_idx]:
+            return ["prose_drop"]
+    return []
+
+
+def verify_unit_structure(unit, translated: str) -> list[str]:
+    """L2: unit-level structure checks beyond L1 (each own token exactly once).
+
+    Returns problem codes, empty when OK:
+
+    - ``reorder``: the unit's own tokens appear but not in source order
+      (restore would silently substitute them in the wrong places and only
+      the joined-signature check would catch it — too late).
+    - ``foreign_token``: a placeholder-like token that is not owned by this
+      unit (a neighbouring unit's token echoed, or a hallucinated one).
+    - ``format_hallucination``: a foreign token whose shape differs from the
+      unit's own token format — the model wrote a placeholder in the wrong
+      shape (e.g. ``<000000>`` when the masker uses ``<0000000>`` because
+      the body text collided with the default prefix).
+    - ``prose_drop``: own tokens adjacent in the output although the source
+      had prose between them (checked only when the token stream is intact
+      and in order).
+
+    The corpus contains no literal placeholder-like text, so any token-like
+    string not owned by the unit is a model artifact.
+    """
+    own = [ph.placeholder for ph in unit.placeholders]
+    own_set = set(own)
+    problems: list[str] = []
+    own_digits = {_token_digit_count(t) for t in own}
+    for token in _TOKEN_RE.findall(translated):
+        if token in own_set:
+            continue
+        if own_digits and _token_digit_count(token) not in own_digits:
+            problems.append("format_hallucination")
+        else:
+            problems.append("foreign_token")
+        break
+    own_in_order = [t for t in _TOKEN_RE.findall(translated) if t in own_set]
+    # reorder only when every own token is present (a missing token is a
+    # drop, which L1 catches) — otherwise a drop would be double-reported
+    if len(own_in_order) == len(own) and own_in_order != own:
+        problems.append("reorder")
+    elif len(own_in_order) == len(own) and not problems:
+        problems.extend(_prose_gap_problems(unit, translated))
+    return problems
+
+
+def _l2_retry_hint(problems: list[str]) -> str:
+    hint = (
+        "Your previous attempt had a structure problem: "
+        + ", ".join(problems)
+        + ". Copy the placeholder tokens exactly as written, keep them in"
+        " the same order, and do not add any other <...> tokens."
+    )
+    if "prose_drop" in problems:
+        hint += (
+            " Keep the text between the placeholder tokens intact — do not"
+            " move or merge it."
+        )
+    return hint
 
 # malformed {{post:...}} markers: closing brace missing, or closed with a
 # single '}' (e.g. "{{post:이가}" — the LLM typo'd the marker)
@@ -94,17 +205,26 @@ def verify_malformed_post_markers(text: str) -> list[str]:
     return [match.group(0) for match in _MALFORMED_POST_RE.finditer(text)]
 
 
-def _separator_gap(text: str, start: int) -> str | None:
+def _separator_gap(text: str, start: int, next_tokens: list[str]) -> str | None:
     """The whitespace-only gap between a placeholder (ending at ``start``)
     and the next placeholder token, or None when the gap contains non-
-    whitespace (or there is no next placeholder)."""
-    match = _PLACEHOLDER_RE.search(text, start)
-    if match is None:
-        return None
-    gap = text[start : match.start()]
-    if not gap.strip():
-        return gap
+    whitespace (or there is no next placeholder).
+
+    ``next_tokens`` are the artifact's remaining placeholder tokens in
+    order — the look-up is format-agnostic (the masker's prefix can grow,
+    which changes the token shape).
+    """
+    for token in next_tokens:
+        idx = text.find(token, start)
+        if idx >= 0:
+            gap = text[start:idx]
+            return gap if not gap.strip() else None
     return None
+
+
+def _next_tokens(artifact, index: int) -> list[str]:
+    """Placeholder tokens after the ``index``-th one, in artifact order."""
+    return [ph.placeholder for ph in artifact.placeholders[index + 1 :]]
 
 
 def _leading_whitespace(text: str, start: int) -> str:
@@ -122,13 +242,13 @@ def verify_separator_newlines(artifact, joined: str) -> list[str]:
     Runs on the JOINED text so unit boundaries are covered."""
     problems: list[str] = []
     masked = artifact.masked_text
-    for placeholder in artifact.placeholders:
+    for index, placeholder in enumerate(artifact.placeholders):
         token = placeholder.placeholder
         m_idx = masked.find(token)
         t_idx = joined.find(token)
         if m_idx < 0 or t_idx < 0:
             continue  # placeholder drop is handled elsewhere
-        m_gap = _separator_gap(masked, m_idx + len(token))
+        m_gap = _separator_gap(masked, m_idx + len(token), _next_tokens(artifact, index))
         if m_gap is None:
             continue
         t_gap = _leading_whitespace(joined, t_idx + len(token))
@@ -145,14 +265,14 @@ def repair_separator_newlines(artifact, joined: str) -> str:
     masked = artifact.masked_text
     out: list[str] = []
     cursor = 0
-    for placeholder in artifact.placeholders:
+    for index, placeholder in enumerate(artifact.placeholders):
         token = placeholder.placeholder
         idx = joined.find(token, cursor)
         if idx < 0:
             return joined  # missing placeholder — restore will raise loudly
         after = idx + len(token)
         m_idx = masked.find(token)
-        m_gap = _separator_gap(masked, m_idx + len(token))
+        m_gap = _separator_gap(masked, m_idx + len(token), _next_tokens(artifact, index))
         if m_gap is not None:
             t_gap = _leading_whitespace(joined, after)
             if t_gap != m_gap:
@@ -175,6 +295,7 @@ def translate_passage(
     force: bool = False,
     game_root: Path | None = None,
     debug_dir: Path | None = None,
+    model: str | None = None,
 ) -> tuple[dict | None, str]:
     """Translate one passage fully.  Returns (record, reason): record is
     None when the passage was skipped (reason="skipped") or failed
@@ -188,12 +309,38 @@ def translate_passage(
 
     units = chunk_passage(passage, artifact, data)
     translated_units: list[TranslatedUnit] = []
+    l2_retries = 0
     for index, unit in enumerate(units):
-        tu = translate_unit(unit, index, len(units))
+        tu = translate_unit(unit, index, len(units), model=model)
         if verify_placeholders(unit, tu.translated_text):
             _dump_failure(debug_dir, passage.name, "placeholder_drop", units,
-                          [tu.translated_text if i == index else None for i in range(len(units))])
+                          _dump_texts(translated_units, tu, index, len(units)))
             return None, "placeholder_drop"
+        problems = verify_unit_structure(unit, tu.translated_text)
+        if problems:
+            # L2: early unit-level structure check with targeted retries —
+            # the same problems would otherwise only surface as a joined
+            # restore/signature failure after every unit was translated.
+            last_reason = problems[0]
+            recovered = False
+            for _ in range(L2_RETRIES):
+                l2_retries += 1
+                tu = translate_unit(
+                    unit, index, len(units), hint=_l2_retry_hint(problems),
+                    model=model,
+                )
+                if verify_placeholders(unit, tu.translated_text):
+                    last_reason = "placeholder_drop"
+                    continue
+                problems = verify_unit_structure(unit, tu.translated_text)
+                if not problems:
+                    recovered = True
+                    break
+                last_reason = problems[0]
+            if not recovered:
+                _dump_failure(debug_dir, passage.name, last_reason, units,
+                              _dump_texts(translated_units, tu, index, len(units)))
+                return None, last_reason
         tu.translated_text = post_process(tu.translated_text)
         translated_units.append(tu)
 
@@ -231,7 +378,7 @@ def translate_passage(
         "passage_name": passage.name,
         "unit_id": f"{source_path}:{passage.name}",
         "request_id": request_id,
-        "model": "gemini-2.5-flash-lite",
+        "model": model or "gemini-2.5-flash-lite",
         "temperature": 0.7,
         "created_at": datetime.now(ZoneInfo("Asia/Seoul")).isoformat(timespec="seconds"),
         "placeholder_ok": True,
@@ -239,8 +386,25 @@ def translate_passage(
         "source": "gemini",
         "level": "passage",
         "repaired": repaired,
+        "l2_retries": l2_retries,
+        "api_calls": len(units) + l2_retries,
     }
     return record, "ok"
+
+
+def _dump_texts(
+    translated_units: list[TranslatedUnit],
+    current: TranslatedUnit,
+    index: int,
+    total: int,
+) -> list[str | None]:
+    """Translated texts of every unit up to and including the failing one
+    (None for the untranslated tail) — a single-unit failure dump keeps the
+    context that led to the failure."""
+    texts: list[str | None] = [tu.translated_text for tu in translated_units]
+    texts.append(current.translated_text)
+    texts.extend([None] * (total - index - 1))
+    return texts
 
 
 def _dump_failure(
@@ -317,6 +481,10 @@ def main(argv: list[str] | None = None) -> int:
         "--debug-dir", type=str, default="",
         help="dump per-unit texts of failed passages here (JSONL per passage)",
     )
+    parser.add_argument(
+        "--model", type=str, default="",
+        help="Gemini model id (default: gemini-2.5-flash-lite)",
+    )
     args = parser.parse_args(argv)
 
     if not args.passages_file and not (args.file and args.passage_name):
@@ -350,6 +518,7 @@ def main(argv: list[str] | None = None) -> int:
             record, reason = translate_passage(
                 path, passage, request_id=request_id, store_records=records,
                 force=args.force, game_root=game_root, debug_dir=debug_dir,
+                model=args.model or None,
             )
         except Exception as exc:
             # an unexpected failure (network/quota/... ) must not abort the
