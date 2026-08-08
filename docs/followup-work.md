@@ -19,14 +19,30 @@
    현재 번역 커버리지). `--min-korean-ratio` 임계값으로 "영어로 회귀" 감지
    (실측: 0.9 → fail, 0.1 → pass).
 
-## 2순위 — Gemini 풀패시지 번역 러너 (파이프라인 본체)
+## 2순위 — Gemini 풀패시지 번역 러너 (파이프라인 본체) — **구현 완료, 검증 1 passage**
 
-- 청킹 기반 유닛 번역 → passage 레코드로 스토어 저장 (`level="passage"`,
-  `request_id` 자동 발급 — `docs/translation-reuse-design.md` R2/R4 마무리)
-- **단계적 실행**: 대표 유형별 passage → 마커 있는 3-match passage →
-  전체 16,135 passage (비용 큰 마지막 단계)
-- 재시도/드롭 대응은 기존 로직(P1 검증, `docs/archive/pilot-report.md`) 재사용,
-  passage 단위 구조 검증은 어셈블러 시그니처 검사가 커버
+- **`translation/translate_passages.py`** (신규): 유닛 번역 → `post_process` →
+  joined 복구(`repair_separator_newlines`: 모델이 버린 보호 스팬 사이 공백
+  분리자 재삽입) → `restore_joined` → 보호 스팬 시그니처 검증(`_skeleton_ok`)
+  → `level="passage"` 레코드 저장 (source=gemini, request_id 자동
+  `req_<yyyymmdd>_<seq>` — R4 마무리)
+- 실패 사유 명시: placeholder_drop / restore_failed / skeleton_mismatch
+- `--file+--passage-name` 또는 `--passages-file`(JSONL)로 대상 선택,
+  `--force` 재번역, 이미 저장된 passage는 skip
+- **실측**: Ocean Breeze(22유닛) 번역 → 스토어 저장 → 어셈블(3,105 passage)
+  → 컴파일 → 스모크 통과 (passage-list에 포함, ratio 3,032→3,033)
+- **발견·수정 버그 3건**:
+  1. 모델이 보호 스팬 사이 **공백/개행 분리자 드롭** → 스팬 병합 → 결정적
+     복구(`repair_separator_newlines`)로 해결 (재시도는 무효 — 모델이
+     반복 위반)
+  2. 파서 `_consume_variable`이 `isalnum()`으로 **한글 조사(`를` 등)를
+     변수명에 흡수** → ASCII 전용으로 수정 (SugarCube 스펙 일치, corpus
+     영향 0 — baseline matched)
+  3. gemini 레코드의 `source_path`가 `game/` 접두어 → ko_reuse 키와 불일치
+     → `--game-root` 기준 상대경로 정규화
+- 남은 단계: 대표 유형별 passage → 마커 있는 3-match passage → 전체
+  16,135 passage (비용 큰 마지막 단계). R2 unit-level 재사용은 본번역
+  배치에서 연동 예정.
 
 ## 3순위 — post 시스템 완성
 

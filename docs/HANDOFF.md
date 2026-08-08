@@ -47,6 +47,22 @@ work/translations/ko-reuse.jsonl → translation/assemble_game_ko.py → game_ko
 - git: build/dol_build.py, build-tools.lock.json, browser_smoke.*, 어셈블러는
   커밋 대상. 산출물(build/*.html, game_ko/, .cache/)은 gitignore
 - 리뷰 반영 이력: docs/implementation-feedback.md §8 (버그 2건 + H1~H7)
+
+## Gemini 풀패시지 러너 (2순위, 구현 완료)
+
+```text
+translation/translate_passages.py: 유닛 번역 → post → 스팬 분리자 복구
+  → restore → 시그니처 검증 → level="passage" 레코드 (source=gemini)
+사용: uv run python -m translation.translate_passages \
+  --file game/... --passage-name "..." [--force] [--request-id ...]
+```
+
+- request_id 자동 발급 (req_<yyyymmdd>_<seq>), 이미 저장된 passage skip
+- 실측: Ocean Breeze(22유닛) → 어셈블/컴파일/스모크 전 구간 통과
+- 버그 3건 수정: 스팬 분리자 드롭 복구, `_consume_variable` 한글 흡수
+  (ASCII 전용, corpus 영향 0), source_path game/ 접두어 정규화
+- 남은 것: 단계적 확장(대표 passage → 마커 있는 56% → 전체), R2 unit-level
+  재사용 연동 (docs/followup-work.md 2순위)
 - 테스트 132개 통과, corpus_verify exit 0 (baseline matched)
 
 ## 이관 전 확인 사항 (미해결)

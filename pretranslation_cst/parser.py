@@ -499,19 +499,26 @@ def _consume_html_tag(text: str, start: int, limit: int) -> int | None:
     return None
 
 
+def _ascii_name_char(char: str) -> bool:
+    """SugarCube variable/name characters are ASCII-only
+    (``[A-Za-z0-9_$]``); non-ASCII (e.g. a Korean particle attached to a
+    naked variable) must NOT be swallowed into the name span."""
+    return char.isascii() and (char.isalnum() or char in "_-$")
+
+
 def _consume_variable(text: str, start: int, limit: int) -> int:
     pos = start + 1
-    if pos >= limit or not (text[pos].isalpha() or text[pos] == "_"):
+    if pos >= limit or not (text[pos].isascii() and (text[pos].isalpha() or text[pos] == "_")):
         return start + 1
-    while pos < limit and (text[pos].isalnum() or text[pos] in "_-"):
+    while pos < limit and _ascii_name_char(text[pos]):
         pos += 1
     while pos < limit:
         if text[pos] == ".":
             dot = pos
             pos += 1
-            if pos >= limit or not (text[pos].isalpha() or text[pos] in "_$"):
+            if pos >= limit or not (text[pos].isascii() and (text[pos].isalpha() or text[pos] in "_$")):
                 return dot
-            while pos < limit and (text[pos].isalnum() or text[pos] in "_-$"):
+            while pos < limit and _ascii_name_char(text[pos]):
                 pos += 1
         elif text[pos] == "[":
             depth = 1
