@@ -423,6 +423,87 @@ class TranslatePassagesTests(unittest.TestCase):
         self.assertIsNone(record)
         self.assertEqual(reason, "foreign_token")
 
+    def test_translate_units_batch_protocol_validation(self) -> None:
+        from translation.client import translate_units_batch
+
+        unit_a = self._unit_with("Hello <0000001> world", ["<0000001>"])
+        unit_b = self._unit_with("Second <0000002> line", ["<0000002>"])
+        real_units = [unit_a, unit_b]
+        good_json = json.dumps({
+            "translations": [
+                {"requestId": "u0000", "target": "안녕 <0000001> 세계"},
+                {"requestId": "u0001", "target": "두 번째 <0000002> 문장"},
+            ]
+        })
+        with mock.patch("translation.client._generate", return_value=good_json):
+            texts = translate_units_batch(real_units)
+        self.assertEqual(len(texts), 2)
+        # wrong order → protocol error
+        bad_json = json.dumps({
+            "translations": [
+                {"requestId": "u0001", "target": "x"},
+                {"requestId": "u0000", "target": "y"},
+            ]
+        })
+        with mock.patch("translation.client._generate", return_value=bad_json):
+            with self.assertRaises(RuntimeError):
+                translate_units_batch(real_units)
+        # invalid JSON → protocol error
+        with mock.patch("translation.client._generate", return_value="not json"):
+            with self.assertRaises(RuntimeError):
+                translate_units_batch(real_units)
+
+    def test_translate_passage_batch_path_with_escalation(self) -> None:
+        # batch translate: first unit's batch output drops a placeholder →
+        # flash escalation (single call) recovers it → passage succeeds
+        from translation.client import TranslatedUnit
+        from translation.translate_passages import translate_units_batch
+
+        passage = self._passage_with_vars()
+
+        def fake_batch(units, model=None, **kwargs):
+            return [
+                "<0000000> 안녕",           # drops <0000001> — needs escalation
+                "<0000001> 세계",
+            ]
+
+        def fake_translate(unit, index=0, total=1, hint=None, model=None):
+            # the escalation call fixes the drop
+            return TranslatedUnit(unit=unit, translated_text=unit.masked_text)
+
+        with mock.patch("translation.translate_passages.translate_units_batch", fake_batch), \
+             mock.patch("translation.translate_passages.translate_unit", fake_translate):
+            record, reason = translate_passage(
+                self.file, passage, request_id="req_test", store_records={},
+                batch_size=2,
+            )
+        self.assertEqual(reason, "ok")
+        assert record is not None
+        self.assertEqual(record["escalated"], 1)
+
+    def test_translate_passage_batch_fallback_on_protocol_error(self) -> None:
+        # batch request fails (bad JSON) → per-unit fallback for that batch
+        from translation.client import TranslatedUnit
+        from translation.translate_passages import translate_units_batch
+
+        passage = self._passage_with_vars()
+
+        def fake_batch(units, model=None, **kwargs):
+            raise RuntimeError("batch: invalid JSON response")
+
+        def fake_translate(unit, index=0, total=1, hint=None, model=None):
+            return TranslatedUnit(unit=unit, translated_text=unit.masked_text)
+
+        with mock.patch("translation.translate_passages.translate_units_batch", fake_batch), \
+             mock.patch("translation.translate_passages.translate_unit", fake_translate):
+            record, reason = translate_passage(
+                self.file, passage, request_id="req_test", store_records={},
+                batch_size=2,
+            )
+        self.assertEqual(reason, "ok")
+        assert record is not None
+        self.assertEqual(record["escalated"], 0)
+
     def test_translate_passage_l2_retry_drop_reports_placeholder_drop(self) -> None:
         # The L2 retry loop must report the retry's own failure mode, not a
         # stale pre-loop reason (reorder) when the retry dropped a token.

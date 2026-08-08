@@ -45,6 +45,7 @@ from translation.client import (
     TranslatedUnit,
     restore_joined,
     translate_unit,
+    translate_units_batch,
     verify_placeholders,
 )
 from translation.post import post_process, remaining_dynamic_markers
@@ -333,6 +334,80 @@ def repair_separator_newlines(artifact, joined: str) -> str:
     return "".join(out)
 
 
+DEFAULT_ESCALATION_MODEL = "gemini-2.5-flash"
+
+
+def _resolve_unit(
+    unit,
+    index: int,
+    total: int,
+    tu: TranslatedUnit,
+    *,
+    model: str,
+    escalation_model: str,
+    translated_units: list[TranslatedUnit],
+    debug_dir: Path | None,
+    passage_name: str,
+    units,
+) -> tuple[str | None, str | None, int, bool]:
+    """Run L1/L2 checks on one unit's first output, with hint retries and
+    model escalation.  Returns (post-processed text, failure reason, l2
+    retries used, escalated).  On failure text is None and reason set."""
+    l2_retries_used = 0
+    escalated = False
+    if verify_placeholders(unit, tu.translated_text):
+        # placeholder drop: hint retries do not fix drops (observed) —
+        # escalate to the stronger model directly
+        tu = translate_unit(unit, index, total, model=escalation_model)
+        escalated = True
+        if verify_placeholders(unit, tu.translated_text):
+            _dump_failure(debug_dir, passage_name, "placeholder_drop", units,
+                          _dump_texts(translated_units, tu, index, total))
+            return None, "placeholder_drop", l2_retries_used, escalated
+    problems = verify_unit_structure(unit, tu.translated_text)
+    if problems:
+        # L2: early unit-level structure check with targeted retries —
+        # the same problems would otherwise only surface as a joined
+        # restore/signature failure after every unit was translated.
+        last_reason = problems[0]
+        recovered = False
+        for _ in range(L2_RETRIES):
+            l2_retries_used += 1
+            tu = translate_unit(
+                unit, index, total, hint=_l2_retry_hint(problems),
+                model=model,
+            )
+            if verify_placeholders(unit, tu.translated_text):
+                last_reason = "placeholder_drop"
+                continue
+            problems = verify_unit_structure(unit, tu.translated_text)
+            if not problems:
+                recovered = True
+                break
+            last_reason = problems[0]
+        if not recovered:
+            # model escalation: the stronger model may avoid the structure
+            # problem (or convert it into an L1/L2 checkable one)
+            tu = translate_unit(
+                unit, index, total, hint=_l2_retry_hint(problems),
+                model=escalation_model,
+            )
+            escalated = True
+            if verify_placeholders(unit, tu.translated_text):
+                last_reason = "placeholder_drop"
+            else:
+                problems = verify_unit_structure(unit, tu.translated_text)
+                if problems:
+                    last_reason = problems[0]
+                else:
+                    recovered = True
+            if not recovered:
+                _dump_failure(debug_dir, passage_name, last_reason, units,
+                              _dump_texts(translated_units, tu, index, total))
+                return None, last_reason, l2_retries_used, escalated
+    return post_process(tu.translated_text), None, l2_retries_used, escalated
+
+
 def translate_passage(
     path: Path,
     passage,
@@ -343,10 +418,16 @@ def translate_passage(
     game_root: Path | None = None,
     debug_dir: Path | None = None,
     model: str | None = None,
+    escalation_model: str = DEFAULT_ESCALATION_MODEL,
+    batch_size: int = 1,
 ) -> tuple[dict | None, str]:
     """Translate one passage fully.  Returns (record, reason): record is
     None when the passage was skipped (reason="skipped") or failed
-    (reason describes the failure step)."""
+    (reason describes the failure step).
+
+    ``batch_size > 1`` translates the units in batched API requests
+    (``translate_units_batch``) with per-unit validation and model
+    escalation for the failing units."""
     data = path.read_bytes()
     artifact = mask_passage(data, passage)
     source_path = _rel_source_path(path, game_root)
@@ -355,41 +436,51 @@ def translate_passage(
         return None, "skipped"  # already translated
 
     units = chunk_passage(passage, artifact, data)
+    base_model = model or "gemini-2.5-flash-lite"
     translated_units: list[TranslatedUnit] = []
     l2_retries = 0
-    for index, unit in enumerate(units):
-        tu = translate_unit(unit, index, len(units), model=model)
-        if verify_placeholders(unit, tu.translated_text):
-            _dump_failure(debug_dir, passage.name, "placeholder_drop", units,
-                          _dump_texts(translated_units, tu, index, len(units)))
-            return None, "placeholder_drop"
-        problems = verify_unit_structure(unit, tu.translated_text)
-        if problems:
-            # L2: early unit-level structure check with targeted retries —
-            # the same problems would otherwise only surface as a joined
-            # restore/signature failure after every unit was translated.
-            last_reason = problems[0]
-            recovered = False
-            for _ in range(L2_RETRIES):
-                l2_retries += 1
-                tu = translate_unit(
-                    unit, index, len(units), hint=_l2_retry_hint(problems),
-                    model=model,
+    escalated = 0
+    if batch_size <= 1:
+        for index, unit in enumerate(units):
+            tu = translate_unit(unit, index, len(units), model=base_model)
+            text, reason, used, esc = _resolve_unit(
+                unit, index, len(units), tu,
+                model=base_model, escalation_model=escalation_model,
+                translated_units=translated_units, debug_dir=debug_dir,
+                passage_name=passage.name, units=units,
+            )
+            l2_retries += used
+            escalated += esc
+            if reason is not None:
+                return None, reason
+            translated_units.append(TranslatedUnit(unit, text if text is not None else ""))
+    else:
+        for start in range(0, len(units), batch_size):
+            batch = units[start:start + batch_size]
+            try:
+                texts = translate_units_batch(batch, model=base_model)
+            except Exception as exc:
+                # protocol failure (bad JSON / schema mismatch) — fall back
+                # to per-unit calls for this batch
+                print(f"[batch fallback] {type(exc).__name__}: {exc}", file=sys.stderr)
+                texts = [
+                    translate_unit(unit, start + i, len(units), model=base_model).translated_text
+                    for i, unit in enumerate(batch)
+                ]
+            for i, (unit, text) in enumerate(zip(batch, texts)):
+                index = start + i
+                tu = TranslatedUnit(unit, text)
+                resolved, reason, used, esc = _resolve_unit(
+                    unit, index, len(units), tu,
+                    model=base_model, escalation_model=escalation_model,
+                    translated_units=translated_units, debug_dir=debug_dir,
+                    passage_name=passage.name, units=units,
                 )
-                if verify_placeholders(unit, tu.translated_text):
-                    last_reason = "placeholder_drop"
-                    continue
-                problems = verify_unit_structure(unit, tu.translated_text)
-                if not problems:
-                    recovered = True
-                    break
-                last_reason = problems[0]
-            if not recovered:
-                _dump_failure(debug_dir, passage.name, last_reason, units,
-                              _dump_texts(translated_units, tu, index, len(units)))
-                return None, last_reason
-        tu.translated_text = post_process(tu.translated_text)
-        translated_units.append(tu)
+                l2_retries += used
+                escalated += esc
+                if reason is not None:
+                    return None, reason
+                translated_units.append(TranslatedUnit(unit, resolved if resolved is not None else ""))
 
     joined = "".join(tu.translated_text for tu in translated_units)
     joined_original = joined
@@ -435,6 +526,7 @@ def translate_passage(
         "repaired": repaired,
         "l2_retries": l2_retries,
         "api_calls": len(units) + l2_retries,
+        "escalated": escalated,
     }
     return record, "ok"
 
@@ -532,6 +624,15 @@ def main(argv: list[str] | None = None) -> int:
         "--model", type=str, default="",
         help="Gemini model id (default: gemini-2.5-flash-lite)",
     )
+    parser.add_argument(
+        "--escalation-model", type=str, default=DEFAULT_ESCALATION_MODEL,
+        help="model used to retry units that fail L1/L2 with the base model "
+             "(default: gemini-2.5-flash)",
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=16,
+        help="units per API request (1 = per-unit calls; default 16)",
+    )
     args = parser.parse_args(argv)
 
     if not args.passages_file and not (args.file and args.passage_name):
@@ -566,6 +667,8 @@ def main(argv: list[str] | None = None) -> int:
                 path, passage, request_id=request_id, store_records=records,
                 force=args.force, game_root=game_root, debug_dir=debug_dir,
                 model=args.model or None,
+                escalation_model=args.escalation_model,
+                batch_size=args.batch_size,
             )
         except Exception as exc:
             # an unexpected failure (network/quota/... ) must not abort the

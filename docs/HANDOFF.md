@@ -24,7 +24,7 @@ CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿
 - diagnostics: unclassified 0, unknown_macro 6 (게임 오타 1 + ModLI 미정의 5)
 - 노출: link_label 39,157 / macro_arg 1,768 / plain_text 759,058
 - placeholder 형식: `<000000>` XML 태그 (restore = 순서 치환, 토큰 1회 필수)
-- 테스트: **203개 통과** (Option E 7개 추가), corpus_verify baseline matched
+- 테스트: **206개 통과** (배치+승격 3개 추가), corpus_verify baseline matched
 - 스모크 한국어 커버리지: **7,013/16,133 = 43.5%** (마커 등록 전 18.8%)
 
 ## 스토어 (번역 레코드, Git 제외)
@@ -162,7 +162,7 @@ uv run python -m translation.translate_passages \
 
 ```bash
 uv sync --extra dev                                   # 환경
-uv run python -m unittest discover -s tests           # 테스트 (196개)
+uv run python -m unittest discover -s tests           # 테스트 (206개)
 uv run python -m pretranslation_cst.corpus_verify --root game   # corpus 검증
 python3 build/verify.py                               # 어셈블→컴파일→스모크 (~2분)
 uv run python -m translation.register_ko_reuse        # 3-match KO 재등록 (멱등, ~1.5분)
@@ -177,6 +177,12 @@ uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감�
   가용 — us-central1은 404). 모델 기본 `gemini-2.5-flash-lite` (상수),
   temperature 0.7, 안전 필터: 기본은 미설정(프로바이더 기본) — 명시 시
   `--safety-threshold block-none` 등 (`translation/client.py` SAFETY_THRESHOLDS)
+- **배치 번역 (기본)**: `--batch-size 16` (1 = 유닛 단일 호출) — 한 요청에
+  items 배열 + response_schema(JSON). 프로토콜 실패(JSON/requestId 불일치)는
+  해당 배치 per-unit 폴백. **승격**: L1/L2 실패 유닛은 `--escalation-model`
+  (기본 gemini-2.5-flash)로 단일 재시도 — lite의 결정적 드롭 해소. 레코드에
+  `escalated` 필드. 실측: Farm Work(100유닛) 배치 7회+승격 24회 ≈33회 호출로
+  성공 (per-unit 100+회 대비 ~3배 절감, 드롭 0 수렴)
 - 설정: ADC는 `gcloud auth application-default login`
 - 모든 산출물은 `/tmp/opencode/`에 저장 (repo Git 제외)
 
