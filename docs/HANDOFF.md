@@ -167,15 +167,17 @@ uv run python -m translation.translate_passages \
   게임에 `{{post:...}}` 리터럴 표시 중. PO2가 빌드에 들어가기 전까지
   마커 passage는 게임에서 원문 그대로 노출되는 상태.**
 - [x] **마커 있는 3-match passage 등록** — 완료 (3,978건 + 검증 보강)
+- [x] **ko_reuse 유닛화 — 하지 않기로 결정** (2026-08-08): ko_reuse
+  (3-match)는 passage 레코드로 유지, 유닛 스토어는 gemini 전용.
+  ko_reuse를 유닛으로 쪼개는 매크로 인덱스 슬라이싱은 복잡도 대비
+  이득 없음 — passage 드리프트 시 hash 미스 → 통째로 재번역되며 새
+  gemini passage+유닛 레코드로 자연 대체됨 (기존 레코드는 어셈블러
+  최신 우선 규칙으로 superseded). 어셈블러 유닛 join 지원 불필요.
 - [ ] **단일 추측 조사 검출** — placeholder 뒤 단일 조사(combat 78건/
   gwylan 110건 관찰). 검출 → 리뷰 플래그 (자동 재번역 아님).
 - [ ] **R2 unit-level 재사용 연동** — 번역 배치 내 동일 문장 hash hit
   (`docs/translation-reuse-design.md`). 유닛 스토어(`ko-units.jsonl`)의
   `source_text_hash`가 키 — 문장 단위 재사용의 기반 완성
-- [ ] **어셈블러 유닛 join 지원 (선택)** — gemini는 유닛 저장, ko_reuse는
-  passage body로 남는 혼합 레벨 스토어 설계. passage 레코드 우선,
-  없으면 유닛 join → 시그니처 검증 → 스플라이스. (source_text 중복
-  제거 + 부분 진행 보존이 목적 — 전환 여부 판단 필요)
 
 ### 데이터/품질 (후순위)
 

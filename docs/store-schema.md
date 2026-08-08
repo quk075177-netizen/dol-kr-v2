@@ -33,6 +33,12 @@ passage 스토어와 별개로, **청킹 유닛 단위로 1줄씩 스트리밍 �
   달라도 같은 hash (R2 unit-level 재사용의 키)
 - 보기: `store_view --store work/translations/ko-units.jsonl --passage <p>`
 
+**ko_reuse(3-match)는 유닛화하지 않음** (결정, 2026-08-08) — passage
+레코드로 유지. ko_reuse를 유닛으로 쪼개는 매크로 인덱스 슬라이싱은
+복잡도 대비 이득 없음: passage 드리프트 시 hash 미스 → 통째로 재번역 →
+새 gemini passage+유닛 레코드로 자연 대체된다 (어셈블러는 최신 레코드
+우선). 유닛 스토어는 gemini 전용.
+
 ## 레코드 유형
 
 | `source` | 생성 주체 | 추가 필드 |
