@@ -507,31 +507,61 @@ class TranslatePassagesTests(unittest.TestCase):
         self.assertIs(record["escalated"], False)
         self.assertEqual(record["tier"], "base")
 
-    def test_translate_passage_l3_escalation_retry(self) -> None:
-        # tier 2: skeleton_mismatch at L3 → whole-passage retry with the
-        # escalation model (escalation disabled inside), record marked
+    def _tu(self, unit, text):
         from translation.client import TranslatedUnit
 
+        return TranslatedUnit(unit=unit, translated_text=text)
+
+    def test_boundary_prose_drops_detects_merged_boundary(self) -> None:
+        from translation.translate_passages import boundary_prose_drops
+
+        artifact = mock.Mock()
+        artifact.masked_text = "start <0000001> ENDPROSE <0000002> end"
+        unit_a = self._unit_with("<0000001> ENDPROSE", ["<0000001>"])
+        unit_b = self._unit_with("ENDPROSE <0000002>", ["<0000002>"])
+        # tokens adjacent across the boundary (prose moved away)
+        merged = boundary_prose_drops(artifact, [
+            self._tu(unit_a, "번역 <0000001>"),
+            self._tu(unit_b, "<0000002> 번역"),
+        ])
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(merged[0][0], 0)
+        # boundary prose kept → no problem
+        kept = boundary_prose_drops(artifact, [
+            self._tu(unit_a, "번역 <0000001> 끝"),
+            self._tu(unit_b, "시작 <0000002> 번역"),
+        ])
+        self.assertEqual(kept, [])
+        # whitespace-only source gap → separator repair's job, not flagged
+        ws_artifact = mock.Mock()
+        ws_artifact.masked_text = "start <0000001>\n<0000002> end"
+        ws = boundary_prose_drops(ws_artifact, [
+            self._tu(unit_a, "번역 <0000001>"),
+            self._tu(unit_b, "<0000002> 번역"),
+        ])
+        self.assertEqual(ws, [])
+
+    def test_translate_passage_l3_terminal_no_whole_retry(self) -> None:
+        # L3 skeleton_mismatch is terminal — no whole-passage retry; the
+        # fail log collects the data for a later, deliberate re-run
+        from translation.client import TranslatedUnit
+
+        calls = {"n": 0}
+
         def fake_translate(unit, index=0, total=1, hint=None, model=None):
+            calls["n"] += 1
             return TranslatedUnit(unit=unit, translated_text=unit.masked_text)
 
-        calls = {"skeleton": 0}
-
-        def fake_skeleton_ok(*args, **kwargs):
-            calls["skeleton"] += 1
-            return calls["skeleton"] > 1  # first (base) run fails L3, retry passes
-
         with mock.patch("translation.translate_passages.translate_unit", fake_translate), \
-             mock.patch("translation.translate_passages._skeleton_ok", fake_skeleton_ok):
+             mock.patch("translation.translate_passages._skeleton_ok", return_value=False):
             record, reason = translate_passage(
                 self.file, self._passage("One"), request_id="req_test",
                 store_records={},
             )
-        self.assertEqual(reason, "ok")
-        assert record is not None
-        self.assertIs(record["escalated"], True)
-        self.assertEqual(record["tier"], "escalated")
-        self.assertEqual(record["model"], "gemini-2.5-flash")
+        self.assertIsNone(record)
+        self.assertEqual(reason, "skeleton_mismatch")
+        # exactly one pass over the units — no second full run
+        self.assertEqual(calls["n"], 1)
 
     def test_translate_passage_l3_escalation_terminal_failure(self) -> None:
         # both tiers fail L3 → terminal, no further attempts

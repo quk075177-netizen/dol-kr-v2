@@ -23,9 +23,10 @@ Failure policy (2 tiers, no further auto-escalation):
 - tier 1 (``model``, default flash-lite): transient API errors retry on
   the same tier inside the client; unit-level L1/L2 failures escalate to
   ``escalation_model`` (default flash)
-- tier 2: a joined-level ``skeleton_mismatch`` re-runs the whole passage
-  with ``escalation_model`` once (escalation disabled inside); a second
-  failure is terminal and only logged
+- tier 2: a joined-level ``skeleton_mismatch`` re-translates only the unit
+  boundary pairs whose prose separation vanished (``boundary_prose_drops``)
+  with ``escalation_model``; if L3 still fails it is terminal and only
+  logged (the fail log is the data source for a later, deliberate re-run)
 
 ``--journal`` streams one JSON line per unit result and per passage
 outcome (flushed per write), so progress survives a crash.
@@ -350,6 +351,45 @@ def repair_separator_newlines(artifact, joined: str) -> str:
 DEFAULT_ESCALATION_MODEL = "gemini-2.5-flash"
 
 
+def boundary_prose_drops(
+    artifact, translated_units: list[TranslatedUnit]
+) -> list[tuple[int, str, str]]:
+    """Unit boundaries where the joined text dropped the prose that
+    separated the last token of unit i and the first token of unit i+1 in
+    the source — the model moved the boundary text, leaving the two macros
+    adjacent so the parser merges them into one span at L3.
+
+    Whitespace-only source gaps are excluded (the separator repair handles
+    them).  Returns [(unit_index_of_left_unit, token_a, token_b)].
+    """
+    masked = artifact.masked_text
+    problems: list[tuple[int, str, str]] = []
+    for i in range(len(translated_units) - 1):
+        unit_a = translated_units[i].unit
+        unit_b = translated_units[i + 1].unit
+        if not unit_a.placeholders or not unit_b.placeholders:
+            continue
+        token_a = unit_a.placeholders[-1].placeholder
+        token_b = unit_b.placeholders[0].placeholder
+        m_a = masked.find(token_a)
+        m_b = masked.find(token_b)
+        if m_a < 0 or m_b < 0:
+            continue
+        src_gap = masked[m_a + len(token_a):m_b]
+        if not src_gap.strip():
+            continue
+        text_a = translated_units[i].translated_text
+        text_b = translated_units[i + 1].translated_text
+        idx_a = text_a.find(token_a)
+        idx_b = text_b.find(token_b)
+        if idx_a < 0 or idx_b < 0:
+            continue
+        joined_gap = text_a[idx_a + len(token_a):] + text_b[:idx_b]
+        if not joined_gap.strip():
+            problems.append((i, token_a, token_b))
+    return problems
+
+
 def _journal_write(journal: Path | None, payload: dict) -> None:
     """Append one JSON line to the journal and flush immediately, so a
     crash never loses the responses already processed."""
@@ -501,7 +541,6 @@ def translate_passage(
     model: str | None = None,
     escalation_model: str | None = DEFAULT_ESCALATION_MODEL,
     batch_size: int = 1,
-    allow_escalation: bool = True,
     journal: Path | None = None,
 ) -> tuple[dict | None, str]:
     """Translate one passage fully.  Returns (record, reason): record is
@@ -516,9 +555,11 @@ def translate_passage(
     - tier 1 (``model``, default flash-lite): transient API errors are
       retried on the same tier inside the client; unit-level L1/L2 failures
       escalate to ``escalation_model`` (default flash)
-    - tier 2: a joined-level ``skeleton_mismatch`` re-runs the whole
-      passage with ``escalation_model`` once (``allow_escalation=False``
-      inside — no further escalation); a second failure is terminal
+    - tier 2: a joined-level ``skeleton_mismatch`` re-translates only the
+      unit boundary pairs whose prose separation vanished
+      (``boundary_prose_drops``) with ``escalation_model``; if L3 still
+      fails it is terminal and only logged (the fail log is the data
+      source for a later, deliberate re-run)
 
     ``journal`` (optional) streams one JSON line per unit result and per
     passage outcome — flushed after every write so progress survives a
@@ -540,7 +581,7 @@ def translate_passage(
             tu = translate_unit(unit, index, len(units), model=base_model)
             text, reason, used, esc = _resolve_unit(
                 unit, index, len(units), tu,
-                model=base_model, escalation_model=escalation_model if allow_escalation else None,
+                model=base_model, escalation_model=escalation_model,
                 translated_units=translated_units, debug_dir=debug_dir,
                 passage_name=passage.name, units=units,
             )
@@ -570,7 +611,7 @@ def translate_passage(
                 tu = TranslatedUnit(unit, text)
                 resolved, reason, used, esc = _resolve_unit(
                     unit, index, len(units), tu,
-                    model=base_model, escalation_model=escalation_model if allow_escalation else None,
+                    model=base_model, escalation_model=escalation_model,
                     translated_units=translated_units, debug_dir=debug_dir,
                     passage_name=passage.name, units=units,
                 )
@@ -602,30 +643,68 @@ def translate_passage(
         return None, "restore_failed"
     translated_text = restored.decode("utf-8")
 
+    recovered_after_boundary = False
     if not _skeleton_ok(artifact, restored, passage.name, artifact.source_path):
-        _dump_failure(debug_dir, passage.name, "skeleton_mismatch", units,
-                      [tu.translated_text for tu in translated_units])
-        if allow_escalation and escalation_model:
-            # tier 2: whole-passage retry with the upper tier, escalation
-            # disabled inside — a second failure is terminal
-            print(f"[L3 escalation] {passage.name}: re-running with {escalation_model}")
-            record, reason = translate_passage(
-                path, passage, request_id=request_id, store_records=store_records,
-                force=True, game_root=game_root, debug_dir=debug_dir,
-                model=escalation_model, escalation_model=None,
-                batch_size=batch_size, allow_escalation=False, journal=journal,
-            )
-            if record is not None:
-                record["escalated"] = True
-                record["tier"] = "escalated"
-                _journal_passage(journal, request_id, source_path, passage.name,
-                                 "ok", None, record["record_id"])
-                return record, "ok"
-            return None, reason
-        return None, "skeleton_mismatch"
+        # joined-level structure failure: escalate only the unit boundary
+        # pairs whose prose separation vanished, then let L3 decide.  No
+        # whole-passage retry — a second failure is terminal (the fail log
+        # is the data source for a later, deliberate re-run).
+        if escalation_model and escalation_model != base_model:
+            boundary = boundary_prose_drops(artifact, translated_units)
+            if boundary:
+                affected = sorted({i for pair in boundary for i in (pair[0], pair[0] + 1)})
+                print(f"[boundary escalation] {passage.name}: "
+                      f"re-translating units {affected} with {escalation_model}")
+                for index in affected:
+                    if index >= len(translated_units):
+                        continue
+                    unit = translated_units[index].unit
+                    tu = translate_unit(unit, index, len(units), model=escalation_model)
+                    if verify_placeholders(unit, tu.translated_text):
+                        continue  # escalation dropped too — keep original
+                    if verify_unit_structure(unit, tu.translated_text):
+                        continue  # escalated output has its own problem
+                    translated_units[index] = TranslatedUnit(
+                        unit, post_process(tu.translated_text))
+                    escalated += 1
+                joined = "".join(tu.translated_text for tu in translated_units)
+                joined_after = repair_separator_newlines(artifact, joined)
+                repaired = repaired or joined_after != joined
+                try:
+                    restored = restore_joined(artifact, joined_after)
+                    if _skeleton_ok(artifact, restored, passage.name, artifact.source_path):
+                        translated_text = restored.decode("utf-8")
+                        recovered_after_boundary = True
+                except ValueError:
+                    pass
+        if not recovered_after_boundary:
+            _dump_failure(debug_dir, passage.name, "skeleton_mismatch", units,
+                          [tu.translated_text for tu in translated_units])
+            return None, "skeleton_mismatch"
 
+    record = _make_record(
+        body_text, source_path, passage, request_id, model, translated_text,
+        repaired, l2_retries, escalated, len(units),
+    )
+    _journal_passage(journal, request_id, source_path, passage.name,
+                     "ok", None, record["record_id"])
+    return record, "ok"
+
+
+def _make_record(
+    body_text: str,
+    source_path: str,
+    passage,
+    request_id: str,
+    model: str | None,
+    translated_text: str,
+    repaired: bool,
+    l2_retries: int,
+    escalated: int,
+    unit_count: int,
+) -> dict:
     markers = remaining_dynamic_markers(translated_text)
-    record = {
+    return {
         "record_id": f"tr_{source_hash(body_text)[:12]}_gemini",
         "source_text_hash": source_hash(body_text),
         "source_text": body_text,
@@ -643,14 +722,11 @@ def translate_passage(
         "level": "passage",
         "repaired": repaired,
         "l2_retries": l2_retries,
-        "api_calls": len(units) + l2_retries,
+        "api_calls": unit_count + l2_retries,
         "escalated": escalated > 0,
         "escalated_units": escalated,
         "tier": "escalated" if escalated > 0 else "base",
     }
-    _journal_passage(journal, request_id, source_path, passage.name,
-                     "ok", None, record["record_id"])
-    return record, "ok"
 
 
 def _dump_texts(
