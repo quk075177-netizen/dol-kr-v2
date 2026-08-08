@@ -31,15 +31,17 @@ work/translations/ko-reuse.jsonl → translation/assemble_game_ko.py → game_ko
 
 - 어셈블러: game/ 트리 복사 + passage body 스플라이스 (span 기반, 드리프트 검증,
   [widget]/[script]/[stylesheet] passage 제외, 경계 newline 보존, 매크로 구조
-  재검증). 소요: 3,151건 ≈ 5~6분 (verify 포함)
+  + 보호 스팬 시그니처 재검증). 파일 병렬(ProcessPoolExecutor) + 원자 스왑.
+  소요: 3,151건 ≈ 1분 50초 (verify 포함, 2026-08-08 리뷰 반영 후)
 - 컴파일: tweego 캐시 후 ~2초 (첫 부트스트랩 다운로드 ~14초)
 - 스모크: ~6초, UI 7종 + passage-list 전수 검증 (textMatch)
 - 실측: ko-reuse 3,151 passage 전체 어셈블 → 빌드 → 스모크 통과
   (pageErrors 0, text mismatch 0, 위젯 passage는 컴파일에서 제외됨)
-- 주의: ko-reuse KO body는 trailing newline이 없는 형식 — 어셈블러가
-  원본 경계 공백 보존으로 처리 (아니면 다음 passage 헤더가 흡수됨)
+- 주의: ko-reuse KO body는 등록 시 `match_boundaries()`로 source와 같은
+  개행 구조로 정규화되어 저장됨 (어셈블러 보정은 안전망으로 잔존)
 - git: build/dol_build.py, build-tools.lock.json, browser_smoke.*, 어셈블러는
   커밋 대상. 산출물(build/*.html, game_ko/, .cache/)은 gitignore
+- 리뷰 반영 이력: docs/implementation-feedback.md §8 (버그 2건 + H1~H7)
 - 테스트 132개 통과, corpus_verify exit 0 (baseline matched)
 
 ## 이관 전 확인 사항 (미해결)

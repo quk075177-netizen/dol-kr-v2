@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from pretranslation_cst.masking import mask_passage
 from pretranslation_cst.parser import parse_file
@@ -23,13 +25,21 @@ from pretranslation_cst.paths import DEFAULT_VALUE_KIND_PATH
 from .post import normalize_markers, resolve_static
 from .store import (
     append_record,
-    ko_body_preserves_skeleton,
     passage_placeholder_signature,
     source_hash,
 )
 
 DEFAULT_TRIPLE_MATCH = Path("research/golden/corpus-triple-match.jsonl")
 DEFAULT_OUT = Path("work/translations/ko-reuse.jsonl")
+
+
+def match_boundaries(source: str, translated: str) -> str:
+    """Give the translated body the same leading/trailing newline structure
+    as the source body, so consumers (the assembler) never have to guess
+    where the passage body ends."""
+    leading = source[: len(source) - len(source.lstrip("\n"))]
+    trailing = source[len(source.rstrip("\n")) :]
+    return leading + translated.strip("\n") + trailing
 
 
 def make_record(row: dict, ko_normalized: str, *, level: str) -> dict:
@@ -45,7 +55,7 @@ def make_record(row: dict, ko_normalized: str, *, level: str) -> dict:
         "request_id": "req_ko_reuse",
         "model": "ko_reuse",
         "temperature": None,
-        "created_at": "2026-08-08",
+        "created_at": datetime.now(ZoneInfo("Asia/Seoul")).isoformat(timespec="seconds"),
         "placeholder_ok": True,
         "post_status": "static_done" if "{{post:" in ko_normalized else "none",
         "source": "ko_reuse",
@@ -62,7 +72,13 @@ def register_ko_reuse(
     import re
 
     marker_re = re.compile(r"【[^】]+】")
-    stats = {"total": 0, "no_marker": 0, "registered": 0, "skipped": {}}
+    stats = {
+        "total": 0,
+        "no_marker": 0,
+        "registered": 0,
+        "skipped": {},
+        "skipped_records": [],
+    }
     p = Path(triple_match_path)
     with p.open(encoding="utf-8") as fh:
         for line in fh:
@@ -74,8 +90,13 @@ def register_ko_reuse(
             error = _verify_passage(row)
             if error:
                 stats["skipped"][error] = stats["skipped"].get(error, 0) + 1
+                stats["skipped_records"].append(
+                    {"source_path": row["source_path"], "passage_name": row["passage_name"],
+                     "reason": error}
+                )
                 continue
             ko_normalized = resolve_static(normalize_markers(row["ko_body"]))
+            ko_normalized = match_boundaries(row["source_body"], ko_normalized)
             record = make_record(row, ko_normalized, level="passage")
             append_record(record, out_path)
             stats["registered"] += 1
@@ -111,8 +132,6 @@ def _verify_passage(row: dict) -> str | None:
         src_sig = passage_placeholder_signature(mask_passage(src_synthetic, src_passage))
         ko_sig = passage_placeholder_signature(mask_passage(ko_synthetic, ko_passage))
         if src_sig != ko_sig:
-            return "skeleton_mismatch"
-        if not ko_body_preserves_skeleton(row["ko_body"], ko_sig):
             return "skeleton_mismatch"
         return None
     except Exception as exc:  # parser raises ValueError on malformed input

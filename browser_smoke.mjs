@@ -4,6 +4,10 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
+// Options that may be repeated; they are ALWAYS collected as arrays so a
+// single occurrence does not become a string (string.every is undefined).
+const MULTI_OPTIONS = new Set(["expect-options-text"]);
+
 function parseArgs(values) {
   const result = {};
   for (let index = 0; index < values.length; index += 2) {
@@ -13,8 +17,8 @@ function parseArgs(values) {
       throw new Error(`invalid argument list near ${key ?? "<end>"}`);
     }
     const name = key.slice(2);
-    if (name in result) {
-      result[name] = [].concat(result[name], value);
+    if (name in result || MULTI_OPTIONS.has(name)) {
+      result[name] = [].concat(result[name] ?? [], value);
     } else {
       result[name] = value;
     }
@@ -51,6 +55,7 @@ page.on("console", (message) => {
 
 const checks = {};
 let runtime = {};
+let optionsCheckSkipped = true;
 try {
   await page.goto(pathToFileURL(html).href, {
     waitUntil: "load",
@@ -109,11 +114,13 @@ try {
   const optionsText = await page.locator("#customOverlayContent").innerText();
   checks.optionsOverlay =
     (await overlay.getAttribute("data-overlay")) === "options";
-  // Korean strings to require in the options overlay; empty means skip.
+  // Korean strings to require in the options overlay; empty means the check
+  // is skipped — recorded as a warning so a silent pass is visible.
   const expectedOptionsTexts = args["expect-options-text"] ?? [];
   checks.koreanOptionsApplied =
     expectedOptionsTexts.length === 0 ||
     expectedOptionsTexts.every((text) => optionsText.includes(text));
+  optionsCheckSkipped = expectedOptionsTexts.length === 0;
   await page.screenshot({ path: path.join(output, "03-options.png") });
 
   await page.locator(".customOverlayClose").click();
@@ -297,7 +304,8 @@ const report = {
   warnings: {
     missingImageAssetEvents: assetEventWarnings.length,
     rendererWarnings: rendererWarnings.length,
-    note: "The local source tree has no external img pack; renderer warnings are non-blocking for this UI smoke test.",
+    optionsCheckSkipped,
+    note: "The local source tree has no external img pack; renderer warnings are non-blocking for this UI smoke test. optionsCheckSkipped=true means no --expect-options-text was given, so the options overlay Korean check was skipped.",
   },
   unexpectedPageErrors,
   unexpectedConsoleErrors,

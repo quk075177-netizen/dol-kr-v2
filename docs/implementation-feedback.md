@@ -47,12 +47,20 @@ build/browser-smoke/report.json ── checks + passageList + 에러 목록
   "translated_text": "<KO body 텍스트, 【 】마커는 {{post:...}}로 정규화됨>",
   "source_path": "overworld-town/loc-hospital/abduction.twee",
   "passage_name": "Abduction Hospital Corridor Wolves",
+  "unit_id": "<source_path>:<passage_name>",
+  "request_id": "req_ko_reuse | req_<yyyymmdd>_<seq>",
+  "model": "ko_reuse | gemini-2.5-flash-lite",
+  "temperature": null,
+  "created_at": "<ISO 8601 KST 타임스탬프, Asia/Seoul>",
   "placeholder_ok": true,
   "post_status": "static_done | none",
   "source": "ko_reuse | gemini",
   "level": "passage"
 }
 ```
+
+주의: `translated_text`의 leading/trailing 개행 구조는 `source_text`와
+동일하게 정규화되어 저장된다 (`register_ko_reuse.match_boundaries`).
 
 ### 3.2 모듈 함수 인터페이스
 
@@ -89,9 +97,10 @@ passage.body_span  # Span(start=29, end=52) → body 텍스트 = "\nSecond passa
 
 ## 4. 미흡하다고 생각되는 부분 (우선순위순)
 
-각 항목은 [위치 → 코드 → 문제 → 제안] 형식.
+각 항목은 [위치 → 코드 → 문제 → 제안] 형식. **상태: 2026-08-08 리뷰 반영 완료**
+(확정 버그 2건 + H1/H2/H3/H4/H6/H7 수정, 실측: 어셈블 5:50 → 1:49).
 
-### H1. 어셈블이 느리다 — 병렬화/캐싱 없음 (실측: 3,151건 ≈ 6분)
+### H1. 어셈블이 느리다 — 병렬화/캐싱 없음 → **수정 완료**
 
 ```python
 # translation/assemble_game_ko.py assemble() — 파일 단위 순차 루프
@@ -108,9 +117,9 @@ for rel in sorted(by_file):                    # 343개 파일
 
 - 파일당 파싱 3회 반복. `corpus_verify`는 ProcessPoolExecutor(16 워커)를
   쓰는데 어셈블러는 단일 스레드 (실측: splice 348s + verify 232s).
-- 제안: 파일 단위 병렬화, 또는 "등록 시점 검사(H2 참고)로 갈음하고
-  어셈블 verify를 끄는" 정책 결정. `--no-verify`면 ~2분이지만 구조 검증이
-  사라진다.
+- **수정**: ① 원본 파싱 결과(`SourceFile`)를 verify에 재사용 (3→2회),
+  ② 파일 단위 `ProcessPoolExecutor` 병렬화. 실측 5:50 → **1:49 (3.2배)**.
+  `--workers` 옵션 제공.
 
 ### H2. verify의 구조 검증이 "매크로 토큰 시퀀스" 휴리스틱이다
 
@@ -137,10 +146,14 @@ if src_sig != ko_sig:          # 보호 스팬 원본 bytes 시퀀스의 대칭 
     return "skeleton_mismatch"
 ```
 
-- 제안: 어셈블 verify를 "원본/결과물 각각 mask → `passage_placeholder_signature`
-  비교"로 강화 (이미 존재하는 유틸). H1과 트레이드오프.
+- **수정**: 어셈블 verify에 시그니처(보호 스팬 원본 bytes) 비교 추가
+  (`_verify_assembled` — `skeleton_mismatch`/`mask_failed` 코드).
+  매크로 시퀀스 비교는 유지 (2중 방어). 실측: 3,151건 재검증 0건 불일치.
+- **수정**: `ko_body_preserves_skeleton(ko_body, ko_sig)` 2차 체크 제거 —
+  `ko_sig`가 ko_body 자기 자신에서 파생되어 항상 참인 방어막이었음
+  (리뷰 지적, 코드 검증 완료).
 
-### H3. 어셈블이 비원자적이다 (실패 시 부분 출력 위험)
+### H3. 어셈블이 비원자적이다 (실패 시 부분 출력 위험) → **수정 완료**
 
 ```python
 # assemble() 시작
@@ -151,11 +164,11 @@ shutil.copytree(game_root, output_root, dirs_exist_ok=True, symlinks=False)
 
 - 6분짜리 실행이 중간에 죽으면 절반만 번역된 트리가 남는다. 재실행 시
   `dirs_exist_ok=True`가 낡은 파일을 남길 수 있다.
-- 제안: 임시 디렉터리(`.game_ko.tmp-<pid>`)에 쓰고 끝나면 rename 교체.
-  `build/dol_build.py`의 `write_json_atomic`/`temporary_output.replace` 패턴과
-  같은 방식.
+- **수정**: staging 디렉터리(`.{name}.tmp-<pid>`)에 어셈블 후
+  `replace()` 원자 스왑 + 이전 트리 백업 복원. 재실행 시 낡은 파일 제거
+  (테스트 `test_stale_output_files_removed` 추가).
 
-### H4. 스모크의 "번역 검증" 기본값이 비어 있다
+### H4. 스모크의 "번역 검증" 기본값이 비어 있다 → **부분 수정**
 
 ```mjs
 // browser_smoke.mjs — 옵션 오버레이 한국어 확인
@@ -166,6 +179,11 @@ checks.koreanOptionsApplied =
 ```
 
 - `--expect-options-text`를 안 주면 **옵션 UI가 영어로 회귀해도 잡히지 않는다.**
+- **수정**: skip 시 `report.warnings.optionsCheckSkipped: true` 기록 —
+  침묵 성공이 리포트에서 보이도록. (한국어 포함 비율 지표는 미구현 — 후순위)
+- **수정**: 반복 옵션(`--expect-options-text`)을 **항상 배열로 정규화** —
+  단일 전달 시 문자열이 되어 `.every()` TypeError로 죽던 버그 해결
+  (리뷰 지적, 실측 검증: 단일 옵션 실행 정상).
 - passage-list TSV도 수동 생성 중 (레코드에서 한국어 조각 추출):
 
 ```python
@@ -194,19 +212,21 @@ page.locator(".customOverlayClose")
   스냅샷). 현재는 try-both 정규식으로 언어만 완화된 상태.
 - 제안: 셀렉터 설정 파일 분리, 또는 "요소 없음 = 경고(비차단)" 정책.
 
-### H6. 테스트 커버리지 갭
+### H6. 테스트 커버리지 갭 → **부분 수정**
 
-`tests/test_assemble_game_ko.py` — 현재 5건: 단일 스플라이스, 드리프트 skip,
-레코드 최신 선택, 경계 newline 보존, 결과물 파싱.
+`tests/test_assemble_game_ko.py` — 기존 5건 + 추가 2건 (총 7건):
+단일 스플라이스, 드리프트 skip, 레코드 최신 선택, 경계 newline 보존,
+결과물 파싱, **멀티 passage 역순 스플라이스**, **낡은 산출물 제거(원자성)**.
 
-- **멀티 passage 파일(역순 스플라이스 경로)** 픽스처 없음 — 실제로 이 경로에서
-  경계 newline 버그가 났는데 회귀 테스트로 고정 안 됨.
-- **코드 passage([widget] 태그) 제외** 테스트 없음 (어셈블러에서 46건 제외된
-  로직).
-- **같은 passage 이름의 중복 레코드** 테스트 없음.
-- `browser_smoke.mjs`는 유닛 테스트가 전혀 없음 (parseArgs, 체크 로직).
+- **멀티 passage 파일(역순 스플라이스 경로)** 픽스처 추가 — 이 경로에서
+  실제로 경계 newline 버그가 났는데 회귀 테스트로 고정됨 (리뷰 지적,
+  "버그를 잡았다는 건 재현 케이스가 이미 손에 있다" 반영).
+- **코드 passage([widget] 태그) 제외** 테스트 없음 — 미수정 (후순위).
+- **같은 passage 이름의 중복 레코드** 테스트 없음 — 미수정 (후순위).
+- `browser_smoke.mjs`는 유닛 테스트가 전혀 없음 — E2E 성격이라 스모크
+  자체가 역할을 대신한다는 리뷰 의견에 동의, 미수정.
 
-### H7. 레코드 데이터의 일관성 문제를 어셈블러가 떠안고 있다
+### H7. 레코드 데이터의 일관성 문제를 어셈블러가 떠안고 있다 → **부분 수정**
 
 ```python
 # assemble() 스플라이스 시 경계 보정 (3-match KO body가 trailing 개행을 버리는 형식)
@@ -217,9 +237,13 @@ new_body = leading + translated.strip("\n").encode("utf-8") + trailing
 
 - 원인은 등록 데이터(`corpus-triple-match.jsonl`의 `ko_body`)가 body 경계
   개행을 포함하지 않는 형식인데, 소비자(어셈블러)가 보정하는 구조.
-  **등록 단계에서 body 경계 구조를 정규화**하는 편이 낫다.
+- **수정**: 등록 단계에서 `register_ko_reuse.match_boundaries()`로 KO body를
+  원본 body와 같은 개행 구조로 정규화해 저장. 어셈블러의 보정은 안전망으로
+  유지 (다른 소스의 레코드 대비).
+- **수정**: 등록 skip 레코드(`skeleton_mismatch` 18건)를 `skipped_records`
+  목록(경로/이름/사유)으로 보고 — 조용한 누락 방지.
 - 낡은 레코드(현재 버전에 없는 passage, 1건: `Widgets Office Lift`)는
-  `passage_not_found`로 조용히 skip된다 — 보고만 되고 원인 추적 경로가 없다.
+  어셈블러에서 `passage_not_found`로 보고 — 미수정 (후순위, ID 보고).
 
 ### H8. 오케스트레이션 부재
 
@@ -233,17 +257,26 @@ new_body = leading + translated.strip("\n").encode("utf-8") + trailing
 1. **어셈블 검증 정책**: 등록 시점의 강한 검사(`_verify_passage`,
    `register_ko_reuse.py:90`)만으로 충분한가, 아니면 어셈블 시점에도
    보호 스팬 비교(H2 제안)가 필요한가? H1 성능과의 트레이드오프.
+   → **리뷰 답변**: 어셈블 시점 검사 유지 필요 (트리 갱신 시 등록 검증이
+   무의미해질 수 있음). **반영: 시그니처 비교 추가 + 병렬화로 비용 상쇄.**
 2. **스플라이스 방식**: 원본 트리 복사 + body byte span 교체
    (`assemble_game_ko.py:139-145`)가 유지보수 관점에서 타당한가?
    대안(파일 전체 재생성, diff 패치)이 있는가? H3 원자성과 함께 판단.
+   → **리뷰 답변**: lossless CST 원칙과 일관, 방식 유지 권장. **반영:
+   방식 유지 + 원자성(H3) 보강.**
 3. **스모크 검증 목표**: "번역분 검증"과 "게임 회귀 검증" 중 어느 쪽이
    주 목적인가? 현재는 UI 7종(`browser_smoke.mjs` checks) + passage-list
    전수(textMatch)인데, H4/H5의 강도/유연성 결정에 기준이 필요.
+   → **리뷰 답변**: 분리보다 report.json에서 카테고리 명시 구분 권장.
+   **미반영 (후순위)** — 실패 시 "번역/UI 어느 쪽 문제인지" 구분 필드.
 4. **성능**: 6분(파일당 파싱 3회)이 실사용에 문제인가? 병렬화 vs 검증
    축소 중 어디에 투자할 가치가 있는가?
+   → **리뷰 답변**: 병렬화 먼저 + verify 강화 권장. **반영: 병렬화 +
+   verify 강화, 실측 1:49.**
 5. **레코드 스토어의 level 혼재**: passage/unit 레코드가 한 JSONL에
    섞인다 (`store.py find_passage_reuse`가 `level`로 필터). 장기적으로
    통일/분리 어느 쪽? (설계 문서: `docs/translation-reuse-design.md`)
+   → **미판정 (후순위).**
 
 ## 6. 재현 방법
 
@@ -279,3 +312,20 @@ python3 browser_smoke.py run --html build/dol-en.html --output /tmp/opencode/smo
    제외로 해결.
 3. **매크로 구조 검사의 false positive** — `<<link [[Next|X]]>>`의 라벨
    번역을 구조 변경으로 오인 → 매크로 이름/링크/태그만 비교로 정규화.
+
+## 8. 리뷰 반영 이력 (2026-08-08)
+
+| 항목 | 리뷰 지적 | 반영 |
+|---|---|---|
+| 확정 버그 1 | `parseArgs`: 반복 옵션 1개 전달 시 문자열 → `.every()` TypeError | 수정 — `MULTI_OPTIONS` 항상 배열화, 실측 검증 |
+| 확정 버그 2 | `created_at` 하드코딩 `"2026-08-08"` | 수정 — `datetime.now(UTC)` ISO |
+| 🟡 | `ko_body_preserves_skeleton(ko_body, ko_sig)` 항상 참 | 제거 — 자기 파생 시그니처 자체 검사 |
+| H6 | 멀티 passage 역순 스플라이스 테스트 부재 | 추가 — `test_multi_passage_same_file_reverse_splice` |
+| 문서 | §3.1 스키마에 unit_id/request_id/model/temperature/created_at 누락 | 보완 |
+| H3 | 비원자적 쓰기 (조용한 실패 패턴) | staging + 원자 스왑 + 백업 복원 |
+| H1/H2 | 파싱 재사용 + 병렬화, verify는 강화 유지 | 원본 파싱 재사용(3→2), ProcessPoolExecutor, 시그니처 비교 추가 — 실측 5:50→1:49 |
+| H4 | 빈 기대 문자열 침묵 성공 | `warnings.optionsCheckSkipped` 기록 |
+| H7 | 경계 개행 보정을 소비자가 부담 | 등록 시 `match_boundaries()` 정규화 + `skipped_records` ID 보고 |
+
+미반영(후순위): H4 한국어 비율 지표, H5 셀렉터 분리, H8 오케스트레이션,
+Q3 체크 카테고리 분리, Q5 level 통일.

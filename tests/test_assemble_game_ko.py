@@ -101,6 +101,45 @@ class AssembleTests(unittest.TestCase):
         self.assertIn("두 번째 패시지입니다.\n\n", result)
         self.assertIn(":: Two", result)
 
+    def test_multi_passage_same_file_reverse_splice(self) -> None:
+        # Two passages of one file must splice correctly: edits are applied
+        # in reverse offset order, and each KO body's boundary newlines are
+        # preserved so the next passage header stays a line start.
+        records = {
+            ("sub/main.twee", "One"): _record(
+                "sub/main.twee", "One", "\nHello world.\n\n", "안녕하세요."
+            ),
+            ("sub/main.twee", "Two"): _record(
+                "sub/main.twee", "Two", "\nSecond passage here.\n\n", "두 번째 패시지입니다."
+            ),
+        }
+        stats = assemble(records, self.game, self.out)
+        self.assertEqual(stats["spliced"], 2)
+        self.assertEqual(stats["verify_failed"], 0)
+        result = (self.out / "sub" / "main.twee").read_text(encoding="utf-8")
+        self.assertIn("안녕하세요.\n\n:: Two", result)
+        self.assertIn("두 번째 패시지입니다.\n\n", result)
+        self.assertNotIn("Hello world.", result)
+        self.assertNotIn("Second passage here.", result)
+        # the file still parses into the same two passages
+        data = (self.out / "sub" / "main.twee").read_bytes()
+        source = parse_file(data, "sub/main.twee", DEFAULT_VALUE_KIND_PATH)
+        self.assertEqual([p.name for p in source.passages], ["One", "Two"])
+
+    def test_stale_output_files_removed(self) -> None:
+        # A previous run left a stale file; the rebuild must not keep it.
+        stale = self.out / "stale.twee"
+        stale.parent.mkdir(parents=True, exist_ok=True)
+        stale.write_text(":: Old\n\nstale\n\n", encoding="utf-8")
+        records = {
+            ("sub/main.twee", "One"): _record(
+                "sub/main.twee", "One", "\nHello world.\n\n", "\n안녕하세요.\n\n"
+            )
+        }
+        assemble(records, self.game, self.out)
+        self.assertFalse(stale.exists())
+        self.assertTrue((self.out / "sub" / "main.twee").is_file())
+
     def test_assembled_file_parses(self) -> None:
         records = {
             ("sub/main.twee", "One"): _record(
