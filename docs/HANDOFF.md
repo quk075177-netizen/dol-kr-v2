@@ -201,8 +201,9 @@ uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감�
   1차 lite(일시 오류는 동일 티어 재시도 내장) → L1/L2 실패 유닛 flash 승격 →
   L3 skeleton_mismatch는 **경계 검사(`boundary_prose_drops`)로 해당 유닛
   쌍만 flash 재번역** (전체 passage 재시도 없음) → 또 실패 시 실패 로그만
-  (자동 재시도 종료, 데이터 모아 추후 재던지기). **`--journal <path>`**:
-  유닛 결과/패시지 결과를 응답마다 즉시 flush 저장 (크래시 안전). 실측:
+  (자동 재시도 종료, 데이터 모아 추후 재던지기). **저널 (기본 스트리밍)**:
+  유닛/패시지 결과를 응답마다 즉시 flush — 기본 경로
+  `tmp/journals/req_<request_id>.jsonl` (`--journal`로 변경 가능). 실측:
   Farm Work(100유닛) 배치 7회+승격 24회 ≈33회 호출로 성공 (per-unit 대비
   ~3배 절감, 드롭 0 수렴)
 - 설정: ADC는 `gcloud auth application-default login`

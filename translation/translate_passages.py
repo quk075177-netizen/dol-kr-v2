@@ -862,7 +862,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--journal", type=str, default="",
         help="stream one JSON line per unit result and passage outcome here "
-             "(flushed per write — survives crashes)",
+             "(flushed per write — survives crashes; default: "
+             "tmp/journals/<request_id>.jsonl)",
     )
     args = parser.parse_args(argv)
 
@@ -872,9 +873,14 @@ def main(argv: list[str] | None = None) -> int:
     store_path = Path(args.store)
     game_root = Path(args.game_root)
     debug_dir = Path(args.debug_dir) if args.debug_dir else None
-    journal = Path(args.journal) if args.journal else None
     records = load_translations(store_path)
     request_id = args.request_id or next_request_id(records)
+    if args.journal:
+        journal = Path(args.journal)
+    else:
+        # always stream: per-unit progress survives crashes and is visible
+        # in the project tmp/ folder (git-excluded)
+        journal = Path("tmp/journals") / f"{request_id}.jsonl"
 
     targets: list[tuple[Path, str]] = []
     if args.passages_file:
