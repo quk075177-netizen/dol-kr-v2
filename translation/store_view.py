@@ -65,6 +65,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="pretty-print a journal file instead of the store")
     parser.add_argument("--full", action="store_true",
                         help="print source/translated bodies in full")
+    parser.add_argument("--lines", action="store_true",
+                        help="show source/translated bodies paired line by line")
     args = parser.parse_args(argv)
 
     if args.journal:
@@ -92,8 +94,31 @@ def main(argv: list[str] | None = None) -> int:
     print(f"== {label} — {len(records)} records ==")
     for index, record in enumerate(records, 1):
         print(f"\n--- [{index}] {record.get('kind', 'record')} ---")
-        print(_show(record, args.full))
+        if args.lines and "source_text" in record and "translated_text" in record:
+            _show_lines(record)
+        else:
+            print(_show(record, args.full))
     return 0
+
+
+def _show_lines(record: dict) -> None:
+    """Show source/translated bodies as paired lines (line-count contract)."""
+    MAX = 90  # per-side display width
+    source = [line[:MAX] + ("…" if len(line) > MAX else "")
+              for line in str(record.get("source_text", "")).splitlines()]
+    translated = [line[:MAX] + ("…" if len(line) > MAX else "")
+                  for line in str(record.get("translated_text", "")).splitlines()]
+    print(f"lines: source {len(source)} / translated {len(translated)}"
+          f"{'' if len(source) == len(translated) else '  ← MISMATCH'}")
+    width = max(1, max((len(line) for line in source), default=1))
+    for i, (src, tr) in enumerate(zip(source, translated), 1):
+        marker = " " if src == tr else "·"
+        print(f"{marker} {i:3d} | {src:<{width}} | {tr}")
+    if len(source) != len(translated):
+        for extra in source[len(translated):]:
+            print(f"    | {extra:<{width}} | (없음)")
+        for extra in translated[len(source):]:
+            print(f"    | {'':<{width}} | {extra}")
 
 
 if __name__ == "__main__":

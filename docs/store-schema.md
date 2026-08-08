@@ -146,6 +146,17 @@ uv run python -m translation.journal_rerun \
 uv run python -m translation.translate_passages --passages-file /tmp/opencode/rerun.jsonl
 ```
 
+## 본문 저장 정책
+
+- 레코드마다 `source_text`(원문 passage body)와 `translated_text`가 전문
+  저장된다 — 레코드 자급자족(해시 키·검증)을 위한 설계. game/ 파일과
+  중복되므로 스토어 크기의 약 1/3을 차지 (현재 7,142 레코드 ≈ 17 MB).
+- **한 줄씩 대응 보기**: `store_view --lines` — source/translated를 줄
+  단위로 나란히 출력 (번역 품질 검토용). 줄 수 불일치는 `← MISMATCH`로
+  표시 (모델이 줄을 추가/삭제한 경우 — 구조 검사는 통과해도 줄 수
+  계약은 깨질 수 있음).
+- unit/line 단위 저장(R2)은 passage 스토어를 유지한 채 별도 설계 예정.
+
 ## 보는 법
 
 ```bash
@@ -153,4 +164,5 @@ uv run python -m translation.translate_passages --passages-file /tmp/opencode/re
 uv run python -m translation.store_view --passage "Farm Work"
 uv run python -m translation.store_view --last 3
 uv run python -m translation.store_view --hash 9d01b2 --full
+uv run python -m translation.store_view --passage <p> --lines  # 한 줄씩 대응 보기
 ```
