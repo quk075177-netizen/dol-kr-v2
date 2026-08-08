@@ -314,7 +314,8 @@ def analyze_passage(data: bytes, passage: Passage) -> dict[str, Any]:
 
     body_length = passage.body_span.end - passage.body_span.start
     protected_length = 0
-    for span in passage.protected_spans:
+    for protected in passage.protected_spans:
+        span = protected.span
         start = max(span.start, passage.body_span.start)
         end = min(span.end, passage.body_span.end)
         protected_length += max(0, end - start)

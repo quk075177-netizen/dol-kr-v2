@@ -75,9 +75,36 @@ def next_request_id(records: dict[str, list[dict]]) -> str:
     return f"{prefix}{seq + 1:03d}"
 
 
+def _canonical_signature(signature: list[str], sensitive: list[bool]) -> list[str]:
+    """Multiset-normalised signature for order-insensitive tokens.
+
+    Order-sensitive tokens keep their exact positions; runs of
+    order-insensitive tokens between them are sorted, so their internal
+    order does not matter.  Two signatures with the same canonical form
+    restore to identical rendered structure (see tmp/reorder-analysis.md
+    §7 — Option E).
+    """
+    out: list[str] = []
+    run: list[str] = []
+    for text, is_sensitive in zip(signature, sensitive):
+        if is_sensitive:
+            out.extend(sorted(run))
+            run = []
+            out.append(text)
+        else:
+            run.append(text)
+    out.extend(sorted(run))
+    return out
+
+
 def _skeleton_ok(source_artifact, translated_body: bytes, passage_name: str, source_path: str) -> bool:
     """Mask the translated body and compare protected-span signatures with
-    the source.  A mismatch means the translation broke the structure."""
+    the source.  A mismatch means the translation broke the structure.
+
+    Order-insensitive spans (display-only macros, variables, HTML — see
+    pretranslation_cst.order_sensitivity) are compared as multisets, so a
+    Korean word-order reorder of those tokens is tolerated; state/control
+    spans keep strict sequence equality."""
     try:
         synthetic = f":: {passage_name}\n\n".encode("utf-8") + translated_body
         source = parse_file(synthetic, source_path, DEFAULT_VALUE_KIND_PATH)
@@ -87,7 +114,11 @@ def _skeleton_ok(source_artifact, translated_body: bytes, passage_name: str, sou
         ko_artifact = mask_passage(synthetic, passage)
     except Exception:
         return False
-    return passage_placeholder_signature(source_artifact) == passage_placeholder_signature(ko_artifact)
+    src_sig = passage_placeholder_signature(source_artifact)
+    ko_sig = passage_placeholder_signature(ko_artifact)
+    src_sensitive = [ph.order_sensitive for ph in source_artifact.placeholders]
+    ko_sensitive = [ph.order_sensitive for ph in ko_artifact.placeholders]
+    return _canonical_signature(src_sig, src_sensitive) == _canonical_signature(ko_sig, ko_sensitive)
 
 
 # any placeholder-like token the model might emit (including wrong-digit
@@ -173,10 +204,26 @@ def verify_unit_structure(unit, translated: str) -> list[str]:
     # reorder only when every own token is present (a missing token is a
     # drop, which L1 catches) — otherwise a drop would be double-reported
     if len(own_in_order) == len(own) and own_in_order != own:
-        problems.append("reorder")
+        # Option E: a reorder of order-insensitive tokens (display-only
+        # macros — pronouns, names, variables, HTML) is the model
+        # naturalising Korean word order; the restored rendering is
+        # unchanged.  Only flag when a state/control token moved.
+        if _moved_sensitive_tokens(unit, own, own_in_order):
+            problems.append("reorder")
     elif len(own_in_order) == len(own) and not problems:
         problems.extend(_prose_gap_problems(unit, translated))
     return problems
+
+
+def _moved_sensitive_tokens(unit, own: list[str], own_in_order: list[str]) -> list[str]:
+    """Own tokens whose position changed AND that are order-sensitive."""
+    sensitive = {ph.placeholder: ph.order_sensitive for ph in unit.placeholders}
+    moved = {
+        token
+        for index, token in enumerate(own)
+        if index >= len(own_in_order) or own_in_order[index] != token
+    }
+    return [token for token in moved if sensitive.get(token, True)]
 
 
 def _l2_retry_hint(problems: list[str]) -> str:

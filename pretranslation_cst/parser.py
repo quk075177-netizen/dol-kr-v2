@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .grammar import MacroRegistry, MacroSpec, load_macro_registry
-from .model import ArgNode, CstNode, Diagnostic, Passage, SourceFile, Span
+from .model import ArgNode, CstNode, Diagnostic, Passage, ProtectedSpan, SourceFile, Span
 from .square_markup import DYNAMIC_LABEL_MARKERS, exposed_label, parse_square_markup
 
 
@@ -677,7 +677,7 @@ def _collect_markup(source: TextSource, passage: Passage, start: int, end: int, 
         if text.startswith("<!--", pos) or text.startswith("/*", pos):
             marker_end = _consume_comment(text, pos, end)
             if marker_end is not None:
-                passage.protected_spans.append(source.span(pos, marker_end))
+                passage.protected_spans.append(ProtectedSpan(source.span(pos, marker_end), frozenset({"comment"})))
                 pos = marker_end
                 continue
         if text.startswith("<<", pos):
@@ -692,30 +692,34 @@ def _collect_markup(source: TextSource, passage: Passage, start: int, end: int, 
         if text[pos] == "<":
             html_end = _consume_html_tag(text, pos, end)
             if html_end is not None:
-                passage.protected_spans.append(source.span(pos, html_end))
+                passage.protected_spans.append(ProtectedSpan(source.span(pos, html_end), frozenset({"html"})))
                 pos = html_end
                 continue
         if text[pos] in "$_" and pos + 1 < end and (text[pos + 1].isalpha() or text[pos + 1] == "_"):
             variable_end = _consume_variable(text, pos, end)
-            passage.protected_spans.append(source.span(pos, variable_end))
+            passage.protected_spans.append(ProtectedSpan(source.span(pos, variable_end), frozenset({"variable"})))
             pos = variable_end
             continue
         if text[pos] == "`":
             expression_end = _consume_quoted(text, pos, "`", end, allow_newline=True)
             if expression_end is not None:
-                passage.protected_spans.append(source.span(pos, expression_end))
+                passage.protected_spans.append(ProtectedSpan(source.span(pos, expression_end), frozenset({"expression"})))
                 pos = expression_end
                 continue
         pos += 1
 
 
-def _merge_spans(spans: Iterable[Span]) -> list[Span]:
-    result: list[Span] = []
-    for span in sorted(spans):
-        if not result or span.start > result[-1].end:
-            result.append(span)
+def _merge_spans(spans: Iterable[ProtectedSpan]) -> list[ProtectedSpan]:
+    result: list[ProtectedSpan] = []
+    for protected in sorted(spans, key=lambda item: (item.span.start, item.span.end)):
+        if not result or protected.span.start > result[-1].span.end:
+            result.append(protected)
         else:
-            result[-1] = Span(result[-1].start, max(result[-1].end, span.end))
+            merged = result[-1]
+            result[-1] = ProtectedSpan(
+                Span(merged.span.start, max(merged.span.end, protected.span.end)),
+                merged.kinds | protected.kinds,
+            )
     return result
 
 
@@ -764,7 +768,7 @@ def _build_tree(
         add_text(last, node.span.start, stack[-1])
         if node.node_type == "protected_markup":
             stack[-1].children.append(node)
-            passage.protected_spans.append(node.span)
+            passage.protected_spans.append(ProtectedSpan(node.span, frozenset({node.name or "markup"})))
             last = node.span.end
             continue
         if node.name.startswith("/"):
@@ -843,7 +847,7 @@ def _build_tree(
             passage.body_span.end,
         )
         open_node.span = Span(open_node.span.start, passage.body_span.end)
-        passage.protected_spans.append(Span(open_node.span.start, passage.body_span.end))
+        passage.protected_spans.append(ProtectedSpan(Span(open_node.span.start, passage.body_span.end), frozenset({open_node.name})))
         passage.diagnostics.append(Diagnostic("unclosed_container", "container has no closing tag", open_node.span, open_node.name))
     _assign_tree_metadata(passage)
 
@@ -863,7 +867,7 @@ def parse_passage(
     start, end = source.char_start(passage.body_span.start), source.char_start(passage.body_span.end)
     opaque_reason = _opaque_reason(passage)
     if opaque_reason is not None:
-        passage.protected_spans.append(passage.body_span)
+        passage.protected_spans.append(ProtectedSpan(passage.body_span, frozenset({"body"})))
         passage.root = CstNode(passage.body_span, "passage_root", role="root")
         passage.root.children.append(CstNode(passage.body_span, "passage_opaque", name=opaque_reason, role="opaque"))
         _assign_tree_metadata(passage)
@@ -879,7 +883,7 @@ def parse_passage(
         if scan.diagnostic:
             passage.diagnostics.append(scan.diagnostic)
             if scan.diagnostic.span is not None:
-                passage.protected_spans.append(scan.diagnostic.span)
+                passage.protected_spans.append(ProtectedSpan(scan.diagnostic.span, frozenset({"diagnostic"})))
         if scan.node is None:
             pos = max(scan.end, pos + 1)
             continue
@@ -896,7 +900,7 @@ def parse_passage(
         _attach_argument_nodes(source, node, spec)
         macros.append(node)
         passage.nodes.append(node)
-        passage.protected_spans.append(node.span)
+        passage.protected_spans.append(ProtectedSpan(node.span, frozenset({node.name})))
         pos = scan.end
     markup_nodes = _standalone_markup_nodes(source, start, end, [*(node.span for node in macros)])
     _collect_markup(source, passage, start, end, [*(node.span for node in macros), *(node.span for node in markup_nodes)])

@@ -138,6 +138,24 @@ class CstNode:
 MacroNode = CstNode
 
 
+@dataclass(frozen=True)
+class ProtectedSpan:
+    """A protected byte span plus the kinds of the constructs it covers.
+
+    ``kinds`` holds the macro names (``"he"``, ``"set"``, ...) or the
+    generic kind for non-macro spans (``"variable"``, ``"expression"``,
+    ``"html"``, ``"comment"``, ``"markup"``, ``"diagnostic"``, ``"body"``).
+    Adjacent spans are merged with the union of kinds, so a span can cover
+    several macros (e.g. ``<<set $x to 1>><<he>>`` → {"set", "he"}).
+    """
+
+    span: Span
+    kinds: frozenset[str] = frozenset()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"span": self.span.to_dict(), "kinds": sorted(self.kinds)}
+
+
 @dataclass
 class Passage:
     source_path: str
@@ -148,7 +166,7 @@ class Passage:
     body_span: Span
     source_span: Span
     nodes: list[CstNode] = field(default_factory=list)
-    protected_spans: list[Span] = field(default_factory=list)
+    protected_spans: list[ProtectedSpan] = field(default_factory=list)
     exposed_candidates: list[tuple[Span, str]] = field(default_factory=list)
     diagnostics: list[Diagnostic] = field(default_factory=list)
     root: CstNode | None = None
@@ -243,6 +261,7 @@ class Placeholder:
     source_span: Span
     original_text: str
     reason: str = "protected"
+    order_sensitive: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -250,6 +269,7 @@ class Placeholder:
             "source_span": self.source_span.to_dict(),
             "original_text": self.original_text,
             "reason": self.reason,
+            "order_sensitive": self.order_sensitive,
         }
 
 

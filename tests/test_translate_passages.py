@@ -148,6 +148,85 @@ class TranslatePassagesTests(unittest.TestCase):
         self.assertIn("foreign_token", problems)
         self.assertIn("reorder", problems)
 
+    def _unit_with_sensitivity(self, masked_text: str, ph_tokens: list[str], sensitive: bool):
+        unit = self._unit_with(masked_text, ph_tokens)
+        for ph in unit.placeholders:
+            ph.order_sensitive = sensitive
+        return unit
+
+    def test_verify_unit_structure_reorder_insensitive_tolerated(self) -> None:
+        # display-only tokens (pronouns) may move for Korean word order
+        unit = self._unit_with_sensitivity(
+            "<0000001> hello <0000002>", ["<0000001>", "<0000002>"], sensitive=False
+        )
+        self.assertEqual(
+            verify_unit_structure(unit, "<0000002> 안녕 <0000001>"), []
+        )
+
+    def test_verify_unit_structure_reorder_sensitive_flagged(self) -> None:
+        unit = self._unit_with_sensitivity(
+            "<0000001> hello <0000002>", ["<0000001>", "<0000002>"], sensitive=True
+        )
+        self.assertEqual(
+            verify_unit_structure(unit, "<0000002> 안녕 <0000001>"), ["reorder"]
+        )
+
+    def test_verify_unit_structure_reorder_mixed_sensitive_flagged(self) -> None:
+        # only one moved token needs to be sensitive
+        unit = self._unit_with(
+            "<0000001> hello <0000002>", ["<0000001>", "<0000002>"]
+        )
+        unit.placeholders[0].order_sensitive = False
+        unit.placeholders[1].order_sensitive = True
+        self.assertEqual(
+            verify_unit_structure(unit, "<0000002> 안녕 <0000001>"), ["reorder"]
+        )
+
+    def test_canonical_signature(self) -> None:
+        from translation.translate_passages import _canonical_signature
+
+        # insensitive tokens sorted within runs, sensitive keep order
+        sig = ["a", "b", "X", "c", "d"]
+        sens = [False, False, True, False, False]
+        self.assertEqual(_canonical_signature(sig, sens), ["a", "b", "X", "c", "d"])
+        self.assertEqual(
+            _canonical_signature(["b", "a", "X", "d", "c"], sens),
+            ["a", "b", "X", "c", "d"],
+        )
+        # a sensitive token moved changes the canonical form
+        self.assertNotEqual(
+            _canonical_signature(["X", "a", "b"], [True, False, False]),
+            _canonical_signature(["a", "b", "X"], [False, False, True]),
+        )
+
+    def test_skeleton_ok_tolerates_insensitive_swap(self) -> None:
+        # <<he>>/<<his>> (display-only) swapped across the sentence is fine
+        from pretranslation_cst.masking import mask_passage
+
+        raw = (
+            b":: One\n\n"
+            b"<<he>> face drops as <<his>> phone rings.\n\n"
+        )
+        source = parse_file(raw, str(self.file), DEFAULT_VALUE_KIND_PATH)
+        passage = next(p for p in source.passages if p.name == "One")
+        artifact = mask_passage(raw, passage)
+        swapped_body = b"<<his>> phone rings as <<he>> face drops.\n\n"
+        self.assertTrue(_skeleton_ok(artifact, swapped_body, "One", str(self.file)))
+
+    def test_skeleton_ok_rejects_sensitive_swap(self) -> None:
+        # moving a <<set>> across a display token breaks the structure
+        from pretranslation_cst.masking import mask_passage
+
+        raw = (
+            b":: One\n\n"
+            b"<<set $x to 1>> face drops as <<he>> rings.\n\n"
+        )
+        source = parse_file(raw, str(self.file), DEFAULT_VALUE_KIND_PATH)
+        passage = next(p for p in source.passages if p.name == "One")
+        artifact = mask_passage(raw, passage)
+        swapped_body = b"<<he>> rings as <<set $x to 1>> face drops.\n\n"
+        self.assertFalse(_skeleton_ok(artifact, swapped_body, "One", str(self.file)))
+
     def test_verify_unit_structure_prose_drop(self) -> None:
         unit = self._unit_with(
             "<0000001> hello <0000002>", ["<0000001>", "<0000002>"]
@@ -263,15 +342,47 @@ class TranslatePassagesTests(unittest.TestCase):
 
     def _passage_with_vars(self, name: str = "One") -> object:
         """Passage whose body contains two naked variables ($x $y), which
-        the masker turns into two placeholder tokens."""
+        the masker turns into two placeholder tokens (order-insensitive)."""
         self.file.write_text(
             ":: One\n\nHello $x $y world.\n\n:: Two\n\nSecond passage here.\n\n",
             encoding="utf-8",
         )
         return self._passage(name)
 
+    def _passage_with_set(self, name: str = "One") -> object:
+        """Passage whose body contains a <<set>> and a <<run>> macro (two
+        order-sensitive placeholder tokens)."""
+        self.file.write_text(
+            ":: One\n\n<<set $x to 1>> hello <<run $y>> world.\n\n"
+            ":: Two\n\nSecond passage here.\n\n",
+            encoding="utf-8",
+        )
+        return self._passage(name)
+
+    def test_translate_passage_variable_reorder_accepted(self) -> None:
+        # $x/$y are order-insensitive: a swap is the model naturalising
+        # word order — no L2 retry, record is stored as-is
+        from translation.client import TranslatedUnit
+
+        def fake_translate(unit, index=0, total=1, hint=None, model=None):
+            return TranslatedUnit(
+                unit=unit, translated_text="<0000001> world <0000000> hello"
+            )
+
+        passage = self._passage_with_vars()
+        with mock.patch("translation.translate_passages.translate_unit", fake_translate):
+            record, reason = translate_passage(
+                self.file, passage, request_id="req_test", store_records={}
+            )
+        self.assertEqual(reason, "ok")
+        assert record is not None
+        self.assertEqual(record["l2_retries"], 0)
+        # restored: $x and $y sit at the swapped (reordered) positions
+        self.assertEqual(record["translated_text"], "$y world $x hello")
+
     def test_translate_passage_l2_recovers_reorder(self) -> None:
-        # First attempt reorders tokens; the L2 retry returns a clean unit.
+        # First attempt reorders sensitive tokens; the L2 retry returns a
+        # clean unit.
         from translation.client import TranslatedUnit
 
         calls = {"n": 0}
@@ -284,7 +395,7 @@ class TranslatePassagesTests(unittest.TestCase):
                 )
             return TranslatedUnit(unit=unit, translated_text=unit.masked_text)
 
-        passage = self._passage_with_vars()
+        passage = self._passage_with_set()
         with mock.patch("translation.translate_passages.translate_unit", fake_translate):
             record, reason = translate_passage(
                 self.file, passage, request_id="req_test", store_records={}
@@ -327,7 +438,7 @@ class TranslatePassagesTests(unittest.TestCase):
                 )
             return TranslatedUnit(unit=unit, translated_text="<0000001> hello")
 
-        passage = self._passage_with_vars()
+        passage = self._passage_with_set()
         with mock.patch("translation.translate_passages.translate_unit", fake_translate):
             record, reason = translate_passage(
                 self.file, passage, request_id="req_test", store_records={}

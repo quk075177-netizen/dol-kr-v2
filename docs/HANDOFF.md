@@ -15,13 +15,16 @@ CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿
       prose_drop) + 지뢰 분석 (구조적 특징 기각)
   → 모델 티어 대조 실험 (결정적 유닛 3개: 티어 문제 1 + 승격+L2 해결 1
       + 콘텐츠 난이도 1 — 3단계 에스컬레이션 근거)
+  → 리오더 원인 규명 (한국어 어순 자연화 — 표시 전용 매크로의 재배치)
+  → Option E 구현 (순서 민감도 화이트리스트 — ProtectedSpan(kinds) +
+      order_sensitive, L2/L3 완화, 등록/어셈블러 엄격 유지)
 ```
 
 - 전체 corpus: 642 files / 16,135 passages, round-trip 0, tree invariants 0
 - diagnostics: unclassified 0, unknown_macro 6 (게임 오타 1 + ModLI 미정의 5)
 - 노출: link_label 39,157 / macro_arg 1,768 / plain_text 759,058
 - placeholder 형식: `<000000>` XML 태그 (restore = 순서 치환, 토큰 1회 필수)
-- 테스트: **192개 통과** (L2 8개 + L2 2차 6개 + 캐시 1개 포함), corpus_verify baseline matched
+- 테스트: **203개 통과** (Option E 7개 추가), corpus_verify baseline matched
 - 스모크 한국어 커버리지: **7,013/16,133 = 43.5%** (마커 등록 전 18.8%)
 
 ## 스토어 (번역 레코드, Git 제외)
