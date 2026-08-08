@@ -158,6 +158,8 @@ def run_smoke(args: argparse.Namespace) -> int:
         command.extend(["--passage-list", str(args.passage_list)])
     for text in args.expect_options_text:
         command.extend(["--expect-options-text", text])
+    if args.min_korean_ratio is not None:
+        command.extend(["--min-korean-ratio", str(args.min_korean_ratio)])
     completed = subprocess.run(
         command,
         env=environment,
@@ -205,6 +207,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help="require this text in the options overlay (repeatable; empty skips)",
+    )
+    run.add_argument(
+        "--min-korean-ratio",
+        type=float,
+        default=None,
+        help="fail unless korean/total passage ratio in the compiled story is >= this",
     )
     run.add_argument(
         "--expect-text", help="require this text in the compiled passage source"

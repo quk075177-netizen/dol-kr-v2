@@ -153,6 +153,27 @@ try {
     );
   await page.screenshot({ path: path.join(output, "04-saves.png") });
 
+  // Korean passage ratio over the compiled story (all <tw-passagedata>
+  // elements, widget/script passages included).  Guard against a silent
+  // regression to English; --min-korean-ratio makes it a hard check.
+  const koreanRatio = await page.evaluate(() => {
+    try {
+      const passages = [...document.querySelectorAll("tw-passagedata")];
+      if (passages.length === 0) return null;
+      const korean = passages.filter((p) =>
+        /[가-힣]/.test(p.textContent ?? ""),
+      ).length;
+      return { korean, total: passages.length, ratio: korean / passages.length };
+    } catch {
+      return null;
+    }
+  });
+  runtime.koreanPassageRatio = koreanRatio;
+  if (koreanRatio && args["min-korean-ratio"]) {
+    checks.koreanPassageRatio =
+      koreanRatio.ratio >= Number(args["min-korean-ratio"]);
+  }
+
   if (args.passage) {
     const passageProbe = await page.evaluate((passage) => {
       try {

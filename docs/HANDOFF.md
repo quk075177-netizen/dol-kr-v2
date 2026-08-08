@@ -28,6 +28,11 @@ work/translations/ko-reuse.jsonl → translation/assemble_game_ko.py → game_ko
   → build/dol_build.py compile → build/dol-plus-ko.html
   → browser_smoke.py run --passage-list → build/browser-smoke/report.json
 ```
+- **단일 커맨드**: `python3 build/verify.py` (어셈블→컴파일→스모크→레포트.
+  옵션: --no-assemble/--no-compile/--expect-options-text/--min-korean-ratio)
+- passage-list는 어셈블러 `--emit-passage-list`가 자동 생성
+  (`build/browser-smoke/passage-list.tsv`)
+- 스모크가 한국어 포함 비율 보고 (실측 18.8% — 번역 커버리지 반영)
 
 - 어셈블러: game/ 트리 복사 + passage body 스플라이스 (span 기반, 드리프트 검증,
   [widget]/[script]/[stylesheet] passage 제외, 경계 newline 보존, 매크로 구조

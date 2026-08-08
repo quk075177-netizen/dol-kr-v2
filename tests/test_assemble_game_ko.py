@@ -8,7 +8,12 @@ from pathlib import Path
 from pretranslation_cst.parser import parse_file
 from pretranslation_cst.paths import DEFAULT_VALUE_KIND_PATH
 
-from translation.assemble_game_ko import assemble, pick_passage_records
+from translation.assemble_game_ko import (
+    assemble,
+    korean_fragment,
+    pick_passage_records,
+    write_passage_list,
+)
 from translation.store import source_hash
 
 TWO = (
@@ -151,6 +156,24 @@ class AssembleTests(unittest.TestCase):
         source = parse_file(data, "sub/main.twee", DEFAULT_VALUE_KIND_PATH)
         names = [p.name for p in source.passages]
         self.assertEqual(names, ["One", "Two"])
+
+    def test_korean_fragment(self) -> None:
+        self.assertEqual(korean_fragment("안녕하세요. 반갑습니다."), "안녕하세요")
+        self.assertEqual(korean_fragment("<<if $x>>끝<</if>>"), "")
+        self.assertEqual(korean_fragment("no hangul here"), "")
+
+    def test_write_passage_list(self) -> None:
+        stats = {
+            "spliced_records": [
+                ("a.twee", "P1", "안녕하세요."),
+                ("a.twee", "P2", "<<if $x>><<endif>>"),
+            ]
+        }
+        out = self.root / "list.tsv"
+        write_passage_list(stats, out)
+        text = out.read_text(encoding="utf-8")
+        self.assertIn("P1\t안녕하세요", text)
+        self.assertIn("P2\t", text)
 
 
 if __name__ == "__main__":

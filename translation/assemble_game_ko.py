@@ -42,6 +42,16 @@ def macro_sequence(text: bytes) -> list[str]:
     return _SEQ_RE.findall(text.decode("utf-8", errors="replace"))
 
 
+_KO_FRAGMENT_RE = re.compile(r"[가-힣]{4,}")
+
+
+def korean_fragment(text: str) -> str:
+    """First Korean run (>=4 hangul chars) of a translated body, or empty —
+    the expectation text for the browser smoke passage-list."""
+    match = _KO_FRAGMENT_RE.search(text)
+    return match.group(0) if match else ""
+
+
 def pick_passage_records(
     store_path: str | Path,
 ) -> tuple[dict[tuple[str, str], dict], dict[str, int]]:
@@ -87,6 +97,7 @@ def _process_file(
         "parse_error": 0,
         "verify_failed": 0,
         "diagnostics": {},
+        "spliced_records": [],
     }
     src = game_root / rel
     dst = output_root / rel
@@ -104,6 +115,7 @@ def _process_file(
 
     edits: list[tuple[int, int, str]] = []
     spliced_names: list[str] = []
+    spliced_items: list[tuple[str, dict]] = []
     for name, record in items:
         passage = passages.get(name)
         if passage is None:
@@ -121,6 +133,7 @@ def _process_file(
             continue
         edits.append((start, end, record["translated_text"]))
         spliced_names.append(name)
+        spliced_items.append((name, record))
     if not edits:
         return stats
 
@@ -138,6 +151,9 @@ def _process_file(
     stats["files_touched"] += 1
     stats["spliced"] += len(edits)
     stats["spliced_bytes"] += sum(len(text.encode("utf-8")) for _, _, text in edits)
+    stats["spliced_records"] = [
+        (rel, name, record["translated_text"]) for name, record in spliced_items
+    ]
 
     if verify:
         problems = _verify_assembled(
@@ -242,6 +258,7 @@ def _empty_stats() -> dict:
         "parse_error": 0,
         "verify_failed": 0,
         "diagnostics": {},
+        "spliced_records": [],
         "copy_seconds": 0.0,
         "splice_seconds": 0.0,
         "verify_seconds": 0.0,
@@ -256,6 +273,7 @@ def _merge_stats(base: dict, add: dict) -> None:
         base[key] += add.get(key, 0)
     for code, count in add.get("diagnostics", {}).items():
         base["diagnostics"][code] = base["diagnostics"].get(code, 0) + count
+    base["spliced_records"].extend(add.get("spliced_records", []))
 
 
 def _worker(args: tuple) -> tuple[str, dict]:
@@ -335,6 +353,15 @@ def assemble(
     return stats
 
 
+def write_passage_list(stats: dict, path: str | Path) -> None:
+    """Write the smoke passage-list TSV (passage<TAB>expected Korean fragment)
+    from the records that were actually spliced."""
+    lines = []
+    for rel, name, translated in sorted(stats["spliced_records"]):
+        lines.append(f"{name}\t{korean_fragment(translated)}")
+    Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Assemble game_ko/ from game/ + reuse store")
     parser.add_argument("--store", type=str, default=str(DEFAULT_STORE))
@@ -342,6 +369,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=str, default=str(GAME_KO_ROOT))
     parser.add_argument("--no-verify", action="store_true")
     parser.add_argument("--workers", type=int, default=0, help="0 = auto (<=16)")
+    parser.add_argument(
+        "--emit-passage-list", type=str, default="",
+        help="write a smoke passage-list TSV of the spliced passages",
+    )
     args = parser.parse_args(argv)
 
     records, skipped = pick_passage_records(args.store)
@@ -356,7 +387,13 @@ def main(argv: list[str] | None = None) -> int:
         workers=args.workers or None,
     )
     for key, value in stats.items():
+        if key == "spliced_records":
+            continue
         print(f"  {key}: {value}")
+    if args.emit_passage_list:
+        write_passage_list(stats, args.emit_passage_list)
+        print(f"  passage-list: {args.emit_passage_list} "
+              f"({len(stats['spliced_records'])} entries)")
     return 0 if stats["verify_failed"] == 0 else 2
 
 
