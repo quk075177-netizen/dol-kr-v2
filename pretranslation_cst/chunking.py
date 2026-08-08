@@ -301,14 +301,14 @@ def _merge_small_units(units: list[TranslateUnit], min_chars: int) -> list[Trans
     return merged
 
 
-PLACEHOLDER_PREFIX = "__DOLKR_P"
+PLACEHOLDER_PREFIX = "<0"
 
 
 def _neighbour_context(unit: TranslateUnit) -> str:
     """Short placeholder-safe context slice of a neighbour unit.
 
     Truncates at a complete placeholder token boundary so the model never
-    sees a half token like ``__DOLKR_P00000`` in the context hint.
+    sees a half token like ``<00000`` in the context hint.
     """
     limit = 120
     text = unit.masked_text
@@ -317,7 +317,7 @@ def _neighbour_context(unit: TranslateUnit) -> str:
     cut = text.rfind(PLACEHOLDER_PREFIX, 0, limit)
     if cut >= 0:
         # include the full token that starts at or before the cut
-        end = text.find("__", cut + len(PLACEHOLDER_PREFIX))
+        end = text.find(">", cut + len(PLACEHOLDER_PREFIX))
         if end > 0 and end + 2 <= len(text):
             limit = end + 2
     return text[:limit]

@@ -79,7 +79,7 @@ def _make_segments(data: bytes, body: Span, blocked: list[Span], candidates: lis
     return result
 
 
-def mask_passage(data: bytes, passage: Passage, placeholder_prefix: str = "__DOLKR_P") -> MaskArtifact:
+def mask_passage(data: bytes, passage: Passage, placeholder_prefix: str = "<0") -> MaskArtifact:
     body = passage.body_span
     candidates = _candidate_map([
         (span, kind) for span, kind in passage.exposed_candidates if body.contains(span)
@@ -104,7 +104,7 @@ def mask_passage(data: bytes, passage: Passage, placeholder_prefix: str = "__DOL
             token = f"{prefix}{token_number:06d}__"
             while token in body_text or token in "".join(parts):
                 prefix = prefix + "_"
-                token = f"{prefix}{token_number:06d}__"
+            token = f"{prefix}{token_number:06d}>"
             original = data[blocked_span.start:blocked_span.end].decode("utf-8")
             placeholders.append(Placeholder(token, blocked_span, original))
             parts.append(token)

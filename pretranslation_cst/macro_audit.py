@@ -829,6 +829,20 @@ def audit_manifest(
                     "branch_of": ",".join(sorted(parent.name for parent in parents)),
                 }
                 continue
+            if key in allowlist and any(
+                item.get("kind") == "manifest_entry_without_source"
+                for item in allowlist[key] if isinstance(item, dict)
+            ):
+                report.trace[key] = {
+                    "source": "(engine-patch, allowlisted)",
+                    "evidence": allowlist[key][0].get("evidence", ""),
+                    "body_kind": manifest_body,
+                    "arg_mode": manifest_arg_mode,
+                    "tags": "",
+                    "alias_of": "",
+                    "branch_of": "",
+                }
+                continue
             report.issues.append(AuditIssue(
                 "error", "manifest_entry_without_source", key,
                 manifest_value=manifest_source, source_value="(none)",

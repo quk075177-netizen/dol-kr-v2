@@ -22,6 +22,8 @@ from .client import (
     translate_unit,
     verify_placeholders,
 )
+from .post import post_process
+from .store import find_passage_reuse, load_translations
 
 SAMPLE_FILES = [
     "game/overworld-town/loc-cafe/main.twee",        # 대화
@@ -45,10 +47,25 @@ BATCH_PASSAGES = [
 ]
 
 
-def run_passage(path: Path, passage, max_units: int, out_handle=None) -> tuple[int, int, int]:
+def run_passage(
+    path: Path,
+    passage,
+    max_units: int,
+    out_handle=None,
+    records: dict | None = None,
+) -> tuple[int, int, int]:
     """Translate one passage; returns (units_ok, units_with_problems, total_units)."""
     data = path.read_bytes()
     artifact = mask_passage(data, passage)
+    if records:
+        body_text = data[passage.body_span.start:passage.body_span.end].decode("utf-8")
+        reuse = find_passage_reuse(body_text, records)
+        if reuse is not None:
+            print(
+                f"passage: {passage.name} — REUSED ({reuse['source']}, "
+                f"{len(reuse['translated_text'])} chars, no API call)"
+            )
+            return 0, 0, 0
     units = chunk_passage(passage, artifact, data)
     print(f"passage: {passage.name} ({len(units)} units, {len(artifact.masked_text)} chars)")
     ok = 0
@@ -56,14 +73,16 @@ def run_passage(path: Path, passage, max_units: int, out_handle=None) -> tuple[i
     translated_units: list[TranslatedUnit] = []
     for index, unit in enumerate(units[:max_units]):
         tu = translate_unit(unit, index, len(units))
-        probs = verify_placeholders(unit, tu.translated_text)
+        raw = tu.translated_text
+        probs = verify_placeholders(unit, raw)
         if probs:
             problems += 1
             print(f"  unit {index + 1}: PLACEHOLDER PROBLEM {probs}")
             print(f"    original: {unit.masked_text[:200]!r}")
-            print(f"    translated: {tu.translated_text[:200]!r}")
+            print(f"    translated: {raw[:200]!r}")
         else:
             ok += 1
+        tu.translated_text = post_process(raw)
         translated_units.append(tu)
         if out_handle is not None:
             row = {
@@ -73,7 +92,8 @@ def run_passage(path: Path, passage, max_units: int, out_handle=None) -> tuple[i
                 "unit_count": unit.unit_count,
                 "char_count": unit.char_count,
                 "masked_text": unit.masked_text,
-                "translated_text": tu.translated_text,
+                "translated_text": raw,
+                "processed_text": tu.translated_text,
                 "ancestors": unit.ancestors,
                 "placeholder_ok": not probs,
             }
@@ -97,15 +117,31 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-units", type=int, default=6)
     parser.add_argument("--batch", action="store_true", help="run BATCH_PASSAGES")
     parser.add_argument("--out", type=str, default="", help="JSONL output path")
+    parser.add_argument(
+        "--store",
+        type=str,
+        default="",
+        help="reuse store JSONL path; hit passages skip the API entirely",
+    )
     args = parser.parse_args(argv)
 
     out_handle = None
     if args.out:
         out_handle = open(args.out, "w", encoding="utf-8")
 
+    records = load_translations(args.store) if args.store else None
+    reused = 0
+
     total_ok = 0
     total_problems = 0
     total_units = 0
+
+    def _run(path, passage, max_units):
+        nonlocal reused
+        ok, problems, n = run_passage(path, passage, max_units, out_handle, records)
+        if n == 0:
+            reused += 1
+        return ok, problems, n
 
     if args.batch:
         for file, passage_name in BATCH_PASSAGES:
@@ -116,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
                 if passage.is_opaque:
                     continue
                 if passage.name == passage_name:
-                    ok, problems, n = run_passage(path, passage, args.max_units, out_handle)
+                    ok, problems, n = _run(path, passage, args.max_units)
                     total_ok += ok
                     total_problems += problems
                     total_units += n
@@ -140,7 +176,7 @@ def main(argv: list[str] | None = None) -> int:
                 out_handle.close()
             return 1
         for path, passage in picked[:1]:
-            ok, problems, n = run_passage(path, passage, args.max_units, out_handle)
+            ok, problems, n = _run(path, passage, args.max_units)
             total_ok += ok
             total_problems += problems
             total_units += n
@@ -149,6 +185,8 @@ def main(argv: list[str] | None = None) -> int:
         out_handle.close()
         print(f"saved: {args.out}")
 
+    if records:
+        print(f"reused passages (no API call): {reused}")
     print(f"\nplaceholder-clean units: {total_ok}/{total_units}, with problems: {total_problems}")
     return 0 if total_problems == 0 else 2
 

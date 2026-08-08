@@ -1,43 +1,59 @@
 {
-  "schema_version": 1,
-  "version": "macro-grammar-audit-allowlist/v1",
-  "generated": "2026-08-07",
-  "entries": {
-    "if.else": [
-      {
-        "kind": "handler_none_args",
-        "macro": "if",
-        "branch": "else",
-        "reason": "SugarCube <<if>> handler rejects arguments on <<else>> clauses (\"<<else>> does not accept a conditional expression (perhaps you meant to use <<elseif>>)\").",
-        "evidence": "sugarcube-2/src/macro/macros/if.js:50 (handler, else clause sanity check)"
-      }
-    ],
-    "switch.default": [
-      {
-        "kind": "handler_none_args",
-        "macro": "switch",
-        "branch": "default",
-        "reason": "SugarCube <<switch>> handler rejects arguments on <<default>> clauses (\"<<default>> does not accept values\").",
-        "evidence": "sugarcube-2/src/macro/macros/switch.js:34 (handler, default clause sanity check)"
-      }
-    ],
-    "dialog.onclose": [
-      {
-        "kind": "handler_none_args",
-        "macro": "dialog",
-        "branch": "onclose",
-        "reason": "game <<dialog>> macro (popup.js) only reads payload contents for onopen/onclose branches; arguments are never consumed.",
-        "evidence": "game/03-JavaScript/macros/popup.js:24 (handler, this.payload.forEach over pl.contents)"
-      }
-    ],
-    "dialog.onopen": [
-      {
-        "kind": "handler_none_args",
-        "macro": "dialog",
-        "branch": "onopen",
-        "reason": "game <<dialog>> macro (popup.js) only reads payload contents for onopen/onclose branches; arguments are never consumed.",
-        "evidence": "game/03-JavaScript/macros/popup.js:24 (handler, this.payload.forEach over pl.contents)"
-      }
-    ]
-  }
+ "schema_version": 1,
+ "version": "macro-grammar-audit-allowlist/v1",
+ "generated": "2026-08-07",
+ "entries": {
+  "if.else": [
+   {
+    "kind": "handler_none_args",
+    "macro": "if",
+    "branch": "else",
+    "reason": "SugarCube <<if>> handler rejects arguments on <<else>> clauses (\"<<else>> does not accept a conditional expression (perhaps you meant to use <<elseif>>)\").",
+    "evidence": "sugarcube-2/src/macro/macros/if.js:50 (handler, else clause sanity check)"
+   }
+  ],
+  "switch.default": [
+   {
+    "kind": "handler_none_args",
+    "macro": "switch",
+    "branch": "default",
+    "reason": "SugarCube <<switch>> handler rejects arguments on <<default>> clauses (\"<<default>> does not accept values\").",
+    "evidence": "sugarcube-2/src/macro/macros/switch.js:34 (handler, default clause sanity check)"
+   }
+  ],
+  "dialog.onclose": [
+   {
+    "kind": "handler_none_args",
+    "macro": "dialog",
+    "branch": "onclose",
+    "reason": "game <<dialog>> macro (popup.js) only reads payload contents for onopen/onclose branches; arguments are never consumed.",
+    "evidence": "game/03-JavaScript/macros/popup.js:24 (handler, this.payload.forEach over pl.contents)"
+   }
+  ],
+  "dialog.onopen": [
+   {
+    "kind": "handler_none_args",
+    "macro": "dialog",
+    "branch": "onopen",
+    "reason": "game <<dialog>> macro (popup.js) only reads payload contents for onopen/onclose branches; arguments are never consumed.",
+    "evidence": "game/03-JavaScript/macros/popup.js:24 (handler, this.payload.forEach over pl.contents)"
+   }
+  ],
+  "exit": [
+   {
+    "kind": "manifest_entry_without_source",
+    "macro": "exit",
+    "reason": "engine-patch macro injected at build time (03-Patcher): Wikifier.stopWikify = 1 (stop current container; optional widget return value). Absent from game source and pinned SugarCube 2.38.0-alpha.10; definition verified in the compiled build (ref/Degrees of Lewdity_kr.html: Macro.add([\"exit\",\"exitAll\"],{skipArgs:!0,...})).",
+    "evidence": "ref/Degrees of Lewdity_kr.html (Macro.add([\"exit\",\"exitAll\"],...))"
+   }
+  ],
+  "exitall": [
+   {
+    "kind": "manifest_entry_without_source",
+    "macro": "exitall",
+    "reason": "engine-patch macro injected at build time (03-Patcher): Wikifier.stopWikify = 2 (stop all enclosing containers). Same definition block as exit.",
+    "evidence": "ref/Degrees of Lewdity_kr.html (Macro.add([\"exit\",\"exitAll\"],...))"
+   }
+  ]
+ }
 }

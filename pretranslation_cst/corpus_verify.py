@@ -44,7 +44,7 @@ from typing import Any
 
 from .masking import mask_passage, restore_mask
 from .model import Passage, SourceFile
-from .parser import WIDGET_NAME_RE, parse_file, split_twee
+from .parser import extract_widget_names, parse_file, split_twee
 from .paths import DEFAULT_VALUE_KIND_PATH
 
 MODULE_DIR = Path(__file__).parent
@@ -370,7 +370,7 @@ def collect_known_macro_names(root: Path) -> frozenset[str]:
     run once before the per-file pass."""
     names: set[str] = set()
     for path in root.rglob("*.twee"):
-        names.update(WIDGET_NAME_RE.findall(path.read_bytes().decode("utf-8", errors="replace")))
+        names.update(extract_widget_names(path.read_bytes().decode("utf-8", errors="replace")))
     for path in root.rglob("*.js"):
         text = path.read_bytes().decode("utf-8", errors="replace")
         names.update(re.findall(r'Macro\.add\(\s*["\']([^"\']+)["\']', text))
@@ -378,6 +378,12 @@ def collect_known_macro_names(root: Path) -> frozenset[str]:
         # statDisplay.create registers stat-change macros dynamically
         # (gstress = Stress +1, lstress = Stress -1, ...).
         names.update(re.findall(r'statDisplay\.create\(\s*["\']([^"\']+)["\']', text))
+    # exit/exitAll are engine-patch macros injected at build time (03-Patcher):
+    # <<exit>> stops the current container (Wikifier.stopWikify = 1, optional
+    # widget return value), <<exitAll>> stops all containers (= 2).  They are
+    # absent from both game source and the pinned SugarCube build, but present
+    # in the compiled game (verified against ref/*.html).
+    names.update(("exit", "exitAll"))
     return frozenset(names)
 
 

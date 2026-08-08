@@ -23,21 +23,36 @@ POST_TABLE: dict[str, tuple[str, str, str]] = {
     "이가": ("이", "가", "이"),
     "을를": ("을", "를", "을"),
     "와과": ("과", "와", "과"),
-    "으로로": ("으", "로", "로"),
+    "으로로": ("으로", "로", "로"),
     "이었였": ("이었", "였", "이었"),
-    "이네이구나": ("이네", "이구나", "이네"),
     "이다": ("이다", "다", "이다"),
     "아야": ("아", "야", "아"),
+    # 불변 조사 (받침과 무관)
+    "의": ("의", "의", "의"),
+    "에서": ("에서", "에서", "에서"),
+    "에게": ("에게", "에게", "에게"),
+    "도": ("도", "도", "도"),
 }
 
 # LLM이 생성하는 비정형 표기 → 표준 마커 이름
 ADHOC_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"은\(는\)"), "은는"),
     (re.compile(r"이\(가\)"), "이가"),
+    (re.compile(r"이/가"), "이가"),
     (re.compile(r"을\(를\)"), "을를"),
     (re.compile(r"과\(와\)"), "와과"),
     (re.compile(r"으로\(로\)"), "으로로"),
     (re.compile(r"이었\(였\)"), "이었였"),
+    (re.compile(r"이\(다\)"), "이다"),
+    (re.compile(r"아\(야\)"), "아야"),
+    # 순서 반전 (받침X 먼저 쓰는 경우)
+    (re.compile(r"를\(을\)"), "을를"),
+    (re.compile(r"가\(이\)"), "이가"),
+    (re.compile(r"는\(은\)"), "은는"),
+    (re.compile(r"와\(과\)"), "와과"),
+    (re.compile(r"로\(으\)로"), "으로로"),
+    (re.compile(r"로\(으로\)"), "으로로"),
+    (re.compile(r"의\(의\)"), "의"),
 ]
 
 # legacy KO HTML markers 【은는】 → 표준 마커 이름
@@ -56,6 +71,15 @@ LEGACY_MARKER_NAMES: dict[str, str] = {
 }
 LEGACY_MARKER_RE = re.compile(r"【([^】]+)】")
 
+# 마커 이름 안에 들어온 비정형 표기 → 표준 이름
+NAME_ALIASES: dict[str, str] = {
+    "이/가": "이가",
+    "이(가)": "이가",
+    "은(는)": "은는",
+    "을(를)": "을를",
+    "과(와)": "와과",
+    "으로(로)": "으로로",
+}
 RUNTIME_RE = re.compile(r"[\$_`<]")
 STANDARD_MARKER_RE = re.compile(r"\{\{post:([^}]+)\}\}")
 
@@ -80,6 +104,17 @@ def get_post_num(text: str) -> int | None:
 
 def normalize_markers(text: str) -> str:
     """Convert ad-hoc LLM markers and legacy KO markers to {{post:...}}."""
+    # Stash existing {{post:...}} markers so ad-hoc patterns never match
+    # inside them (e.g. {{post:이/가}} must not become {{post:{{post:이가}}).
+    saved: dict[str, str] = {}
+    STASH = "\u0000"
+
+    def stash(match: re.Match) -> str:
+        key = STASH + match.group(1) + STASH
+        saved[key] = match.group(0)
+        return key
+
+    text = STANDARD_MARKER_RE.sub(stash, text)
     for pattern, name in ADHOC_PATTERNS:
         text = pattern.sub("{{post:%s}}" % name, text)
 
@@ -87,7 +122,15 @@ def normalize_markers(text: str) -> str:
         name = LEGACY_MARKER_NAMES.get(match.group(1))
         return "{{post:%s}}" % name if name else match.group(0)
 
-    return LEGACY_MARKER_RE.sub(legacy_replace, text)
+    text = LEGACY_MARKER_RE.sub(legacy_replace, text)
+    for key, value in saved.items():
+        text = text.replace(key, value)
+
+    def alias_name(match: re.Match) -> str:
+        name = NAME_ALIASES.get(match.group(1), match.group(1))
+        return "{{post:%s}}" % name
+
+    return STANDARD_MARKER_RE.sub(alias_name, text)
 
 
 def _post_particle(name: str, post: int | None) -> str:
@@ -108,6 +151,9 @@ def resolve_static(text: str) -> str:
     """
     def replace(match: re.Match) -> str:
         name = match.group(1)
+        if name not in POST_TABLE:
+            # Unknown particle name — keep the marker for the runtime helper.
+            return match.group(0)
         before = text[: match.start()]
         if RUNTIME_RE.search(before) or not before:
             return match.group(0)  # keep for runtime
@@ -122,3 +168,9 @@ def resolve_static(text: str) -> str:
 def remaining_dynamic_markers(text: str) -> list[str]:
     """Standard markers that still need runtime resolution."""
     return list(dict.fromkeys(STANDARD_MARKER_RE.findall(text)))
+
+
+def post_process(text: str) -> str:
+    """Pipeline post-processing: normalize ad-hoc markers, then statically
+    resolve the ones whose preceding value is a fixed string."""
+    return resolve_static(normalize_markers(text))

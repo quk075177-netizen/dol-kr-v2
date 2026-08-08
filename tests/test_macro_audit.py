@@ -354,12 +354,14 @@ class AuditManifestTests(unittest.TestCase):
         report = audit_manifest(GRAMMAR, ROOT / "game", sc_specs, ALLOWLIST,
                                 game_specs_override=game_specs)
         self.assertTrue(report.ok, [issue.to_dict() for issue in report.errors])
-        self.assertEqual(len(report.trace), 80)
+        self.assertEqual(len(report.trace), 89)
         self.assertEqual(report.trace["silently"]["source"], "sugarcube_deprecated")
         self.assertEqual(report.trace["button"]["source"], "game_override")
         self.assertEqual(report.trace["radiovar"]["source"], "game_js")
         self.assertEqual(report.trace["case"]["branch_of"], "switch")
         self.assertEqual(report.trace["onclose"]["branch_of"], "dialog")
+        self.assertEqual(report.trace["exit"]["source"], "(engine-patch, allowlisted)")
+        self.assertEqual(report.trace["exitall"]["source"], "(engine-patch, allowlisted)")
 
     def test_audit_report_is_deterministic(self) -> None:
         from pretranslation_cst.macro_audit import extract_game_specs, load_sugarcube_snapshot

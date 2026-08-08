@@ -407,6 +407,42 @@
     "textarea": {
       "arg_mode": "parsed",
       "source": "sugarcube"
+    },
+    "exit": {
+      "arg_mode": "raw",
+      "source": "engine_patch"
+    },
+    "exitAll": {
+      "arg_mode": "raw",
+      "source": "engine_patch"
+    },
+    "back": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
+    },
+    "choice": {
+      "arg_mode": "parsed",
+      "source": "sugarcube_deprecated"
+    },
+    "copy": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
+    },
+    "goto": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
+    },
+    "redo": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
+    },
+    "remove": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
+    },
+    "return": {
+      "arg_mode": "parsed",
+      "source": "sugarcube"
     }
   }
 }

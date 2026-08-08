@@ -10,7 +10,7 @@ The pipeline is:
         -> translated unit (placeholders preserved verbatim)
         -> restore_mask on the joined translated text
 
-The placeholder tokens (``__DOLKR_P000000__``) are the only contract with the
+The placeholder tokens (``<000000>``) are the only contract with the
 model: they must survive translation byte-for-byte, since restore relies on
 them.  Everything else (prose, link labels, macro arguments) may be
 translated.
@@ -29,7 +29,7 @@ from vertexai.generative_models import Content, GenerativeModel, Part
 from pretranslation_cst.chunking import TranslateUnit
 from pretranslation_cst.model import MaskArtifact, Placeholder
 
-PLACEHOLDER_RE = re.compile(r"__DOLKR_P\d{6}__")
+PLACEHOLDER_RE = re.compile(r"<0\d{6}>")
 
 
 def _strip_placeholders(text: str) -> str:
@@ -60,12 +60,12 @@ def _get_model(
 
 SYSTEM_PROMPT = """You are translating a game's text (English) into natural Korean.
 
-The text contains placeholder tokens like __DOLKR_P000000__. These are NOT
+The text contains placeholder tokens like <000000>. These are NOT
 text to translate. They stand for game markup (macros, links, formatting)
 that must be reinserted verbatim. Rules:
 
-1. Keep every placeholder token EXACTLY as written: __DOLKR_P000000__ stays
-   __DOLKR_P000000__. Never add, remove, reorder, or modify a token.
+1. Keep every placeholder token EXACTLY as written: <000000> stays
+   <000000>. Never add, remove, reorder, or modify a token.
 2. Translate the visible prose around the tokens into natural Korean.
 3. Do not translate content that is marked as UI/button text into a long
    sentence; keep it short like a button label.
@@ -76,6 +76,15 @@ that must be reinserted verbatim. Rules:
    keep every placeholder in the same position and line.
 8. Never merge, drop, or reorder lines: the output must have the same line
    count and the same placeholder multiset as the input.
+9. For the postposition (조사) directly after a placeholder token, the final
+   consonant (받침) of the runtime value is unknown, so NEVER pick one:
+   write the pair marker instead, e.g. <000000>{{post:이가}} 말했다,
+   <000000>{{post:을를}} 먹었다, <000000>{{post:으로로}} 갔다,
+   <000000>{{post:은는}} 기다린다. The marker must be exactly one of
+   {{post:이가}}, {{post:을를}}, {{post:은는}}, {{post:와과}},
+   {{post:으로로}}, {{post:이었였}}.
+10. For fixed Korean text (no placeholder before it), choose the correct
+    particle directly and do not write markers.
 
 Structure hints (optional context):
 - ancestor: the SugarCube container this text lives in (if/elseif/switch...)

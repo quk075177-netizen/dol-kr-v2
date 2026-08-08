@@ -52,11 +52,47 @@ statDisplay.create("gstress", () => statDisplay.statChange("Stress", 1, "red"));
 
 ## 남은 조사 항목
 
-### S2. exit/exitAll 정의 위치
+### S2. exit/exitAll 정의 위치 — 해결 (2026-08-08)
 
-- [ ] `<<exit>>`가 전투 UI에서 어떤 동작인지 (전투 종료?)
-- [ ] 정의가 어디 있는지 (다른 JS 파일, 또는 위젯 정의 형태 변형)
-- [ ] 번역 관련성 (화면 텍스트 노출 여부)
+**결론: 엔진 패치 매크로.** 게임 소스(.twee/.js)와 pinned SugarCube
+2.38.0-alpha.10 어디에도 정의 없음. SugarCube 공식 문서(2.37.3)에도 없음.
+하지만 컴파일된 빌드(`ref/Degrees of Lewdity_kr.html`)에서 정의 확인:
+
+```js
+Macro.add(["exit","exitAll"],{skipArgs:!0, handler(){
+  // exit에 인자가 있으면 표현식 평가 → 위젯 반환값(_widgetReturn)으로 저장
+  Wikifier.stopWikify = "exit" === this.name ? 1 : 2;
+}})
+```
+
+- `<<exit>>` = 현재 컨테이너(위젯/switch) 조기 종료 (break/return). 인자는
+  위젯 반환값 표현식 (`<<exit _text_output>>`) — **번역 대상 아님**.
+- `<<exitAll>>` = 중첩 컨테이너 전체 종료.
+- 빌드 시 03-Patcher 계열 툴링으로 주입되는 것으로 보임 (게임 저장소에는
+  미포함). DoL은 위젯 패치(`dol-widget.js` — ref/vanila-kr-5.2.8에 잔존)와
+  함께 커스텀 엔진을 쓴다.
+
+**적용 (unknown_macro 238 → 6):**
+
+1. `exit`/`exitAll`을 macro-grammar.json에 `arg_mode: raw, source:
+   engine_patch`로 등록 — 인자는 런타임 표현식이므로 전부 보호.
+2. macro-audit-allowlist에 `manifest_entry_without_source` 예외 등록
+   (정의가 소스에 없어 감사 불가 — 컴파일 빌드가 근거).
+3. `collect_known_macro_names`에 상수로 추가.
+4. **WIDGET_NAME_RE 수정**: `<<widget lubePrice>>`처럼 인용부호 없는 위젯
+   정의를 매치하지 못해 lubePrice/condomsPrice(13건)가 unknown이었던 것도
+   해결 (quoted/unquoted 모두 지원).
+5. **SC leaf 매크로 7종 누락 보완**: back/choice/copy/goto/redo/remove/
+   return이 grammar에서 빠져 있었음 — pinned snapshot 기준 추가.
+
+**남은 6건 (모두 NON_STRUCTURAL, 파이프라인 무해):**
+
+| 매크로 | 위치 | 판정 |
+|---|---|---|
+| `actionsfencingtease` | base-combat/effects.twee | 게임 소스 오타 (정의 없음, 1회 사용) |
+| `OverTopShop` | loc-adultshop/shop.twee 외 | 정의 누락 (위젯 미등록) |
+| `her` | special-avery/avery steal.twee | ModLI 계열 미정의 |
+| `babyIntro`, `npc_him`, `npc_Hes` | ModLI/Poppy/*.twee | ModLI 모드 매크로 (npc_*는 `nnpc_*` 오타로 추정) |
 
 ### S3. dol-kr Post 계열 대조 (조사 시스템 참고)
 
@@ -77,7 +113,8 @@ dol-kr `game/base-system/translate/Post/` 구조를 참고:
 
 - [x] statDisplay.create 405개가 known으로 등록됨
 - [x] unknown_macro 24,704 → 238 (99.0% 감소)
-- [ ] exit/exitAll 정의 위치 확인
+- [x] exit/exitAll 정의 위치 확인 (엔진 패치, 컴파일 빌드에서 검증)
+- [x] unknown_macro 238 → 6 (exit/exitAll + SC 누락 7종 + 인용부호 없는 위젯)
 - [ ] dol-kr Post 계열 대조 결과 문서화
 
 ## 참고 자료

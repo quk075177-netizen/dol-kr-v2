@@ -901,13 +901,23 @@ def parse_passage(
     return passage
 
 
-WIDGET_NAME_RE = re.compile(r"<<widget\s+\"([^\"]+)\"")
+WIDGET_NAME_RE = re.compile(r"<<widget\s+(?:\"([^\"]+)\"|([^\s>]+))")
+
+
+def _widget_name(match: re.Match) -> str:
+    return next(group for group in match.groups() if group)
+
+
+def extract_widget_names(text: str) -> frozenset[str]:
+    """Widget definition names (quoted and unquoted ``<<widget name>>``)
+    so their call sites are not reported as unknown macros."""
+    return frozenset(_widget_name(match) for match in WIDGET_NAME_RE.finditer(text))
 
 
 def _collect_widget_names(source: TextSource) -> frozenset[str]:
     """Collect widget definition names so their call sites are not reported
     as unknown macros."""
-    return frozenset(WIDGET_NAME_RE.findall(source.text))
+    return extract_widget_names(source.text)
 
 
 def parse_file(

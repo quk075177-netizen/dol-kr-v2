@@ -119,7 +119,7 @@ passage_root
   "following_context": "You feel relieved.",
   "placeholder_count": 12,
   "char_count": 856,
-  "masked_text": "He smiles and says: __DOLKR_P000000__ Hello there __DOLKR_P000001__ ..."
+  "masked_text": "He smiles and says: <000000> Hello there <000001> ..."
 }
 ```
 
@@ -148,7 +148,10 @@ passage_root
 
 ### placeholder 경계 처리
 
-placeholder는 `__DOLKR_P000000__` 형태의 토큰이다. 분할 시:
+placeholder는 `<000000>` 형태의 토큰이다 (XML inline tag 스타일, 6자리
+zero-padding). `__DOLKR_P000000__`(17자)보다 토큰 수가 적고, LLM이
+HTML/XML 태그 보존에 강한 사전학습을 갖고 있어 드롭/변형 확률이 낮다.
+분할 시:
 
 - placeholder가 유닛 경계에 걸치면 안 된다: placeholder 토큰이
   유닛 A 끝과 유닛 B 시작에 걸쳐 있으면 restore가 깨진다.
@@ -247,7 +250,7 @@ restore(join(translate(unit))) == passage_body  # 번역 후 복원
 밀접하게 연결되어 있다. 예:
 
 ```text
-__DOLKR_P000000__ Next __DOLKR_P000001__
+<000000> Next <000001>
 ```
 
 `Next`는 `link_label` segment이고, 앞뒤 placeholder는 매크로 구문이다.

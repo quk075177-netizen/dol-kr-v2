@@ -6,30 +6,44 @@
 
 ```text
 CST 파서 (완료) → value-kind 분류 (완료, unclassified 0)
-  → 청킹 (완료, failures 0) → 파일럿 번역 (동작 확인)
-  → post 시스템 (초기 구현) → 번역 재사용 (설계만)
+  → 청킹 (완료, failures 0) → 파일럿 번역 (P1 확대 완료, 99.0%)
+  → post 시스템 (PO1 파이프라인 통합 완료) → 번역 재사용 (다음 단계)
 ```
 
 - 전체 corpus: 642 files / 16,135 passages, round-trip 0, tree invariants 0
 - diagnostics: unclassified 0, unknown_macro 238 (exit 계열 미해결)
 - 노출: link_label 39,157 / macro_arg 1,768 / plain_text 759,058
-- 파일럿: Gemini 2.5 Flash Lite + ADC, placeholder 보존 96%, restore 정상
+- 파일럿: Gemini 2.5 Flash Lite + ADC, placeholder 보존 99.0% (207/209, P1 확대),
+  restore 정상. `<000000>` XML 태그 형식 (96%→100%→99.0%)
+- post: `translation/post.py` 파이프라인 통합 — adhoc 잔존 0, 정적 치환 동작,
+  표 외 마커는 런타임 보존. 테스트 143개 통과
+- 3-match 재사용: `work/translations/ko-reuse.jsonl` 3,151건 등록 (Git 제외),
+  파일럿 `--store` passage-level 재사용 실측
+- unknown_macro: 238 → 6 (exit/exitAll 엔진 패치 + SC 누락 보완, baseline 갱신)
 - 테스트 132개 통과, corpus_verify exit 0 (baseline matched)
 
 ## 이관 전 확인 사항 (미해결)
 
 ### 기능/조사 (해결 필요)
 
-- [ ] **exit/exitAll 매크로 정의** — 218건 사용, 위젯·JS·statDisplay 어디에도
-  정의 없음. 전투 UI 집중. (`docs/g-l-macro-investigation.md` S2)
-- [ ] **translation-reuse-design 구현** — 원문 hash 기반 재사용 저장소.
-  R1~R4 미구현. (`docs/translation-reuse-design.md`)
-- [ ] **3-match 재사용** — post 구현 완료 후. 마커 없는 44%(3,169 passage)
-  우선. (`docs/translation-pipeline-roadmap.md` P3)
+- [ ] **3-match 재사용** — **완료 (2026-08-08)**: R1~R4 구현,
+  3,151건 등록 (`work/translations/ko-reuse.jsonl`), 파일럿 `--store`로
+  passage-level 재사용 실측. 마커 있는 56%는 post 정적 치환 후 등록 예정.
+  (`docs/translation-reuse-design.md`)
 - [ ] **post 런타임 helper** — `{{post:...}}` 동적 마커 치환 (게임 사이드).
-  설계만. (`docs/post-system-design.md` PO2)
-- [ ] **시맨틱 롤 판정** — 파일럿 결과로 "불필요" 잠정 결론. LLM이 조사
-  선택까지 처리. 사례 발견 시 재검토. (`docs/archive/semantic-role-roadmap.md`)
+  설계만. 표 외 마커(이/아) 처리를 위해 `trPostsList` 전체 테이블 필요.
+  (`docs/post-system-design.md` PO2)
+- [ ] **exit/exitAll 매크로** — **해결 (2026-08-08)**: 엔진 패치 매크로로
+  판명 (컴파일 빌드에서 `Macro.add(["exit","exitAll"])` 검증, `Wikifier.stopWikify`
+  1/2 제어). grammar + audit allowlist + collect_known_macro_names 등록,
+  WIDGET_NAME_RE 인용부호 없는 위젯 지원, SC leaf 매크로 7종 누락 보완.
+  unknown_macro 238 → 6 (잔여는 게임 오타 1 + ModLI 미정의 5건).
+  (`docs/g-l-macro-investigation.md` S2)
+- [ ] **placeholder 뒤 단일 추측 조사 대응** — P1 확대에서 combat 78건,
+  gwylan 110건 관찰. 프롬프트 강화 또는 검출-재시도. (`docs/archive/pilot-report.md`)
+- [ ] **NPC 인명 glossary** — Gwylan 5가지 표기 비일관. 후순위.
+- [ ] **시맨틱 롤 판정** — 파일럿 결과로 "불필요" 잠정 결론. 매크로 조각
+  조립 사례는 수동 보정 가능 수준 (P1 수집됨). 사례 확산 시 재검토.
 
 ### 유지보수 체크 (우선순위 낮음)
 

@@ -5,6 +5,7 @@ import unittest
 from translation.post import (
     get_post_num,
     normalize_markers,
+    post_process,
     remaining_dynamic_markers,
     resolve_static,
 )
@@ -51,6 +52,33 @@ class NormalizeTests(unittest.TestCase):
         out = normalize_markers(text)
         self.assertEqual(out, text)
 
+    def test_slash_form(self) -> None:
+        text = "로빈이/가 재채기를 했습니다."
+        out = normalize_markers(text)
+        self.assertIn("{{post:이가}}", out)
+
+    def test_ida_form(self) -> None:
+        text = "그건 사실이(다)."
+        out = normalize_markers(text)
+        self.assertIn("{{post:이다}}", out)
+
+    def test_invariant_particles(self) -> None:
+        self.assertEqual(resolve_static("사진{{post:의}} 가치"), "사진의 가치")
+        self.assertEqual(resolve_static("서울{{post:에서}} 왔다"), "서울에서 왔다")
+        self.assertEqual(resolve_static("빵{{post:도}} 주세요"), "빵도 주세요")
+
+    def test_marker_name_not_nested(self) -> None:
+        text = "로빈{{post:이/가}} 재채기를 했습니다."
+        out = normalize_markers(text)
+        self.assertIn("{{post:이가}}", out)
+        self.assertNotIn("{{post:{{post:", out)
+
+    def test_reversed_pairs(self) -> None:
+        self.assertIn("{{post:을를}}", normalize_markers("밥를(을) 먹었다"))
+        self.assertIn("{{post:이가}}", normalize_markers("로빈가(이) 웃었다"))
+        self.assertIn("{{post:으로로}}", normalize_markers("학교로(으)로 간다"))
+        self.assertIn("{{post:의}}", normalize_markers("사진의(의) 가치"))
+
 
 class ResolveStaticTests(unittest.TestCase):
     def test_static_hangul(self) -> None:
@@ -69,6 +97,16 @@ class ResolveStaticTests(unittest.TestCase):
         out = resolve_static(text)
         self.assertIn("서울로", out)
 
+    def test_static_euro_jongseong(self) -> None:
+        text = "밥{{post:으로로}} 먹었다."
+        out = resolve_static(text)
+        self.assertIn("밥으로", out)
+
+    def test_static_euro_no_jongseong(self) -> None:
+        text = "학교{{post:으로로}} 간다."
+        out = resolve_static(text)
+        self.assertIn("학교로", out)
+
     def test_dynamic_stays(self) -> None:
         text = "$worn.upper.name{{post:은는}} 드러내고"
         out = resolve_static(text)
@@ -84,6 +122,33 @@ class ResolveStaticTests(unittest.TestCase):
         text = "{{post:은는}} 시작"
         out = resolve_static(text)
         self.assertIn("{{post:은는}}", out)
+
+    def test_unknown_marker_kept(self) -> None:
+        text = "사진{{post:이라든지}} 가치"
+        out = resolve_static(text)
+        self.assertIn("{{post:이라든지}}", out)
+
+
+class PostProcessTests(unittest.TestCase):
+    def test_full_pipeline_static(self) -> None:
+        text = "오션 브리즈 카페은(는) 붐빈다. 빵을(를) 먹었다."
+        out = post_process(text)
+        self.assertIn("카페는", out)
+        self.assertIn("빵을", out)
+        self.assertNotIn("(", out)
+        self.assertNotIn("{{post:", out)
+
+    def test_full_pipeline_dynamic_stays(self) -> None:
+        text = "<000031>이(가) 말했다."
+        out = post_process(text)
+        self.assertIn("<000031>{{post:이가}}", out)
+        self.assertEqual(remaining_dynamic_markers(out), ["이가"])
+
+    def test_placeholder_untouched(self) -> None:
+        text = "<000031>이(가) <000032>을(를) 치려고."
+        out = post_process(text)
+        self.assertIn("<000031>", out)
+        self.assertIn("<000032>", out)
 
 
 if __name__ == "__main__":

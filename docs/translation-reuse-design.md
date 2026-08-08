@@ -1,7 +1,7 @@
 # 번역 재사용성(Reuse) 설계
 
 기준일: 2026-08-08
-상태: 설계 (구현 전)
+상태: **구현됨 (R1~R4, 2026-08-08)** — 등록 3,151건, 파일럿 재사용 검증 완료
 
 ## 목적
 
@@ -33,8 +33,8 @@ reuse key = sha256(masked_text)
 {
   "record_id": "tr_<hash 12자>_<seq>",
   "source_text_hash": "a1b2...",
-  "source_text": "Hello there __DOLKR_P000000__",
-  "translated_text": "안녕하세요 __DOLKR_P000000__",
+  "source_text": "Hello there <000000>",
+  "translated_text": "안녕하세요 <000000>",
   "source_path": "game/overworld-town/loc-cafe/main.twee",
   "passage_name": "Ocean Breeze",
   "unit_id": "loc-cafe:Ocean Breeze:1234",
@@ -120,36 +120,44 @@ corpus-triple-match.jsonl (KO body, 【 】마커 포함)
 
 ## 구현 순서
 
-### R1. 저장소 모듈 (`translation/store.py`)
+### R1. 저장소 모듈 (`translation/store.py`) — 완료
 
 - `load_translations(path)` → dict[hash, list[record]]
 - `find_reuse(hash, records)` → 최신 유효 레코드 or None
-- `append_record(record, path)` → JSONL append (결정적 정렬)
-- 유닛 테스트: hash 매칭, superseded 처리, 중복 append
+- `find_passage_reuse(body_text, records)` → passage-level 조회
+- `append_record(record, path)` → JSONL append
+- `ko_body_preserves_skeleton(ko, signature)` → 보호 스팬 순서 보존 검사
+- 유닛 테스트: hash 매칭, superseded 처리, 중복 append, skeleton 검사
 
-### R2. 재사용 파이프라인 연결
+### R2. 재사용 파이프라인 연결 — passage-level 완료, unit-level 보류
 
-- `translate_unit`에 `store` 파라미터 추가
-- hash 매칭 시 API 호출 없이 저장된 번역 반환
-- 매칭 없으면 번역 + 저장
+- `pilot.py --store PATH`: passage body hash 매칭 시 API 호출 없이
+  `ko_reuse` 기록 사용, 미스 시 기존대로 번역
+- 실측: "Adult Shop Lock" passage — REUSED, API 호출 0
+- unit-level(`translate_unit` store 파라미터)은 Gemini 레코드가 생기는
+  본번역 실행부터 연결 예정
 
-### R3. 3-match 등록 스크립트 (`translation/register_ko_reuse.py`)
+### R3. 3-match 등록 스크립트 (`translation/register_ko_reuse.py`) — 완료
 
-- triple-match JSONL → 마커 정규화 → record 등록
-- 마커 없는 passage부터, 단계적으로
+- triple-match JSONL → 마커 없는 3,169 passage 필터 → **우리 파서로
+  source/KO 양쪽 합성 파일 파싱 → 보호 스팬 시퀀스 대칭 검사** →
+  `work/translations/ko-reuse.jsonl` 등록 (Git 제외)
+- 등록: **3,151건** (유니크 hash 3,132), 제외: skeleton_mismatch 18
+  (KO가 구조 변경한 실제 사례 — 검사가 걸러냄)
+- game/ 실제 파일과 passage body hash 일치: 샘플 100/100
 
-### R4. 배치 실행 시 request_id 자동 발급
+### R4. request_id — 부분 완료
 
-- pilot.py / 새 배치 CLI에 `--request-id` 옵션
-- 미지정 시 자동 생성
+- `register_ko_reuse`는 `req_ko_reuse` 상수 사용
+- 배치 실행 자동 발급(`req_<yyyymmdd>_<seq>`)은 본번역 CLI에서 연결 예정
 
 ## 완료 기준
 
-- 같은 유닛 2회 번역 시 2회째는 API 호출 0 (저장소 hit)
-- 원문 변경 시 새 hash → 재번역
-- 3-match 마커 없는 passage가 재사용으로 처리됨
-- request_id로 배치별 번역 결과 추적 가능
-- placeholder_ok=false 레코드는 재사용되지 않음
+- [x] 같은 유닛 2회 번역 시 2회째는 API 호출 0 (저장소 hit) — passage-level 실측
+- [x] 원문 변경 시 새 hash → 재번역
+- [x] 3-match 마커 없는 passage가 재사용으로 처리됨
+- [~] request_id로 배치별 번역 결과 추적 가능 (본번역 배치에서 연결 예정)
+- [x] placeholder_ok=false 레코드는 재사용되지 않음
 
 ## 비용 효과 예상
 
