@@ -3,6 +3,36 @@
 정본: `work/translations/ko-reuse.jsonl` (JSONL — 레코드 1줄 = 1객체).
 어셈블러/러너/스모크가 읽는 유일한 소스.
 
+## 유닛 스토어 (`work/translations/ko-units.jsonl`)
+
+passage 스토어와 별개로, **청킹 유닛 단위로 1줄씩 스트리밍 기록**된다
+(러너 기본 활성, `--units-store`로 경로 변경). passage가 실패해도
+완료된 유닛은 그대로 남는다 (부분 진행 보존).
+
+```json
+{
+  "record_id": "un_dc31fff1ee96",
+  "source_text_hash": "dc31fff1ee96...",   // 복원된 원문 유닛 hash — unit-level 재사용 키 (R2)
+  "source_text": "<<set $outside to 0>>...",  // 원문 유닛 (placeholder 복원됨)
+  "translated_text": "...",
+  "source_path": "...",
+  "passage_name": "School Detention",
+  "unit_index": 1,
+  "unit_count": 53,
+  "request_id": "req_...",
+  "model": "gemini-2.5-flash-lite",
+  "escalated": false,
+  "created_at": "...",
+  "placeholder_ok": true,
+  "level": "unit",
+  "source": "gemini"
+}
+```
+
+- `source_text_hash` = 복원된 원문 유닛의 sha256 — 같은 문장은 passage가
+  달라도 같은 hash (R2 unit-level 재사용의 키)
+- 보기: `store_view --store work/translations/ko-units.jsonl --passage <p>`
+
 ## 레코드 유형
 
 | `source` | 생성 주체 | 추가 필드 |

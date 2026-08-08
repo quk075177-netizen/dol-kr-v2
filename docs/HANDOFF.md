@@ -31,6 +31,13 @@ CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿
 - 테스트: **210개 통과**, corpus_verify baseline matched
 - 스모크 한국어 커버리지: **7,013/16,133 = 43.5%** (마커 등록 전 18.8%)
 
+## 유닛 스토어 (추적/재사용, Git 제외)
+
+`work/translations/ko-units.jsonl` — 청킹 유닛 단위 1줄씩 스트리밍 기록
+(러너 기본, `--units-store`). passage 실패 시에도 완료 유닛 보존.
+`source_text_hash` = 복원 원문 유닛 hash — R2 unit-level 재사용 키.
+스키마: `docs/store-schema.md` 유닛 스토어 섹션.
+
 ## 스토어 (번역 레코드, Git 제외)
 
 `work/translations/ko-reuse.jsonl` — **7,140 레코드** (ko_reuse 7,137
@@ -185,6 +192,7 @@ uv run python -m translation.register_ko_reuse        # 3-match KO 재등록 (�
 uv run python -m translation.translate_passages --file <f> --passage-name <p> [--model <m>]
 uv run python -m translation.store_view --passage <p>   # 레코드 보기 (--last/--hash/--journal)
 uv run python -m translation.journal_rerun --journal tmp/journals/req_xxx.jsonl --out rerun.jsonl  # 재던지기 추출
+uv run python -m translation.store_view --store work/translations/ko-units.jsonl --passage <p>  # 유닛 스토어 보기
 uv run python -m translation.pilot --batch --max-units 5        # 파일럿
 uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감사
 ```

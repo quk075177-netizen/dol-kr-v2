@@ -578,6 +578,66 @@ def _resolve_unit(
     return processed, None, l2_retries_used, escalated, fail_events
 
 
+def _restore_unit_text(unit) -> str:
+    """Restore a unit's masked text (or its translation) to original bytes —
+    the per-unit source/translated text for the unit store."""
+    text = unit.masked_text
+    for placeholder in unit.placeholders:
+        occurrences = text.count(placeholder.placeholder)
+        if occurrences != 1:
+            continue  # should not happen for source text
+        text = text.replace(placeholder.placeholder, placeholder.original_text, 1)
+    return text
+
+
+def _restore_translated_text(unit, translated: str) -> str:
+    """Restore a unit's translated text the same way (tokens → originals)."""
+    for placeholder in unit.placeholders:
+        occurrences = translated.count(placeholder.placeholder)
+        if occurrences != 1:
+            continue
+        translated = translated.replace(placeholder.placeholder, placeholder.original_text, 1)
+    return translated
+
+
+def _append_unit_record(
+    units_store: Path | None,
+    request_id: str,
+    source_path: str,
+    passage_name: str,
+    unit,
+    index: int,
+    total: int,
+    source_text: str,
+    translated_text: str,
+    model: str,
+    escalated: bool,
+) -> None:
+    """Stream one record per chunk unit — the unit-level tracking/reuse
+    store.  ``source_text`` is the unit's original text (tokens restored),
+    ``translated_text`` the final translation.  Appended+flushed per unit."""
+    if units_store is None:
+        return
+    record = {
+        "record_id": f"un_{source_hash(source_text)[:12]}",
+        "source_text_hash": source_hash(source_text),
+        "source_text": source_text,
+        "translated_text": translated_text,
+        "source_path": source_path,
+        "passage_name": passage_name,
+        "unit_index": index + 1,
+        "unit_count": total,
+        "request_id": request_id,
+        "model": model,
+        "escalated": escalated,
+        "created_at": datetime.now(ZoneInfo("Asia/Seoul")).isoformat(timespec="seconds"),
+        "placeholder_ok": True,
+        "level": "unit",
+        "source": "gemini",
+    }
+    append_record(record, units_store)
+
+
 def translate_passage(
     path: Path,
     passage,
@@ -591,6 +651,7 @@ def translate_passage(
     escalation_model: str | None = DEFAULT_ESCALATION_MODEL,
     batch_size: int = 1,
     journal: Path | None = None,
+    units_store: Path | None = None,
 ) -> tuple[dict | None, str]:
     """Translate one passage fully.  Returns (record, reason): record is
     None when the passage was skipped (reason="skipped") or failed
@@ -642,7 +703,14 @@ def translate_passage(
                               event["reason"], event["model"], event["recovered_by"])
             if reason is not None:
                 return None, reason
-            translated_units.append(TranslatedUnit(unit, text if text is not None else ""))
+            final_text = text if text is not None else ""
+            _append_unit_record(
+                units_store, request_id, source_path, passage.name,
+                unit, index, len(units), _restore_unit_text(unit),
+                _restore_translated_text(unit, final_text),
+                base_model, esc,
+            )
+            translated_units.append(TranslatedUnit(unit, final_text))
     else:
         for start in range(0, len(units), batch_size):
             batch = units[start:start + batch_size]
@@ -673,7 +741,14 @@ def translate_passage(
                                   event["reason"], event["model"], event["recovered_by"])
                 if reason is not None:
                     return None, reason
-                translated_units.append(TranslatedUnit(unit, resolved if resolved is not None else ""))
+                final_text = resolved if resolved is not None else ""
+                _append_unit_record(
+                    units_store, request_id, source_path, passage.name,
+                    unit, index, len(units), _restore_unit_text(unit),
+                    _restore_translated_text(unit, final_text),
+                    base_model, esc,
+                )
+                translated_units.append(TranslatedUnit(unit, final_text))
 
     joined = "".join(tu.translated_text for tu in translated_units)
     joined_original = joined
@@ -888,6 +963,11 @@ def main(argv: list[str] | None = None) -> int:
              "(flushed per write — survives crashes; default: "
              "tmp/journals/<request_id>.jsonl)",
     )
+    parser.add_argument(
+        "--units-store", type=str, default="",
+        help="unit-level record store (one line per chunk unit; default: "
+             "work/translations/ko-units.jsonl)",
+    )
     args = parser.parse_args(argv)
 
     if not args.passages_file and not (args.file and args.passage_name):
@@ -904,6 +984,7 @@ def main(argv: list[str] | None = None) -> int:
         # always stream: per-unit progress survives crashes and is visible
         # in the project tmp/ folder (git-excluded)
         journal = Path("tmp/journals") / f"{request_id}.jsonl"
+    units_store = Path(args.units_store) if args.units_store else Path("work/translations/ko-units.jsonl")
 
     targets: list[tuple[Path, str]] = []
     if args.passages_file:
@@ -931,6 +1012,7 @@ def main(argv: list[str] | None = None) -> int:
                 escalation_model=args.escalation_model,
                 batch_size=args.batch_size,
                 journal=journal,
+                units_store=units_store,
             )
         except Exception as exc:
             # an unexpected failure (network/quota/... ) must not abort the

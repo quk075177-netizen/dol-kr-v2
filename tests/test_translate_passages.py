@@ -606,6 +606,37 @@ class TranslatePassagesTests(unittest.TestCase):
         self.assertIsNone(record)
         self.assertEqual(reason, "skeleton_mismatch")
 
+    def test_translate_passage_writes_unit_store(self) -> None:
+        # unit-level store: one line per chunk unit, source restored to
+        # original bytes, translation stored alongside
+        from translation.client import TranslatedUnit
+        import tempfile
+
+        def fake_translate(unit, index=0, total=1, hint=None, model=None):
+            return TranslatedUnit(unit=unit, translated_text=unit.masked_text)
+
+        units_path = Path(tempfile.mktemp(suffix=".jsonl"))
+        try:
+            with mock.patch("translation.translate_passages.translate_unit", fake_translate):
+                record, reason = translate_passage(
+                    self.file, self._passage_with_vars(), request_id="req_test",
+                    store_records={}, units_store=units_path,
+                )
+            self.assertEqual(reason, "ok")
+            lines = [json.loads(l) for l in units_path.read_text(encoding="utf-8").splitlines()]
+            self.assertGreaterEqual(len(lines), 1)
+            unit_rec = lines[0]
+            self.assertEqual(unit_rec["level"], "unit")
+            self.assertEqual(unit_rec["source"], "gemini")
+            self.assertEqual(unit_rec["unit_index"], 1)
+            # source text is the ORIGINAL unit text (no placeholder tokens)
+            self.assertNotIn("<0", unit_rec["source_text"])
+            self.assertIn("$x", unit_rec["source_text"])
+            self.assertEqual(unit_rec["translated_text"], unit_rec["source_text"])
+            self.assertEqual(unit_rec["record_id"], f"un_{unit_rec['source_text_hash'][:12]}")
+        finally:
+            units_path.unlink(missing_ok=True)
+
     def test_translate_passage_journal_streams_passage_and_fails(self) -> None:
         from translation.client import TranslatedUnit
         import tempfile
