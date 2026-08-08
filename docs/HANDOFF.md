@@ -5,110 +5,126 @@
 ## 현재 상태 요약
 
 ```text
-CST 파서 (완료) → value-kind 분류 (완료, unclassified 0)
-  → 청킹 (완료, failures 0) → 파일럿 번역 (P1 확대 완료, 99.0%)
-  → post 시스템 (PO1 파이프라인 통합 완료) → 번역 재사용 (다음 단계)
+CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿 확대 (완료, 99.0%)
+  → post PO1 (통합 완료) → 3-match 재사용 (3,151건 등록)
+  → 빌드/스모크 체인 (verify.py, 전 구간 통과)
+  → Gemini 풀패시지 러너 (구현 + 리뷰 반영 완료, 실측 1 passage)
 ```
 
 - 전체 corpus: 642 files / 16,135 passages, round-trip 0, tree invariants 0
-- diagnostics: unclassified 0, unknown_macro 238 (exit 계열 미해결)
+- diagnostics: unclassified 0, unknown_macro 6 (게임 오타 1 + ModLI 미정의 5)
 - 노출: link_label 39,157 / macro_arg 1,768 / plain_text 759,058
-- 파일럿: Gemini 2.5 Flash Lite + ADC, placeholder 보존 99.0% (207/209, P1 확대),
-  restore 정상. `<000000>` XML 태그 형식 (96%→100%→99.0%)
-- post: `translation/post.py` 파이프라인 통합 — adhoc 잔존 0, 정적 치환 동작,
-  표 외 마커는 런타임 보존. 테스트 143개 통과
-- 3-match 재사용: `work/translations/ko-reuse.jsonl` 3,151건 등록 (Git 제외),
-  파일럿 `--store` passage-level 재사용 실측
-- unknown_macro: 238 → 6 (exit/exitAll 엔진 패치 + SC 누락 보완, baseline 갱신)
+- placeholder 형식: `<000000>` XML 태그 (restore = 순서 치환, 토큰 1회 필수)
+- 테스트: **167개 통과**, corpus_verify baseline matched
 
-## 빌드/스모크 체인 (2026-08-08 구성)
+## 스토어 (번역 레코드, Git 제외)
+
+`work/translations/ko-reuse.jsonl` — 3,152 레코드 (ko_reuse 3,151 + gemini 1):
+
+```json
+{
+  "record_id": "tr_<hash12>_ko | tr_<hash12>_gemini",
+  "source_text_hash": "sha256(source_text)",
+  "source_text": "<원본 passage body, 경계 개행 포함>",
+  "translated_text": "<KO body — ko_reuse는 match_boundaries()로 개행 정규화됨>",
+  "source_path": "game-root 상대경로 (overworld-town/..., game/ 접두어 없음)",
+  "passage_name": "...", "unit_id": "...", "request_id": "req_<yyyymmdd>_<seq>",
+  "model": "ko_reuse | gemini-2.5-flash-lite", "temperature": null | 0.7,
+  "created_at": "KST ISO", "placeholder_ok": true,
+  "post_status": "static_done | runtime_remaining | none",
+  "source": "ko_reuse | gemini", "level": "passage",
+  "repaired": false          // gemini 전용: 스팬 분리자 갭 복구 여부
+}
+```
+
+- 스키마 정본: `docs/implementation-feedback.md` §3.1, `docs/translation-reuse-design.md`
+- 어셈블러/러너/스모크는 이 파일만 읽음. **다른 소스(JS 등) 레코드는
+  같은 스키마로 추가하면 자동 반영.**
+
+## 빌드/스모크 체인
 
 ```text
 work/translations/ko-reuse.jsonl → translation/assemble_game_ko.py → game_ko/
   → build/dol_build.py compile → build/dol-plus-ko.html
   → browser_smoke.py run --passage-list → build/browser-smoke/report.json
 ```
-- **단일 커맨드**: `python3 build/verify.py` (어셈블→컴파일→스모크→레포트.
-  옵션: --no-assemble/--no-compile/--expect-options-text/--min-korean-ratio)
-- passage-list는 어셈블러 `--emit-passage-list`가 자동 생성
+
+- **단일 커맨드**: `python3 build/verify.py` (어셈블→컴파일→스모크→레포트,
+  ~2분. 옵션: --no-assemble/--no-compile/--expect-options-text/
+  --min-korean-ratio)
+- 어셈블러: 트리 복사 + body span 스플라이스, 드리프트 검증,
+  [widget]/[script]/[stylesheet] 제외, 경계 개행 보존, 매크로 시퀀스 +
+  보호 스팬 시그니처 재검증, ProcessPoolExecutor 병렬, staging 원자 스왑
+- passage-list: 어셈블러 `--emit-passage-list` 자동 생성
   (`build/browser-smoke/passage-list.tsv`)
-- 스모크가 한국어 포함 비율 보고 (실측 18.8% — 번역 커버리지 반영)
+- 스모크: UI 7종 + passage-list 전수(textMatch) + 한국어 포함 비율
+  (실측 3,033/16,133 = 18.8% — 번역 커버리지 반영) + pageerror/console 검사
+- 실측: 3,152 passage 어셈블(1:50) → 컴파일(~2s) → 스모크(~6s) 통과
+  (pageErrors 0, text mismatch 0)
+- 주의: 위젯 passage는 컴파일 후 Story에 없음 (passage-list에서
+  exists=False는 통과 허용)
 
-- 어셈블러: game/ 트리 복사 + passage body 스플라이스 (span 기반, 드리프트 검증,
-  [widget]/[script]/[stylesheet] passage 제외, 경계 newline 보존, 매크로 구조
-  + 보호 스팬 시그니처 재검증). 파일 병렬(ProcessPoolExecutor) + 원자 스왑.
-  소요: 3,151건 ≈ 1분 50초 (verify 포함, 2026-08-08 리뷰 반영 후)
-- 컴파일: tweego 캐시 후 ~2초 (첫 부트스트랩 다운로드 ~14초)
-- 스모크: ~6초, UI 7종 + passage-list 전수 검증 (textMatch)
-- 실측: ko-reuse 3,151 passage 전체 어셈블 → 빌드 → 스모크 통과
-  (pageErrors 0, text mismatch 0, 위젯 passage는 컴파일에서 제외됨)
-- 주의: ko-reuse KO body는 등록 시 `match_boundaries()`로 source와 같은
-  개행 구조로 정규화되어 저장됨 (어셈블러 보정은 안전망으로 잔존)
-- git: build/dol_build.py, build-tools.lock.json, browser_smoke.*, 어셈블러는
-  커밋 대상. 산출물(build/*.html, game_ko/, .cache/)은 gitignore
-- 리뷰 반영 이력: docs/implementation-feedback.md §8 (버그 2건 + H1~H7)
+## Gemini 풀패시지 러너
 
-## Gemini 풀패시지 러너 (2순위, 구현 완료)
-
-```text
-translation/translate_passages.py: 유닛 번역 → post → 스팬 분리자 복구
-  → restore → 시그니처 검증 → level="passage" 레코드 (source=gemini)
-사용: uv run python -m translation.translate_passages \
-  --file game/... --passage-name "..." [--force] [--request-id ...]
+```bash
+uv run python -m translation.translate_passages \
+  --file game/overworld-town/loc-cafe/main.twee --passage-name "Ocean Breeze"
+# 배치: --passages-file targets.jsonl  ({"source_path","passage_name"} 행)
+# 옵션: --force 재번역, --request-id, --debug-dir 실패 덤프, --game-root
 ```
 
-- request_id 자동 발급 (req_<yyyymmdd>_<seq>), 이미 저장된 passage skip
-- 실측: Ocean Breeze(22유닛) → 어셈블/컴파일/스모크 전 구간 통과
-- 버그 3건 수정: 스팬 분리자 드롭 복구, `_consume_variable` 한글 흡수
-  (ASCII 전용, corpus 영향 0), source_path game/ 접두어 정규화
-- 남은 것: 단계적 확장(대표 passage → 마커 있는 56% → 전체), R2 unit-level
-  재사용 연동 (docs/followup-work.md 2순위)
-- 테스트 132개 통과, corpus_verify exit 0 (baseline matched)
+- 흐름: 유닛 번역(placeholder 재시도 3회 내장) → post_process →
+  `repair_separator_newlines`(스팬 분리자 갭 결정적 복구) →
+  `verify_malformed_post_markers` → restore → 시그니처 검증 → 레코드 저장
+- 실패 사유: skipped / placeholder_drop / malformed_post_marker /
+  restore_failed / skeleton_mismatch / exception:<...>
+- `--debug-dir`: 실패 시 유닛별 masked/translated 덤프 (재번역 없이 분석)
+- API 재시도 3회+backoff (client._generate), 배치 per-passage 예외 격리
+- 실측: Ocean Breeze(22유닛) → 스토어 → 어셈블 → 컴파일 → 스모크 전 구간
+  통과, repaired=True (갭 복구 발생)
+- request_id 자동: `req_<yyyymmdd>_<seq>` (KST, 스토어 최대 seq + 1)
 
 ## 이관 전 확인 사항 (미해결)
 
-### 기능/조사 (해결 필요)
+### 기능 (다음 단계, docs/followup-work.md)
 
-- [ ] **3-match 재사용** — **완료 (2026-08-08)**: R1~R4 구현,
-  3,151건 등록 (`work/translations/ko-reuse.jsonl`), 파일럿 `--store`로
-  passage-level 재사용 실측. 마커 있는 56%는 post 정적 치환 후 등록 예정.
+- [ ] **유형별 배치 번역** — `--passages-file`로 대표 passage 묶음.
+  전투(561유닛)·설정(331유닛) 대형 passage 성능/실패율 관측 (L2 도입 판단
+  데이터). 마커 있는 56% 등록 → 전체 corpus 순으로 확장.
+- [ ] **post 런타임 helper (PO2)** — `{{post:...}}` 동적 마커 치환 (게임
+  사이드). 표 외 마커(`이`/`아`/`의`/`한` 등) 처리를 위해 `trPostsList`
+  전체 26개 조사 테이블 필요. (`docs/post-system-design.md` PO2)
+- [ ] **마커 있는 3-match 4,037 passage 등록** — `【 】`→`{{post:...}}`
+  정규화 후 정적 치환분 resolve, 동적분은 런타임 대상으로 등록
+- [ ] **단일 추측 조사 검출** — placeholder 뒤 단일 조사(combat 78건/
+  gwylan 110건 관찰). 검출 → 리뷰 플래그 (자동 재번역 아님).
+- [ ] **R2 unit-level 재사용 연동** — 번역 배치 내 동일 문장 hash hit
   (`docs/translation-reuse-design.md`)
-- [ ] **post 런타임 helper** — `{{post:...}}` 동적 마커 치환 (게임 사이드).
-  설계만. 표 외 마커(이/아) 처리를 위해 `trPostsList` 전체 테이블 필요.
-  (`docs/post-system-design.md` PO2)
-- [ ] **exit/exitAll 매크로** — **해결 (2026-08-08)**: 엔진 패치 매크로로
-  판명 (컴파일 빌드에서 `Macro.add(["exit","exitAll"])` 검증, `Wikifier.stopWikify`
-  1/2 제어). grammar + audit allowlist + collect_known_macro_names 등록,
-  WIDGET_NAME_RE 인용부호 없는 위젯 지원, SC leaf 매크로 7종 누락 보완.
-  unknown_macro 238 → 6 (잔여는 게임 오타 1 + ModLI 미정의 5건).
-  (`docs/g-l-macro-investigation.md` S2)
-- [ ] **placeholder 뒤 단일 추측 조사 대응** — P1 확대에서 combat 78건,
-  gwylan 110건 관찰. 프롬프트 강화 또는 검출-재시도. (`docs/archive/pilot-report.md`)
-- [ ] **NPC 인명 glossary** — Gwylan 5가지 표기 비일관. 후순위.
-- [ ] **시맨틱 롤 판정** — 파일럿 결과로 "불필요" 잠정 결론. 매크로 조각
-  조립 사례는 수동 보정 가능 수준 (P1 수집됨). 사례 확산 시 재검토.
+
+### 데이터/품질 (후순위)
+
+- [ ] NPC 인명 glossary (Gwylan 5표기 비일관), props/색상/식물 glossary
+- [ ] JS 문자열 번역 (기존 KO JS 9,373건 대조 — 빌드 체인에 JS 치환 단계)
+- [ ] H5 스모크 셀렉터 분리, Q3 체크 카테고리(번역/회귀) 분리, Q5 store
+  level 통일 (docs/implementation-feedback.md §8 미반영분)
+- [ ] `_get_model` 캐시 개선 (다중 모델 혼용 시) (docs/translate-runner-feedback.md §9)
 
 ### 유지보수 체크 (우선순위 낮음)
 
-- [ ] **F2/F3 회귀 fixture** — passage JSON 메타데이터, square 중첩.
-  DoL 원문 0건이지만 회귀 방지용 fixture 미추가. (`docs/archive/system-review-triage.md`)
-- [ ] **placeholder prefix 인플레이션** — `_merge` 충돌 시 일부 토큰만 길어짐.
-  발동 확률 낮음. (`docs/archive/system-review-triage.md` F10)
-- [ ] **`_merge_small_units` ancestors** — 병합 시 한쪽 경로만 남음. 낮음. (F9)
-- [ ] **TextSource char 단위 encode** — 최적화 여지. 프로파일링 후 결정. (F11)
-
-### 데이터 (후순위)
-
-- [ ] props/색상/식물 glossary — clothing 외 분야 미구축
-- [ ] glossary의 `display_ko` 변경 시 post 재계산 규칙 문서화
+- [ ] F2/F3 회귀 fixture, F10 placeholder prefix 인플레이션, F9
+  `_merge_small_units` ancestors, F11 TextSource 최적화
+  (`docs/archive/system-review-triage.md`)
 
 ## 사용 방법 (빠른 참조)
 
 ```bash
 uv sync --extra dev                                   # 환경
-uv run python -m unittest discover -s tests           # 테스트 (132개)
+uv run python -m unittest discover -s tests           # 테스트 (167개)
 uv run python -m pretranslation_cst.corpus_verify --root game   # corpus 검증
-uv run python -m translation.pilot --batch --max-units 5        # 파일럿 배치
+python3 build/verify.py                               # 어셈블→컴파일→스모크 (~2분)
+uv run python -m translation.register_ko_reuse        # 3-match KO 재등록 (43s)
+uv run python -m translation.translate_passages --file <f> --passage-name <p>
+uv run python -m translation.pilot --batch --max-units 5        # 파일럿
 uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감사
 ```
 
@@ -120,15 +136,22 @@ uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감�
 ## 문서 구조
 
 - **정본** (`docs/`): cst-scope, sugarcube-ground-truth, value-kind-policy,
-  validation
-- **현행** (`docs/`): chunking-strategy, post-system-design,
-  translation-reuse-design, translation-pipeline-roadmap,
-  g-l-macro-investigation, triple-match-and-post
-- **아카이브** (`docs/archive/`): 완료 기록 (로드맵·워커 지시·감사·트리아지)
+  validation, translation-reuse-design (구현됨)
+- **현행** (`docs/`): post-system-design, translation-pipeline-roadmap,
+  g-l-macro-investigation, chunking-strategy
+- **피드백/제안** (`docs/`): implementation-feedback.md (빌드 체인),
+  translate-runner-feedback.md (러너), followup-work.md (후속 제안)
+- **아카이브** (`docs/archive/`): 완료 기록 (파일럿 보고, 트리아지 등)
 - **조사 자료** (`research/`): 근거·데이터셋 (Git 제외)
 
 ## 주의
 
-- `research/`, `game/`, `ref/`, `corpus-verify-report.json`은 Git 제외.
-- `config/glossary.yml` — clothing glossary (1,459 approved, post 계산됨).
-- 워커 에이전트 지시문 양식은 `docs/archive/parser-followup-agent-tasks.md` 참고.
+- Git 제외: `research/`, `game/`, `ref/`, `game_ko/`, `build/*.html`,
+  `build/*.build.json`, `build/browser-smoke/`, `.cache/`, `work/`
+  (레코드 스토어 포함 — 재등록/재번역으로 재생성 가능)
+- 커밋 대상 도구: `build/dol_build.py`, `build/verify.py`,
+  `build-tools.lock.json`, `browser_smoke.*`, `translation/*.py`
+- `config/glossary.yml` — clothing glossary (1,459 approved, post 계산됨)
+- 리뷰 반영 이력: implementation-feedback.md §8 (빌드 체인),
+  translate-runner-feedback.md §9 (러너)
+- 워커 에이전트 지시문 양식은 `docs/archive/parser-followup-agent-tasks.md` 참고
