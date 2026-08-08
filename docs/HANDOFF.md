@@ -22,13 +22,17 @@ CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿
       Farm Work 100유닛 성공 실측)
   → 2티어 실패 정책 (L3 = 경계 검사로 유닛 승격, 전체 재시도 없음)
       + 스트리밍 저널 (--journal)
+  → 버그 2건 수정 (repair 순서 무관화, 마커 오타 유닛 승격) — Farm
+      Work 4·5차 연속 성공으로 안정성 확인
+  → fail 로그 재설계 (재던지기 큐 + journal_rerun) + 유닛 스토어
+      (청킹 유닛 단위 1줄씩 스트리밍) + store_view 뷰어
 ```
 
 - 전체 corpus: 642 files / 16,135 passages, round-trip 0, tree invariants 0
 - diagnostics: unclassified 0, unknown_macro 6 (게임 오타 1 + ModLI 미정의 5)
 - 노출: link_label 39,157 / macro_arg 1,768 / plain_text 759,058
 - placeholder 형식: `<000000>` XML 태그 (restore = 순서 치환, 토큰 1회 필수)
-- 테스트: **210개 통과**, corpus_verify baseline matched
+- 테스트: **213개 통과**, corpus_verify baseline matched
 - 스모크 한국어 커버리지: **7,013/16,133 = 43.5%** (마커 등록 전 18.8%)
 
 ## 유닛 스토어 (추적/재사용, Git 제외)
@@ -153,7 +157,9 @@ uv run python -m translation.translate_passages \
 - [x] **배치 번역 + 승격 에스컬레이션** — `--batch-size 16`(기본),
       L1/L2 실패 유닛 flash 승격, L3는 경계 검사로 유닛 승격.
       2티어 정책 (자동 재시도 종료). 실측: Farm Work(100유닛) 성공
-      (배치 7회+승격 24회 ≈33회 호출).
+      (배치 7회+승격 24회 ≈33회 호출). 버그 2건 수정 후 4·5차 연속 성공
+      (repair 순서 무관화 — Option E 리오더 허용과의 상호작용 버그,
+      마커 오타 유닛 승격).
 - [ ] **post 런타임 helper (PO2)** — `{{post:...}}` 동적 마커 치환 (게임
   사이드). 표 외 마커(`이`/`아`/`의`/`한` 등) 처리를 위해 `trPostsList`
   전체 26개 조사 테이블 필요. (`docs/post-system-design.md` PO2)
@@ -164,7 +170,12 @@ uv run python -m translation.translate_passages \
 - [ ] **단일 추측 조사 검출** — placeholder 뒤 단일 조사(combat 78건/
   gwylan 110건 관찰). 검출 → 리뷰 플래그 (자동 재번역 아님).
 - [ ] **R2 unit-level 재사용 연동** — 번역 배치 내 동일 문장 hash hit
-  (`docs/translation-reuse-design.md`)
+  (`docs/translation-reuse-design.md`). 유닛 스토어(`ko-units.jsonl`)의
+  `source_text_hash`가 키 — 문장 단위 재사용의 기반 완성
+- [ ] **어셈블러 유닛 join 지원 (선택)** — gemini는 유닛 저장, ko_reuse는
+  passage body로 남는 혼합 레벨 스토어 설계. passage 레코드 우선,
+  없으면 유닛 join → 시그니처 검증 → 스플라이스. (source_text 중복
+  제거 + 부분 진행 보존이 목적 — 전환 여부 판단 필요)
 
 ### 데이터/품질 (후순위)
 
@@ -185,7 +196,7 @@ uv run python -m translation.translate_passages \
 
 ```bash
 uv sync --extra dev                                   # 환경
-uv run python -m unittest discover -s tests           # 테스트 (210개)
+uv run python -m unittest discover -s tests           # 테스트 (213개)
 uv run python -m pretranslation_cst.corpus_verify --root game   # corpus 검증
 python3 build/verify.py                               # 어셈블→컴파일→스모크 (~2분)
 uv run python -m translation.register_ko_reuse        # 3-match KO 재등록 (멱등, ~1.5분)

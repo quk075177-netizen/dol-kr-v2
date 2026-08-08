@@ -65,7 +65,17 @@
   `boundary_prose_drops` 경계 검사로 유닛 승격. **2티어 정책** — 자동
   재시도 종료, 실패 로그만. `--journal` 스트리밍 저장. 실측: Farm Work
   성공 (배치 7회+승격 24회 ≈33회 호출, per-unit 대비 ~3배 절감).
-- 관측 산출물: `tmp/` (batches/debug-dumps/reports/stores/scripts).
+- 관측 산출물: `tmp/` (batches/debug-dumps/reports/stores/scripts/journals).
+- **버그 2건 수정** (Farm Work 재실행에서 발견): `repair_separator_newlines`
+  순서 무관화 (Option E 리오더 허용과의 상호작용 — 단조 cursor 가정이
+  깨져 분리자 전부 미복구 → L3 병합), malformed_post_marker 유닛 승격.
+  수정 후 Farm Work 4·5차 연속 성공.
+- **fail 로그 재설계**: fail 이벤트 = 재던지기 큐 (source_path/passage_name
+  + 사유 + 회복 여부, request_id·성공 유닛 줄 제거). `journal_rerun`으로
+  종결 실패 추출 → `--passages-file` 재실행.
+- **유닛 스토어**: `work/translations/ko-units.jsonl` — 청킹 유닛 단위
+  1줄씩 스트리밍 (부분 진행 보존, `source_text_hash` = R2 키).
+- **뷰어**: `store_view` — `--lines`로 source/translated 줄 대응 표시.
 
 ## 3순위 — post 시스템 완성
 
