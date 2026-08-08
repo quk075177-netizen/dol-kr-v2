@@ -83,6 +83,7 @@ def register_ko_reuse(
     out_path: str | Path,
     *,
     report_path: str | Path | None = None,
+    force: bool = False,
 ) -> dict:
     import re
 
@@ -93,10 +94,13 @@ def register_ko_reuse(
         "with_marker": 0,
         "already_registered": 0,
         "registered": 0,
+        "removed": 0,
         "skipped": {},
         "skipped_records": [],
     }
     existing = load_translations(out_path)
+    out_records: list[dict] = []
+    seen: set[str] = set()
     p = Path(triple_match_path)
     with p.open(encoding="utf-8") as fh:
         for line in fh:
@@ -107,7 +111,11 @@ def register_ko_reuse(
             else:
                 stats["no_marker"] += 1
             source_body = row["source_body"]
-            if source_hash(source_body) in existing:
+            key = source_hash(source_body)
+            if not force and key in existing:
+                stats["already_registered"] += 1
+                continue
+            if key in seen:
                 stats["already_registered"] += 1
                 continue
             error = _verify_passage(row)
@@ -117,13 +125,28 @@ def register_ko_reuse(
                     {"source_path": row["source_path"], "passage_name": row["passage_name"],
                      "reason": error}
                 )
+                # a previously registered record that no longer verifies
+                # (masker/grammar changes) must not stay in the store
+                if key in existing:
+                    stats["removed"] += 1
                 continue
             ko_normalized = resolve_static(normalize_markers(row["ko_body"]))
             ko_normalized = match_boundaries(row["source_body"], ko_normalized)
             record = make_record(row, ko_normalized, level="passage")
-            append_record(record, out_path)
-            existing.setdefault(record["source_text_hash"], []).append(record)
+            if force:
+                out_records.append(record)
+                seen.add(record["source_text_hash"])
+            else:
+                append_record(record, out_path)
+                existing.setdefault(record["source_text_hash"], []).append(record)
             stats["registered"] += 1
+
+    if force:
+        # regenerate the store from the validated set (stale records that
+        # no longer verify drop out of the file, not just the index)
+        with Path(out_path).open("w", encoding="utf-8") as fh:
+            for record in out_records:
+                fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     if report_path is not None:
         Path(report_path).write_text(
@@ -172,12 +195,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--triple-match", type=str, default=str(DEFAULT_TRIPLE_MATCH))
     parser.add_argument("--out", type=str, default=str(DEFAULT_OUT))
     parser.add_argument("--report", type=str, default="")
+    parser.add_argument(
+        "--force", action="store_true",
+        help="re-verify every row against the current masker and regenerate "
+             "the store (stale records drop out)",
+    )
     args = parser.parse_args(argv)
 
     stats = register_ko_reuse(
         args.triple_match,
         args.out,
         report_path=args.report or None,
+        force=args.force,
     )
     print(json.dumps(stats, ensure_ascii=False, indent=2))
     print(f"saved: {args.out}")

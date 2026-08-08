@@ -1,7 +1,7 @@
 # 번역 유닛 분할(청킹) 전략
 
-기준일: 2026-08-07
-상태: 구현 완료 (`pretranslation_cst/chunking.py`, 2026-08-07 검증)
+기준일: 2026-08-08 (튜닝: threshold 700 / **구조 인식 최소 병합 재도입**)
+상태: 구현 완료 (`pretranslation_cst/chunking.py`)
 
 ## 문제
 
@@ -133,18 +133,48 @@ passage_root
 ### 임계치 선정
 
 ```text
-기본 임계치: 1,000자 (masked 텍스트 기준)
+기본 임계치: 700자 (masked 텍스트 기준, 2026-08-08 튜닝 — 종전 1,000자)
 상한: 2,000자 (절대 초과하지 않음)
-하한: 200자 (이보다 작으면 이웃 유닛과 병합)
+하한: 100자 (구조 인식 최소 병합 — 2026-08-08 재도입)
 ```
 
-- 1,000자는 대다수 passage(62%)를 분할 없이 처리할 수 있는 값.
-- 2,000자 상한은 번역 API 컨텍스트 윈도우 여유를 고려한 값.
-- 200자 하한은 너무 잘게 쪼개진 유닛을 이웃과 합치는 기준.
+- 700자 조정은 **업데이트 대응(재사용 국소성)과 유닛 비용의 절충**
+  실측으로 결정 (corpus 15,701 passage, `tmp/scripts/chunk_stats.py`):
 
-임계치는 번역 API의 토큰 제한에 따라 조정한다. 현재는 번역 API를
-선택하지 않았으므로 1,000자를 기본값으로 두고, API 확정 후
-조정한다.
+  | threshold/병합 | 유닛 수 | 단일 유닛 passage 비율 | 크기 p50 |
+  |---|---|---|---|
+  | 1000/맹목 병합 (종전) | 40,817 | 71.1% | 339자 |
+  | 700/무병합 (중간) | 179,160 | 55.9% | 13자* |
+  | **700/구조 인식 병합 (현재)** | **74,039** | **55.9%** | **162자** |
+
+  - 단일 유닛 passage가 71% → 56%로 줄어, 한 줄 수정 시 재번역 범위가
+    passage 전체(≤1,000자)가 아닌 유닛 단위가 된다.
+  - 상한(2,000자) 초과는 leaf macro가 실제로 커서 분할 불가능한 극소수
+    (corpus 6건).
+
+### 구조 인식 최소 병합 (2026-08-08 재도입)
+
+`_merge_small_units`(하한 미만 유닛을 다음 유닛과 순방향 병합)는
+**구조 인식 버전**으로 재도입되었다. 무병합 시행에서 "The " 같은
+5자 조각 유닛이 생겨 저품질 번역·통째 삭제(검사도 못 잡음)를
+유발했기 때문이다:
+
+- **콘텐츠 유닛**은 **같은 ancestor 경로의 다음 유닛과만** 병합 —
+  서로 다른 container/branch를 한 재사용 키로 커플링하지 않는다
+  (맹목 병합의 문제였던 F9·업데이트 커플링 해소). 무관한 branch를
+  건너 병합하지 않으므로 ancestors 메타데이터도 정확.
+- **콘텐츠 없는 유닛**(개행/placeholder 접착제)은 문맥 무관 병합 —
+  단독 프래그먼트로 남지 않는다 (개행도 plain_text segment이므로
+  `strip()`으로 실질 콘텐츠 판정).
+- 결과: 유닛 179,160 → 74,039, <100자 조각 134,928 → 19,215 (남는
+  조각은 교차 container 프래그먼트 — 커플링 없이 병합 불가, 문맥은
+  프롬프트 주입이 담당).
+
+### glue 유닛 처리 (러너, 2026-08-08)
+
+구조적 접착제 유닛(개행/placeholder만, 콘텐츠 없는 span)은 번역할
+콘텐츠가 없으므로 러너가 **identity(토큰 그대로)로 처리 — API 호출
+없음, 유닛 스토어 기록 없음** (`_is_glue_unit`: 비공백 segment 없음).
 
 ### placeholder 경계 처리
 
@@ -183,7 +213,7 @@ class TranslateUnit:
 
 ```python
 from pretranslation_cst import chunk_passage
-units = chunk_passage(passage, artifact, data, threshold=1000, max_chars=2000, min_chars=200)
+units = chunk_passage(passage, artifact, data, threshold=700, max_chars=2000)
 ```
 
 - `passage`: `Passage` (tree 포함)
@@ -200,13 +230,11 @@ units = chunk_passage(passage, artifact, data, threshold=1000, max_chars=2000, m
 - span을 정렬 후 시작을 이전 span의 end로 클램프해 겹침을 방지한다.
 - container 열기 tag(`<<widget>>` 등)는 첫 자식 span에 흡수하고,
   닫기 tag는 마지막 자식 span에 흡수한다 (`start_override`/`end_override`).
+- 하한 병합은 구조 인식 (같은 ancestor 경로 안에서만, §임계치).
 - opaque passage는 유닛 없음.
 
-검증 결과 (전체 corpus 16,132 passage, 66,547 → 129,926 유닛):
-
-- join 불변식 failures 0
-- placeholder 누락 0
-- 2,000자 초과 25건 (leaf macro가 실제로 커서 분할 불가능한 극소수)
+검증 결과 (전체 corpus 16,132 passage, 2026-08-07): join 불변식
+failures 0, placeholder 누락 0.
 
 ### C4~C5 검증 상태
 
@@ -260,8 +288,9 @@ restore(join(translate(unit))) == passage_body  # 번역 후 복원
 ### container 안의 빈 branch
 
 일부 `if` branch는 텍스트가 거의 없는 경우가 있다(3자 등). 이런
-branch는 이웃 branch와 병합하거나, 부모 container 단위로 유지하는
-것이 좋다. 하한(200자) 기준으로 병합을 판단한다.
+branch는 별도 유닛으로 남는다 (교차 container 병합 없음) — 콘텐츠
+없으면 glue 처리로 API 0회, 있으면 소형 콘텐츠 유닛으로 번역되며
+문맥은 프롬프트 주입이 담당한다.
 
 ### widget 정의와 opaque passage
 

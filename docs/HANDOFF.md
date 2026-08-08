@@ -26,26 +26,69 @@ CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿
       Work 4·5차 연속 성공으로 안정성 확인
   → fail 로그 재설계 (재던지기 큐 + journal_rerun) + 유닛 스토어
       (청킹 유닛 단위 1줄씩 스트리밍) + store_view 뷰어
+  → 스토어 스플릿 (ko-reuse / gemini-passages / ko-units 파일 분리)
+  → 청킹 튜닝 (threshold 700 / **구조 인식 최소 병합** — 무병합 시행에서
+      "The " 조각 유닛의 저품질·삭제 문제가 확인돼 F9 구조 인식 버전으로
+      재도입. 유닛 179,160 → 74,039, 조각 134,928 → 19,215. glue 유닛
+      verbatim 스킵 — API 대상 콘텐츠 유닛 ~67,000개)
+  → R2 유닛 재사용 연동 (복원형 저장 + 재토큰화, 배치 경로 포함,
+      재사용 유닛 API 0회)
+  → update_diff (변경 passage/유닛 분류 → 재번역 타깃 생성)
+  → 중첩 매크로 보호 (버그 3) — 매크로 인자 내부 `<<He>>`가 노출
+      segment로 남아 LLM이 `<그가>`로 변형해도 L1/L2/시그니처 검사가
+      못 잡던 문제. 마스커가 노출 후보 내 매크로를 재보호
+      (`masking._nested_macro_spans`), `register_ko_reuse --force`
+      추가 (마스커 변경 시 재검증·퇴출, 44건 퇴출)
+  → 어셈블러-러너 검증 정합 (Option E 미결 해소): gemini 레코드는
+      어셈블러도 캐노니컬 시그니처 비교 (macros_sequence 스킵) —
+      한국어 어순 리오더가 어셈블러에서 거부되던 문제 해결.
+      어셈블러 거부 피드백 루프: `assembler-rejected.jsonl` —
+      거부 해시는 러너가 재번역 (조용한 영어 방치 방지)
+  → 콘텐츠 삭제 감지 (버그 4): placeholder 없는 유닛이 모델에 의해
+      통째 삭제돼도 검사가 못 잡던 갭 (실측 "The "→"\t",
+      "gives you a satisfied smile when "→" "). L2 `content_drop`
+      추가 (콘텐츠 유닛의 공백 전용 출력 = 실패).
+  → verify.py 시간 측정 + --no-smoke (개발 루프는 유닛 테스트 +
+      corpus_verify + assemble만, 풀 체인은 마일스톤에서만)
 ```
 
 - 전체 corpus: 642 files / 16,135 passages, round-trip 0, tree invariants 0
 - diagnostics: unclassified 0, unknown_macro 6 (게임 오타 1 + ModLI 미정의 5)
-- 노출: link_label 39,157 / macro_arg 1,768 / plain_text 759,058
+- 노출: link_label 39,684 / macro_arg 1,887 / plain_text 759,058
 - placeholder 형식: `<000000>` XML 태그 (restore = 순서 치환, 토큰 1회 필수)
-- 테스트: **213개 통과**, corpus_verify baseline matched
-- 스모크 한국어 커버리지: **7,013/16,133 = 43.5%** (마커 등록 전 18.8%)
+- 테스트: **221개 통과**, corpus_verify baseline matched
+- 스모크 한국어 커버리지: **6,976/16,133 = 43.2%** (중첩 매크로 보호로
+  레거시 KO 44건 퇴출 후 — 해당 passage는 gemini 재번역 대상)
+
+## 스토어 (번역 레코드, Git 제외 — 생산자별 파일)
+
+어셈블러/러너/스모크는 다음을 순서대로 병합해 읽는다
+(`load_translations_many`, 뒤 파일 우선):
+
+| 파일 | 내용 |
+|---|---|
+| `work/translations/ko-reuse.jsonl` | ko_reuse 7,093 (레거시 3-match, passage) |
+| `work/translations/gemini-passages.jsonl` | gemini passage 레코드 (어셈블 뷰) |
+| `work/translations/ko-units.jsonl` | gemini 유닛 레코드 (R2 재사용 정본, 스트리밍) |
+
+- 스플릿 도구: `python3 -m translation.split_stores` (멱등)
+- 데드 파일(fail-demo/farmwork-rerun)은 `tmp/archive/`로 이동 완료
 
 ## 유닛 스토어 (추적/재사용, Git 제외)
 
 `work/translations/ko-units.jsonl` — 청킹 유닛 단위 1줄씩 스트리밍 기록
 (러너 기본, `--units-store`). passage 실패 시에도 완료 유닛 보존.
-`source_text_hash` = 복원 원문 유닛 hash — R2 unit-level 재사용 키.
-스키마: `docs/store-schema.md` 유닛 스토어 섹션.
+`source_text_hash` = **복원 원문 유닛** hash — R2 unit-level 재사용 키.
+`translated_text`도 원문 바이트 복원형으로 저장 — 재사용 시 현재 유닛의
+토큰으로 재토큰화(`_retokenize`) 후 L1/L2 재검증, 통과 시 API 0회.
+(토큰은 위치 기반 재번호되므로 토큰 형태 저장 시 수정/교차 passage
+재사용 불가 — 복원형 저장이 핵심). 스키마: `docs/store-schema.md`.
 
 ## 스토어 (번역 레코드, Git 제외)
 
-`work/translations/ko-reuse.jsonl` — **7,140 레코드** (ko_reuse 7,137
-= 마커 없음 3,157 + 마커 있음 3,978 + 선존 2, gemini 3):
+`work/translations/ko-reuse.jsonl` — **7,093 레코드** (ko_reuse 전용 —
+2026-08-08 중첩 매크로 보호 후 `--force` 재검증으로 44건 퇴출.
+마커 없음 3,1xx + 마커 있음 3,9xx):
 
 ```json
 {
@@ -62,6 +105,7 @@ CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿
   "repaired": false,          // gemini 전용: 스팬 분리자 갭 복구 여부
   "escalated": true|false,    // gemini 전용: 승격/2차 시도 사용 여부
   "escalated_units": 0,       // gemini 전용: 유닛 승격 횟수
+  "reused_units": 0,          // gemini 전용: R2 유닛 재사용 (API 0회) 수
   "tier": "base | escalated"  // gemini 전용: 최종 사용 티어
 }
 ```
@@ -74,14 +118,36 @@ CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿
   (마커 잔존 = runtime_remaining)
 - 잔여 이슈: state=empty/excluded 595건 중 ko_body≈source_body(영어
   그대로) 90건 — find_passage_reuse 블로커. 후순위 정리.
-- 스키마 정본: `docs/implementation-feedback.md` §3.1, `docs/translation-reuse-design.md`
-- 어셈블러/러너/스모크는 이 파일만 읽음. **다른 소스(JS 등) 레코드는
-  같은 스키마로 추가하면 자동 반영.**
+- 스키마 정본: `docs/implementation-feedback.md` §3.1,
+  `docs/translation-reuse-design.md`, `docs/store-schema.md`
+- 어셈블러/러너/스모크는 위 3개 파일(ko-reuse/gemini-passages/ko-units)
+  을 읽음. **다른 소스(JS 등) 레코드는 같은 스키마로 파일을 추가하면
+  어셈블러 `--store`/verify `--store` 반복 인자로 자동 반영.**
+
+## 업데이트 대응 (R2 유닛 재사용 + update_diff)
+
+```bash
+# 게임 업데이트 후: 변경 passage/유닛 분류 → 재번역 타깃 생성
+uv run python -m translation.update_diff --targets /tmp/opencode/rerun.jsonl
+# 타깃 배치 — 미변경 유닛은 ko-units hit로 API 0회 (레코드 reused_units)
+uv run python -m translation.translate_passages --passages-file /tmp/opencode/rerun.jsonl
+# 어셈블 → 스모크
+python3 build/verify.py
+```
+
+- 유닛 재사용은 복원형(원문 바이트) hash + `_retokenize` 재토큰화 —
+  토큰 재번호(위치 기반)와 무관하게 수정/교차 passage에서 동작.
+- 청킹 파라미터 변경은 유닛 경계를 바꾸므로 기존 유닛 레코드의
+  일부가 miss (1회성 — 재번역 시 새로 저장). 튜닝: threshold 700,
+  **구조 인식 최소 병합** (같은 ancestor 경로 안에서만 <100자 병합 —
+  교차 container 커플링 없음, 조각 유닛 방지), 실측 표는
+  `docs/chunking-strategy.md` §임계치.
 
 ## 빌드/스모크 체인
 
 ```text
-work/translations/ko-reuse.jsonl → translation/assemble_game_ko.py → game_ko/
+ko-reuse.jsonl + gemini-passages.jsonl
+  → translation/assemble_game_ko.py (--store 반복) → game_ko/
   → build/dol_build.py compile → build/dol-plus-ko.html
   → browser_smoke.py run --passage-list → build/browser-smoke/report.json
 ```
@@ -175,9 +241,14 @@ uv run python -m translation.translate_passages \
   최신 우선 규칙으로 superseded). 어셈블러 유닛 join 지원 불필요.
 - [ ] **단일 추측 조사 검출** — placeholder 뒤 단일 조사(combat 78건/
   gwylan 110건 관찰). 검출 → 리뷰 플래그 (자동 재번역 아님).
-- [ ] **R2 unit-level 재사용 연동** — 번역 배치 내 동일 문장 hash hit
-  (`docs/translation-reuse-design.md`). 유닛 스토어(`ko-units.jsonl`)의
-  `source_text_hash`가 키 — 문장 단위 재사용의 기반 완성
+- [x] **R2 unit-level 재사용 연동** — 완료 (2026-08-08). 번역 전 각 유닛을
+  `ko-units.jsonl`의 `source_text_hash`로 조회 — hit 시 복원형
+  `translated_text`를 현재 유닛 토큰으로 재토큰화(`_retokenize`) 후
+  L1/L2 재검증, 통과 시 API 0회 (배치 경로는 재사용 유닛을 배치에서
+  제외). passage 레코드 `reused_units` 필드 + 실행 요약에 기록.
+  주의: 토큰은 위치 기반 재번호라 **토큰 형태 저장은 재사용 불가** —
+  저장은 항상 원문 바이트 복원형. 청킹 파라미터 변경은 유닛 경계를
+  바꿔 기존 레코드 일부가 miss (1회성 재번역).
 
 ### 데이터/품질 (후순위)
 
@@ -190,19 +261,20 @@ uv run python -m translation.translate_passages \
 
 ### 유지보수 체크 (우선순위 낮음)
 
-- [ ] F2/F3 회귀 fixture, F10 placeholder prefix 인플레이션, F9
-  `_merge_small_units` ancestors, F11 TextSource 최적화
-  (`docs/archive/system-review-triage.md`)
+- [ ] F2/F3 회귀 fixture, F11 TextSource 최적화
+  (`docs/archive/system-review-triage.md` — F9 병합은 제거로 해소)
 
 ## 사용 방법 (빠른 참조)
 
 ```bash
 uv sync --extra dev                                   # 환경
-uv run python -m unittest discover -s tests           # 테스트 (213개)
+uv run python -m unittest discover -s tests           # 테스트 (219개)
 uv run python -m pretranslation_cst.corpus_verify --root game   # corpus 검증
 python3 build/verify.py                               # 어셈블→컴파일→스모크 (~2분)
-uv run python -m translation.register_ko_reuse        # 3-match KO 재등록 (멱등, ~1.5분)
+uv run python -m translation.register_ko_reuse --force  # 3-match 재검증·재생성 (마스커 변경 후)
 uv run python -m translation.translate_passages --file <f> --passage-name <p> [--model <m>]
+uv run python -m translation.update_diff --targets rerun.jsonl   # 변경 passage 분류 → 타깃
+uv run python -m translation.split_stores             # 스토어 파일 분리 (멱등)
 uv run python -m translation.store_view --passage <p>   # 레코드 보기 (--last/--hash/--journal)
 uv run python -m translation.journal_rerun --journal tmp/journals/req_xxx.jsonl --out rerun.jsonl  # 재던지기 추출
 uv run python -m translation.store_view --store work/translations/ko-units.jsonl --passage <p>  # 유닛 스토어 보기
@@ -245,6 +317,8 @@ uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감�
   지뢰 분석 + Option E/배치 승격 실행 기록), **store-schema.md (레코드
   필드 참조 정본)**
 - **분석** (루트): `reorder-analysis.md` (리오더 원인 규명 + Option E 설계/실측)
+- **세션 로그** (`docs/session-log.md`): 작업 완료 시 핵심 요약을
+  계속 append — 대화 로그 대신 여기를 보면 됨
 - **아카이브** (`docs/archive/`): 완료 기록 (파일럿 보고, 트리아지 등)
 - **조사 자료** (`research/`): 근거·데이터셋 (Git 제외)
 

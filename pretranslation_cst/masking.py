@@ -2,8 +2,64 @@
 
 from __future__ import annotations
 
+import re
+
 from .model import MaskArtifact, Passage, Placeholder, ProtectedSpan, Segment, Span
 from .order_sensitivity import is_order_insensitive
+
+# opening of a macro inside an exposed span: <<name or << /name
+_MACRO_OPEN_RE = re.compile(r"<<\s*/?\s*[A-Za-z_][A-Za-z0-9_]*")
+
+
+def _nested_macro_spans(text: str) -> list[tuple[int, int, str]]:
+    """Nested ``<<...>>`` macro spans inside exposed text, as local
+    (start, end, name) tuples.
+
+    Macro arguments and link labels are exposed for translation, but a
+    macro that appears *inside* them (``<<hypnosisText "<<He>> snaps
+    <<his>> fingers, ...">>``) is still runtime-processed by the game and
+    must survive translation as a protected span.  Without this the model
+    may translate the macro content itself (observed: ``<<He>>`` became
+    ``<그가>``) and no check catches it — the L1/L2/skeleton checks only
+    guard placeholder tokens and protected spans.
+
+    The closing ``>>`` search skips quoted strings, so a nested macro with
+    quoted arguments (``<<npc "a>>b">>``) closes correctly.  Unclosed or
+    malformed ``<<`` are left exposed."""
+    spans: list[tuple[int, int, str]] = []
+    pos = 0
+    end = len(text)
+    while pos < end:
+        match = _MACRO_OPEN_RE.search(text, pos, end)
+        if match is None:
+            break
+        raw_name = match.group(0)[2:].strip().lstrip("/").strip()
+        if not raw_name:
+            pos = match.end()
+            continue
+        cursor = match.end()
+        quote: str | None = None
+        close = -1
+        while cursor + 1 < end:
+            char = text[cursor]
+            if quote is not None:
+                if char == "\\":
+                    cursor += 2
+                    continue
+                if char == quote:
+                    quote = None
+            elif char in "\"'":
+                quote = char
+            elif char == ">" and text[cursor + 1] == ">":
+                close = cursor + 2
+                break
+            cursor += 1
+        if close < 0:
+            pos = match.end()
+            continue
+        spans.append((match.start(), close, raw_name))
+        pos = close
+    return spans
 
 
 def _merge(spans: list[ProtectedSpan]) -> list[ProtectedSpan]:
@@ -92,10 +148,34 @@ def mask_passage(data: bytes, passage: Passage, placeholder_prefix: str = "<0") 
     candidates = _candidate_map([
         (span, kind) for span, kind in passage.exposed_candidates if body.contains(span)
     ])
+    # nested macros inside exposed spans are still runtime macros — split
+    # them out of the exposure and keep them protected
+    split_candidates: list[tuple[Span, str]] = []
+    nested_protected: list[ProtectedSpan] = []
+    for span, kind in candidates:
+        text = data[span.start:span.end].decode("utf-8", errors="replace")
+        macros = _nested_macro_spans(text)
+        if not macros:
+            split_candidates.append((span, kind))
+            continue
+        cursor = span.start
+        for start, end, name in macros:
+            # local char offsets -> absolute byte offsets (multi-byte text)
+            byte_start = span.start + len(text[:start].encode("utf-8"))
+            byte_end = span.start + len(text[:end].encode("utf-8"))
+            if cursor < byte_start:
+                split_candidates.append((Span(cursor, byte_start), kind))
+            nested_protected.append(ProtectedSpan(
+                Span(byte_start, byte_end), frozenset({name})))
+            cursor = byte_end
+        if cursor < span.end:
+            split_candidates.append((Span(cursor, span.end), kind))
+    candidates = _candidate_map(split_candidates)
     blocked = _subtract_candidates(
         [protected for protected in passage.protected_spans if body.contains(protected.span)],
         [span for span, _ in candidates],
     )
+    blocked = _merge(blocked + nested_protected)
     segments = _make_segments(data, body, [protected.span for protected in blocked], candidates)
     parts: list[str] = []
     placeholders: list[Placeholder] = []

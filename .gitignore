@@ -20,6 +20,8 @@ venv.bak/
 # 번역 빌드 산출물 (도구는 커밋, 산출물은 제외)
 .cache/
 game_ko/
+game_ko.tmp/
+.game_ko.tmp-*/
 build/*.html
 build/*.build.json
 build/browser-smoke/

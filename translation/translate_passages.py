@@ -66,12 +66,16 @@ from translation.post import post_process, remaining_dynamic_markers
 from translation.store import (
     append_record,
     find_passage_reuse,
+    find_reuse,
     load_translations,
+    load_translations_many,
     passage_placeholder_signature,
+    signatures_equal,
     source_hash,
 )
 
-DEFAULT_STORE = Path("work/translations/ko-reuse.jsonl")
+DEFAULT_STORE = Path("work/translations/gemini-passages.jsonl")
+DEFAULT_LEGACY_STORE = Path("work/translations/ko-reuse.jsonl")
 
 
 def next_request_id(records: dict[str, list[dict]]) -> str:
@@ -90,28 +94,6 @@ def next_request_id(records: dict[str, list[dict]]) -> str:
     return f"{prefix}{seq + 1:03d}"
 
 
-def _canonical_signature(signature: list[str], sensitive: list[bool]) -> list[str]:
-    """Multiset-normalised signature for order-insensitive tokens.
-
-    Order-sensitive tokens keep their exact positions; runs of
-    order-insensitive tokens between them are sorted, so their internal
-    order does not matter.  Two signatures with the same canonical form
-    restore to identical rendered structure (see reorder-analysis.md
-    §7 — Option E).
-    """
-    out: list[str] = []
-    run: list[str] = []
-    for text, is_sensitive in zip(signature, sensitive):
-        if is_sensitive:
-            out.extend(sorted(run))
-            run = []
-            out.append(text)
-        else:
-            run.append(text)
-    out.extend(sorted(run))
-    return out
-
-
 def _skeleton_ok(source_artifact, translated_body: bytes, passage_name: str, source_path: str) -> bool:
     """Mask the translated body and compare protected-span signatures with
     the source.  A mismatch means the translation broke the structure.
@@ -119,7 +101,8 @@ def _skeleton_ok(source_artifact, translated_body: bytes, passage_name: str, sou
     Order-insensitive spans (display-only macros, variables, HTML — see
     pretranslation_cst.order_sensitivity) are compared as multisets, so a
     Korean word-order reorder of those tokens is tolerated; state/control
-    spans keep strict sequence equality."""
+    spans keep strict sequence equality (Option E, shared with the
+    assembler: translation.store.signatures_equal)."""
     try:
         synthetic = f":: {passage_name}\n\n".encode("utf-8") + translated_body
         source = parse_file(synthetic, source_path, DEFAULT_VALUE_KIND_PATH)
@@ -129,11 +112,7 @@ def _skeleton_ok(source_artifact, translated_body: bytes, passage_name: str, sou
         ko_artifact = mask_passage(synthetic, passage)
     except Exception:
         return False
-    src_sig = passage_placeholder_signature(source_artifact)
-    ko_sig = passage_placeholder_signature(ko_artifact)
-    src_sensitive = [ph.order_sensitive for ph in source_artifact.placeholders]
-    ko_sensitive = [ph.order_sensitive for ph in ko_artifact.placeholders]
-    return _canonical_signature(src_sig, src_sensitive) == _canonical_signature(ko_sig, ko_sensitive)
+    return signatures_equal(source_artifact, ko_artifact)
 
 
 # any placeholder-like token the model might emit (including wrong-digit
@@ -182,6 +161,20 @@ def _prose_gap_problems(unit, translated: str) -> list[str]:
     return []
 
 
+def _content_dropped(unit, translated: str) -> list[str]:
+    """``content_drop``: the unit carries real content but the output is
+    whitespace-only — the model deleted the text entirely.  Placeholder
+    checks cannot see this (the fragment may have no tokens at all, e.g.
+    a ``"The "`` fragment unit after the no-merge split), and a silently
+    dropped sentence would otherwise assemble as nothing (observed
+    2026-08-08: ``" gives you a satisfied smile when "`` -> ``" "``)."""
+    if not any(seg.text.strip() for seg in (unit.segments or [])):
+        return []
+    if not translated.strip():
+        return ["content_drop"]
+    return []
+
+
 def verify_unit_structure(unit, translated: str) -> list[str]:
     """L2: unit-level structure checks beyond L1 (each own token exactly once).
 
@@ -199,13 +192,16 @@ def verify_unit_structure(unit, translated: str) -> list[str]:
     - ``prose_drop``: own tokens adjacent in the output although the source
       had prose between them (checked only when the token stream is intact
       and in order).
+    - ``content_drop``: the unit has real content but the output is
+      whitespace-only — the model deleted the text (invisible to the
+      placeholder checks when the unit has no tokens).
 
     The corpus contains no literal placeholder-like text, so any token-like
     string not owned by the unit is a model artifact.
     """
     own = [ph.placeholder for ph in unit.placeholders]
     own_set = set(own)
-    problems: list[str] = []
+    problems: list[str] = _content_dropped(unit, translated)
     own_digits = {_token_digit_count(t) for t in own}
     for token in _TOKEN_RE.findall(translated):
         if token in own_set:
@@ -252,6 +248,11 @@ def _l2_retry_hint(problems: list[str]) -> str:
         hint += (
             " Keep the text between the placeholder tokens intact — do not"
             " move or merge it."
+        )
+    if "content_drop" in problems:
+        hint += (
+            " The unit text is not empty — output a Korean translation of"
+            " it; never return only whitespace."
         )
     return hint
 
@@ -600,6 +601,59 @@ def _restore_translated_text(unit, translated: str) -> str:
     return translated
 
 
+def _is_glue_unit(unit) -> bool:
+    """True when the unit carries no translatable content — only whitespace
+    and protected spans (macros/variables/HTML).  Such units have no prose to
+    translate: the identity text (tokens copied verbatim) is the correct and
+    only translation, so they skip the API entirely (no-merge chunking
+    leaves many of these structural fragments; 2026-08-08)."""
+    return not any(seg.text.strip() for seg in unit.segments)
+
+
+def _retokenize(unit, restored_translated: str) -> str | None:
+    """Map a restored translated text back onto this unit's placeholder
+    tokens, in order.
+
+    The stored translation carries original bytes — the masker renumbers
+    tokens by position, so the token numbers of a stored unit differ after
+    any edit (or across passages), and the stored token form would never
+    verify against this unit.  Substituting this unit's tokens for the
+    originals yields a pipeline-ready token form.  Returns None when an
+    original is missing (nothing to reuse safely)."""
+    text = restored_translated
+    for ph in unit.placeholders:
+        idx = text.find(ph.original_text)
+        if idx < 0:
+            return None
+        text = text[:idx] + ph.placeholder + text[idx + len(ph.original_text):]
+    return text
+
+
+def _reuse_unit(unit, units_records: dict | None) -> TranslatedUnit | None:
+    """Stored translation for the same restored source text (R2 unit reuse),
+    or None on miss / corrupt record.
+
+    The stored ``translated_text`` is restored (original bytes) and already
+    post-processed, so a hit is re-tokenised for this unit, re-verified with
+    the cheap L1/L2 checks (no API call) and, when clean, feeds the join
+    pipeline directly — zero API calls for unchanged units after a game
+    update or across passages."""
+    if not units_records:
+        return None
+    record = find_reuse(source_hash(_restore_unit_text(unit)), units_records)
+    if record is None or not record.get("translated_text"):
+        return None
+    tokenized = _retokenize(unit, record["translated_text"])
+    if tokenized is None:
+        return None
+    candidate = TranslatedUnit(unit, tokenized)
+    if verify_placeholders(unit, candidate.translated_text):
+        return None
+    if verify_unit_structure(unit, candidate.translated_text):
+        return None
+    return candidate
+
+
 def _append_unit_record(
     units_store: Path | None,
     request_id: str,
@@ -614,8 +668,11 @@ def _append_unit_record(
     escalated: bool,
 ) -> None:
     """Stream one record per chunk unit — the unit-level tracking/reuse
-    store.  ``source_text`` is the unit's original text (tokens restored),
-    ``translated_text`` the final translation.  Appended+flushed per unit."""
+    store.  ``source_text`` is the unit's original text (tokens restored)
+    and ``translated_text`` the restored translation (original bytes) —
+    both token-independent, so ``source_text_hash`` (the R2 reuse key) and
+    the stored translation survive edits and across passages.  Appended and
+    flushed per unit."""
     if units_store is None:
         return
     record = {
@@ -652,6 +709,8 @@ def translate_passage(
     batch_size: int = 1,
     journal: Path | None = None,
     units_store: Path | None = None,
+    units_records: dict[str, list[dict]] | None = None,
+    rejected_hashes: frozenset[str] = frozenset(),
 ) -> tuple[dict | None, str]:
     """Translate one passage fully.  Returns (record, reason): record is
     None when the passage was skipped (reason="skipped") or failed
@@ -678,54 +737,110 @@ def translate_passage(
     artifact = mask_passage(data, passage)
     source_path = _rel_source_path(path, game_root)
     body_text = data[passage.body_span.start:passage.body_span.end].decode("utf-8")
-    if not force and find_passage_reuse(body_text, store_records) is not None:
-        return None, "skipped"  # already translated
+    if not force:
+        reuse = find_passage_reuse(body_text, store_records)
+        if reuse is not None:
+            # a record the assembler rejected (assembly re-verification
+            # failed) must not count as translated — re-translate it
+            if reuse["source_text_hash"] in rejected_hashes:
+                print(f"re-translating rejected: {passage.name}", file=sys.stderr)
+            else:
+                return None, "skipped"  # already translated
 
     units = chunk_passage(passage, artifact, data)
     base_model = model or "gemini-2.5-flash-lite"
     translated_units: list[TranslatedUnit] = []
     l2_retries = 0
     escalated = 0
+    reused_units = 0
+    glue_units = 0
     if batch_size <= 1:
         for index, unit in enumerate(units):
-            tu = translate_unit(unit, index, len(units), model=base_model)
-            text, reason, used, esc, fail_events = _resolve_unit(
-                unit, index, len(units), tu,
-                model=base_model, escalation_model=escalation_model,
-                translated_units=translated_units, debug_dir=debug_dir,
-                passage_name=passage.name, units=units,
-            )
-            l2_retries += used
-            escalated += esc
-            for event in fail_events:
-                _journal_fail(journal, source_path, passage.name,
-                              event["unit_index"], event["unit_count"],
-                              event["reason"], event["model"], event["recovered_by"])
-            if reason is not None:
-                return None, reason
-            final_text = text if text is not None else ""
-            _append_unit_record(
-                units_store, request_id, source_path, passage.name,
-                unit, index, len(units), _restore_unit_text(unit),
-                _restore_translated_text(unit, final_text),
-                base_model, esc,
-            )
+            esc = False
+            if _is_glue_unit(unit):
+                # whitespace/protected-span glue: verbatim is the only
+                # correct translation — no API call, no store record
+                final_text = unit.masked_text
+                glue_units += 1
+                translated_units.append(TranslatedUnit(unit, final_text))
+                continue
+            tu = _reuse_unit(unit, units_records)
+            if tu is None:
+                tu = translate_unit(unit, index, len(units), model=base_model)
+                text, reason, used, esc, fail_events = _resolve_unit(
+                    unit, index, len(units), tu,
+                    model=base_model, escalation_model=escalation_model,
+                    translated_units=translated_units, debug_dir=debug_dir,
+                    passage_name=passage.name, units=units,
+                )
+                l2_retries += used
+                escalated += esc
+                for event in fail_events:
+                    _journal_fail(journal, source_path, passage.name,
+                                  event["unit_index"], event["unit_count"],
+                                  event["reason"], event["model"], event["recovered_by"])
+                if reason is not None:
+                    return None, reason
+                final_text = text if text is not None else ""
+                _append_unit_record(
+                    units_store, request_id, source_path, passage.name,
+                    unit, index, len(units), _restore_unit_text(unit),
+                    _restore_translated_text(unit, final_text),
+                    base_model, esc,
+                )
+            else:
+                final_text = tu.translated_text
+                reused_units += 1  # record already exists — no re-append
             translated_units.append(TranslatedUnit(unit, final_text))
     else:
         for start in range(0, len(units), batch_size):
             batch = units[start:start + batch_size]
-            try:
-                texts = translate_units_batch(batch, model=base_model)
-            except Exception as exc:
-                # protocol failure (bad JSON / schema mismatch) — fall back
-                # to per-unit calls for this batch
-                print(f"[batch fallback] {type(exc).__name__}: {exc}", file=sys.stderr)
-                texts = [
-                    translate_unit(unit, start + i, len(units), model=base_model).translated_text
-                    for i, unit in enumerate(batch)
-                ]
-            for i, (unit, text) in enumerate(zip(batch, texts)):
+            # R2: units with a stored translation skip the API call — the
+            # batch is sent without them and their re-tokenised stored text
+            # is spliced back into the per-unit loop below.
+            stored = {}
+            fresh = []
+            for i, unit in enumerate(batch):
+                if _is_glue_unit(unit):
+                    # verbatim glue: no API call, no store record
+                    stored[i] = unit.masked_text
+                    glue_units += 1
+                    continue
+                tu = _reuse_unit(unit, units_records)
+                if tu is None:
+                    fresh.append((i, unit))
+                else:
+                    stored[i] = tu.translated_text
+                    reused_units += 1
+            texts = dict(stored)
+            if fresh:
+                fresh_units = [unit for _, unit in fresh]
+                if len(fresh_units) == 1:
+                    # batch protocol needs >=2 items — go straight to a
+                    # single per-unit call
+                    fresh_texts = [
+                        translate_unit(fresh_units[0], start + fresh[0][0],
+                                       len(units), model=base_model).translated_text
+                    ]
+                else:
+                    try:
+                        fresh_texts = translate_units_batch(fresh_units, model=base_model)
+                    except Exception as exc:
+                        # protocol failure (bad JSON / schema mismatch) —
+                        # fall back to per-unit calls for this batch
+                        print(f"[batch fallback] {type(exc).__name__}: {exc}", file=sys.stderr)
+                        fresh_texts = [
+                            translate_unit(unit, start + i, len(units), model=base_model).translated_text
+                            for i, unit in enumerate(fresh_units)
+                        ]
+                for (i, _), text in zip(fresh, fresh_texts):
+                    texts[i] = text
+            for i, (unit, text) in enumerate(zip(batch, [texts[j] for j in range(len(batch))])):
                 index = start + i
+                if i in stored:
+                    # reused: already stored and verified by _reuse_unit
+                    translated_units.append(TranslatedUnit(unit, text))
+                    continue
                 tu = TranslatedUnit(unit, text)
                 resolved, reason, used, esc, fail_events = _resolve_unit(
                     unit, index, len(units), tu,
@@ -810,7 +925,7 @@ def translate_passage(
 
     record = _make_record(
         body_text, source_path, passage, request_id, model, translated_text,
-        repaired, l2_retries, escalated, len(units),
+        repaired, l2_retries, escalated, len(units), reused_units, glue_units,
     )
     _journal_passage(journal, source_path, passage.name,
                      "ok", None, record["record_id"])
@@ -828,6 +943,8 @@ def _make_record(
     l2_retries: int,
     escalated: int,
     unit_count: int,
+    reused_units: int,
+    glue_units: int,
 ) -> dict:
     markers = remaining_dynamic_markers(translated_text)
     return {
@@ -851,6 +968,8 @@ def _make_record(
         "api_calls": unit_count + l2_retries,
         "escalated": escalated > 0,
         "escalated_units": escalated,
+        "reused_units": reused_units,
+        "glue_units": glue_units,
         "tier": "escalated" if escalated > 0 else "base",
     }
 
@@ -976,7 +1095,9 @@ def main(argv: list[str] | None = None) -> int:
     store_path = Path(args.store)
     game_root = Path(args.game_root)
     debug_dir = Path(args.debug_dir) if args.debug_dir else None
-    records = load_translations(store_path)
+    # passage-level skip checks both stores: legacy ko_reuse (3-match) and
+    # previously translated gemini passages (later file wins)
+    records = load_translations_many([DEFAULT_LEGACY_STORE, store_path])
     request_id = args.request_id or next_request_id(records)
     if args.journal:
         journal = Path(args.journal)
@@ -985,6 +1106,17 @@ def main(argv: list[str] | None = None) -> int:
         # in the project tmp/ folder (git-excluded)
         journal = Path("tmp/journals") / f"{request_id}.jsonl"
     units_store = Path(args.units_store) if args.units_store else Path("work/translations/ko-units.jsonl")
+    units_records = load_translations(units_store) if units_store.exists() else {}
+    rejected_path = Path("work/translations/assembler-rejected.jsonl")
+    rejected_hashes: frozenset[str] = frozenset()
+    if rejected_path.exists():
+        rejected_hashes = frozenset(
+            json.loads(line)["source_text_hash"]
+            for line in rejected_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        )
+    if rejected_hashes:
+        print(f"assembler-rejected hashes (re-translate targets): {len(rejected_hashes)}")
 
     targets: list[tuple[Path, str]] = []
     if args.passages_file:
@@ -997,7 +1129,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         targets.append((Path(args.file), args.passage_name))
 
-    stats = {"request_id": request_id, "translated": 0, "skipped": 0, "failed": []}
+    stats = {"request_id": request_id, "translated": 0, "skipped": 0,
+             "reused_units": 0, "glue_units": 0, "failed": []}
     for path, passage_name in targets:
         try:
             passage = _pick_passage(path, passage_name)
@@ -1013,6 +1146,8 @@ def main(argv: list[str] | None = None) -> int:
                 batch_size=args.batch_size,
                 journal=journal,
                 units_store=units_store,
+                units_records=units_records,
+                rejected_hashes=rejected_hashes,
             )
         except Exception as exc:
             # an unexpected failure (network/quota/... ) must not abort the
@@ -1035,8 +1170,12 @@ def main(argv: list[str] | None = None) -> int:
         append_record(record, store_path)
         records.setdefault(record["source_text_hash"], []).append(record)
         stats["translated"] += 1
+        stats["reused_units"] += record.get("reused_units", 0)
+        stats["glue_units"] += record.get("glue_units", 0)
         print(f"translated: {passage_name} ({len(record['translated_text'])} chars, "
-              f"post_status={record['post_status']}, repaired={record.get('repaired', False)})")
+              f"post_status={record['post_status']}, repaired={record.get('repaired', False)}, "
+              f"reused_units={record.get('reused_units', 0)}, "
+              f"glue_units={record.get('glue_units', 0)})")
 
     print(json.dumps(stats, ensure_ascii=False, indent=2))
     return 0 if not stats["failed"] else 2

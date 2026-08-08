@@ -1,7 +1,22 @@
 # 번역 스토어 스키마 (레코드 필드 참조)
 
-정본: `work/translations/ko-reuse.jsonl` (JSONL — 레코드 1줄 = 1객체).
-어셈블러/러너/스모크가 읽는 유일한 소스.
+어셈블러/러너/스모크가 읽는 소스는 파일별로 분리되어 있다 (2026-08-08
+스플릿 이후 — 생산자별 파일 하나):
+
+| 파일 | 내용 | 생산자 |
+|---|---|---|
+| `work/translations/ko-reuse.jsonl` | 레거시 3-match KO (passage 레코드) | `register_ko_reuse` |
+| `work/translations/gemini-passages.jsonl` | gemini passage 레코드 (어셈블 뷰) | `translate_passages` |
+| `work/translations/ko-units.jsonl` | gemini 유닛 레코드 (R2 재사용 정본) | `translate_passages` |
+
+어셈블러/러너는 ko-reuse + gemini-passages를 순서대로 병합해 읽는다
+(`store.load_translations_many`) — 뒤 파일의 레코드가 같은 passage에 대해
+우선한다 (기존 단일 파일의 append 순서와 동일한 최신 우선 규칙).
+
+## 파일 스플릿
+
+`ko-reuse.jsonl`이 ko_reuse와 gemini를 혼재하던 시절의 분리 도구:
+`python3 -m translation.split_stores` (멱등 — 재실행은 소스에서 재생성).
 
 ## 유닛 스토어 (`work/translations/ko-units.jsonl`)
 
@@ -14,7 +29,7 @@ passage 스토어와 별개로, **청킹 유닛 단위로 1줄씩 스트리밍 �
   "record_id": "un_dc31fff1ee96",
   "source_text_hash": "dc31fff1ee96...",   // 복원된 원문 유닛 hash — unit-level 재사용 키 (R2)
   "source_text": "<<set $outside to 0>>...",  // 원문 유닛 (placeholder 복원됨)
-  "translated_text": "...",
+  "translated_text": "...",                 // 번역 유닛 (원문 바이트 복원됨)
   "source_path": "...",
   "passage_name": "School Detention",
   "unit_index": 1,
@@ -31,6 +46,12 @@ passage 스토어와 별개로, **청킹 유닛 단위로 1줄씩 스트리밍 �
 
 - `source_text_hash` = 복원된 원문 유닛의 sha256 — 같은 문장은 passage가
   달라도 같은 hash (R2 unit-level 재사용의 키)
+- `translated_text`는 **placeholder가 원문 바이트로 복원된 형태**로
+  저장된다. 토큰(`<000000>`)은 passage 내 위치로 재번호되므로 저장하면
+  수정/교차 passage 재사용이 불가능하다 — 재사용 시 현재 유닛의 토큰으로
+  재토큰화한다 (`_retokenize`: 원문 바이트를 순서대로 이번 유닛의 토큰으로
+  치환, 실패 시 미스 처리). 이 재토큰화 덕에 **게임 수정 후 미변경 유닛과
+  passage 간 동일 문장이 API 호출 없이 재사용**된다 (R2, 2026-08-08 연동).
 - 보기: `store_view --store work/translations/ko-units.jsonl --passage <p>`
 
 **ko_reuse(3-match)는 유닛화하지 않음** (결정, 2026-08-08) — passage
@@ -83,7 +104,27 @@ passage 스토어와 별개로, **청킹 유닛 단위로 1줄씩 스트리밍 �
 | `api_calls` | number | 유닛 수 + L2 재시도 (배치 모드에서 실제 호출 수와 다를 수 있음) |
 | `escalated` | boolean | 승격/2차 시도 사용 여부 (tier 2 개입) |
 | `escalated_units` | number | flash 승격된 유닛 수 |
+| `reused_units` | number | R2 유닛 재사용으로 API 호출 없이 처리된 유닛 수 |
+| `glue_units` | number | 콘텐츠 없는 유닛(개행/placeholder만) — verbatim 처리로 API 0회 |
 | `tier` | string | `base` (1차만) / `escalated` (승격 사용) |
+
+## 업데이트 대응 워크플로
+
+게임 업데이트 후 변경분만 재번역한다 (R2 유닛 재사용 + update_diff):
+
+```bash
+# 1) 변경 passage/유닛 분류 (unchanged / changed / new) → 재번역 타깃 생성
+uv run python -m translation.update_diff --targets /tmp/opencode/rerun.jsonl
+# 2) 타깃 배치 실행 — 미변경 유닛은 ko-units.jsonl hit로 API 0회
+uv run python -m translation.translate_passages --passages-file /tmp/opencode/rerun.jsonl
+# 3) 어셈블 → 스모크
+python3 build/verify.py
+```
+
+- passage 레코드(hash)가 바뀐 passage만 재번역 대상, 그 안에서도
+  미변경 유닛은 `source_text_hash` hit로 재사용 (레코드의
+  `reused_units` 필드로 확인).
+- 어셈블러 드리프트(record ↔ 게임 파일 불일치)와 동일 판정 기준.
 
 ## 예시
 
@@ -133,6 +174,7 @@ passage 스토어와 별개로, **청킹 유닛 단위로 1줄씩 스트리밍 �
   "api_calls": 102,
   "escalated": true,
   "escalated_units": 23,
+  "reused_units": 0,
   "tier": "escalated"
 }
 ```

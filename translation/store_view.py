@@ -13,7 +13,10 @@ import argparse
 import json
 from pathlib import Path
 
-DEFAULT_STORE = Path("work/translations/ko-reuse.jsonl")
+DEFAULT_STORES = [
+    Path("work/translations/ko-reuse.jsonl"),
+    Path("work/translations/gemini-passages.jsonl"),
+]
 
 # 필드 표시 순서/그룹 — 공통 → 유형별
 _COMMON = [
@@ -22,7 +25,7 @@ _COMMON = [
     "placeholder_ok", "source_text_hash",
 ]
 _GEMINI = ["repaired", "l2_retries", "api_calls", "escalated",
-           "escalated_units", "tier"]
+           "escalated_units", "reused_units", "tier"]
 _BODIES = ["source_text", "translated_text"]
 _ORDER = _COMMON + _GEMINI + _BODIES
 
@@ -54,7 +57,10 @@ def _show(record: dict, full: bool) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Pretty-print store records")
-    parser.add_argument("--store", type=str, default=str(DEFAULT_STORE))
+    parser.add_argument(
+        "--store", type=str, default="",
+        help="store file to read instead of the defaults (e.g. ko-units.jsonl)",
+    )
     parser.add_argument("--passage", type=str, default="",
                         help="show the newest record for this passage name")
     parser.add_argument("--hash", type=str, default="",
@@ -76,12 +82,14 @@ def main(argv: list[str] | None = None) -> int:
                 records.append(json.loads(line))
         label = f"journal {args.journal}"
     else:
-        path = Path(args.store)
-        records = [
-            json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
-        label = str(path)
+        paths = [Path(args.store)] if args.store else DEFAULT_STORES
+        records: list[dict] = []
+        for path in paths:
+            records.extend(
+                json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            )
+        label = ", ".join(str(p) for p in paths)
         if args.passage:
             records = [r for r in records if r.get("passage_name") == args.passage]
         elif args.hash:

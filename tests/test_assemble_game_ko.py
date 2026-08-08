@@ -88,8 +88,20 @@ class AssembleTests(unittest.TestCase):
         with store.open("w", encoding="utf-8") as fh:
             fh.write(json.dumps(rec1, ensure_ascii=False) + "\n")
             fh.write(json.dumps(rec2, ensure_ascii=False) + "\n")
-        chosen, _ = pick_passage_records(store)
+        chosen, _ = pick_passage_records([store])
         self.assertEqual(chosen[("a.twee", "P")]["translated_text"], "새 번역")
+
+    def test_pick_passage_records_later_store_wins(self) -> None:
+        legacy = self.root / "legacy.jsonl"
+        gemini = self.root / "gemini.jsonl"
+        with legacy.open("w", encoding="utf-8") as fh:
+            fh.write(json.dumps(
+                _record("a.twee", "P", "old", "옛 번역"), ensure_ascii=False) + "\n")
+        with gemini.open("w", encoding="utf-8") as fh:
+            fh.write(json.dumps(
+                _record("a.twee", "P", "old", "젬니 번역"), ensure_ascii=False) + "\n")
+        chosen, _ = pick_passage_records([legacy, gemini])
+        self.assertEqual(chosen[("a.twee", "P")]["translated_text"], "젬니 번역")
 
     def test_splice_preserves_boundary_newlines(self) -> None:
         # KO bodies often drop the trailing newline; the next passage header

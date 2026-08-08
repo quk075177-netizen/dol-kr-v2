@@ -134,7 +134,7 @@ class TranslatePassagesTests(unittest.TestCase):
             len(verify_malformed_post_markers("a {{post:을를}} b {{post:은는} c")), 1
         )
 
-    def _unit_with(self, masked_text: str, ph_tokens: list[str]):
+    def _unit_with(self, masked_text: str, ph_tokens: list[str], segments=None):
         from pretranslation_cst.model import Span
 
         unit = mock.Mock()
@@ -142,6 +142,7 @@ class TranslatePassagesTests(unittest.TestCase):
         unit.ancestors = None
         unit.preceding_context = None
         unit.following_context = None
+        unit.segments = segments if segments is not None else []
         unit.placeholders = [
             mock.Mock(placeholder=t, source_span=Span(0, 0), original_text="")
             for t in ph_tokens
@@ -174,6 +175,24 @@ class TranslatePassagesTests(unittest.TestCase):
         problems = verify_unit_structure(unit, "<0000003> <0000002> 안녕 <0000001>")
         self.assertIn("foreign_token", problems)
         self.assertIn("reorder", problems)
+
+    def test_verify_unit_structure_content_drop(self) -> None:
+        # a content unit whose output is whitespace-only was deleted by the
+        # model — invisible to the placeholder checks when there are no
+        # tokens (observed: "The " fragment -> "\t")
+        from pretranslation_cst.model import Span
+        from translation.translate_passages import verify_unit_structure
+
+        seg = mock.Mock()
+        seg.text = "The "
+        seg.source_span = Span(0, 4)
+        seg.kind = "plain_text"
+        unit = self._unit_with("The ", [], segments=[seg])
+        self.assertEqual(verify_unit_structure(unit, "\t"), ["content_drop"])
+        self.assertEqual(verify_unit_structure(unit, "그"), [])
+        # glue units (no content) are not flagged
+        unit2 = self._unit_with("\n\t", [])
+        self.assertEqual(verify_unit_structure(unit2, "\n\t"), [])
 
     def _unit_with_sensitivity(self, masked_text: str, ph_tokens: list[str], sensitive: bool):
         unit = self._unit_with(masked_text, ph_tokens)
@@ -210,20 +229,20 @@ class TranslatePassagesTests(unittest.TestCase):
         )
 
     def test_canonical_signature(self) -> None:
-        from translation.translate_passages import _canonical_signature
+        from translation.store import canonical_signature
 
         # insensitive tokens sorted within runs, sensitive keep order
         sig = ["a", "b", "X", "c", "d"]
         sens = [False, False, True, False, False]
-        self.assertEqual(_canonical_signature(sig, sens), ["a", "b", "X", "c", "d"])
+        self.assertEqual(canonical_signature(sig, sens), ["a", "b", "X", "c", "d"])
         self.assertEqual(
-            _canonical_signature(["b", "a", "X", "d", "c"], sens),
+            canonical_signature(["b", "a", "X", "d", "c"], sens),
             ["a", "b", "X", "c", "d"],
         )
         # a sensitive token moved changes the canonical form
         self.assertNotEqual(
-            _canonical_signature(["X", "a", "b"], [True, False, False]),
-            _canonical_signature(["a", "b", "X"], [False, False, True]),
+            canonical_signature(["X", "a", "b"], [True, False, False]),
+            canonical_signature(["a", "b", "X"], [False, False, True]),
         )
 
     def test_skeleton_ok_tolerates_insensitive_swap(self) -> None:
@@ -376,6 +395,19 @@ class TranslatePassagesTests(unittest.TestCase):
         )
         return self._passage(name)
 
+    def _passage_multi_unit(self, name: str = "One") -> object:
+        """Passage that chunks into several content units (no-merge policy:
+        repeated containers stay separate units) — exercises the multi-item
+        batch path.  Long enough to clear the 700-char threshold."""
+        self.file.write_text(
+            ":: One\n\nIntro text here. "
+            + "<<if $flag>>Branch content that is long enough to be its own unit."
+              "<</if>> " * 14
+            + "\n\n:: Two\n\nSecond passage here.\n\n",
+            encoding="utf-8",
+        )
+        return self._passage(name)
+
     def _passage_with_set(self, name: str = "One") -> object:
         """Passage whose body contains a <<set>> and a <<run>> macro (two
         order-sensitive placeholder tokens)."""
@@ -481,18 +513,22 @@ class TranslatePassagesTests(unittest.TestCase):
                 translate_units_batch(real_units)
 
     def test_translate_passage_batch_path_with_escalation(self) -> None:
-        # batch translate: first unit's batch output drops a placeholder →
-        # flash escalation (single call) recovers it → passage succeeds
+        # batch translate: each unit's batch output drops a placeholder →
+        # flash escalation (single call per unit) recovers them → passage
+        # succeeds with the batch path exercised (multiple content units)
         from translation.client import TranslatedUnit
         from translation.translate_passages import translate_units_batch
 
-        passage = self._passage_with_vars()
+        passage = self._passage_multi_unit()
 
         def fake_batch(units, model=None, **kwargs):
-            return [
-                "<0000000> 안녕",           # drops <0000001> — needs escalation
-                "<0000001> 세계",
-            ]
+            out = []
+            for unit in units:
+                text = unit.masked_text
+                if unit.placeholders:
+                    text = text.replace(unit.placeholders[0].placeholder, "", 1)
+                out.append(text)
+            return out
 
         def fake_translate(unit, index=0, total=1, hint=None, model=None):
             # the escalation call fixes the drop
@@ -507,7 +543,7 @@ class TranslatePassagesTests(unittest.TestCase):
         self.assertEqual(reason, "ok")
         assert record is not None
         self.assertIs(record["escalated"], True)
-        self.assertEqual(record["escalated_units"], 1)
+        self.assertGreater(record["escalated_units"], 0)
         self.assertEqual(record["tier"], "escalated")
 
     def test_translate_passage_batch_fallback_on_protocol_error(self) -> None:
@@ -515,7 +551,7 @@ class TranslatePassagesTests(unittest.TestCase):
         from translation.client import TranslatedUnit
         from translation.translate_passages import translate_units_batch
 
-        passage = self._passage_with_vars()
+        passage = self._passage_multi_unit()
 
         def fake_batch(units, model=None, **kwargs):
             raise RuntimeError("batch: invalid JSON response")
@@ -538,6 +574,75 @@ class TranslatePassagesTests(unittest.TestCase):
         from translation.client import TranslatedUnit
 
         return TranslatedUnit(unit=unit, translated_text=text)
+
+    def test_reuse_unit_hit_and_miss(self) -> None:
+        from translation.translate_passages import _reuse_unit, _restore_unit_text
+
+        unit = self._unit_with("<0000001> hello <0000002>", ["<0000001>", "<0000002>"])
+        unit.placeholders[0].original_text = "A"
+        unit.placeholders[1].original_text = "B"
+        key = source_hash(_restore_unit_text(unit))
+        # miss: empty store
+        self.assertIsNone(_reuse_unit(unit, None))
+        self.assertIsNone(_reuse_unit(unit, {}))
+        # hit: restored translation is re-tokenised for this unit
+        records = {key: [{"source_text_hash": key, "translated_text": "안녕 A 세계 B"}]}
+        hit = _reuse_unit(unit, records)
+        self.assertIsNotNone(hit)
+        assert hit is not None
+        self.assertEqual(hit.translated_text, "안녕 <0000001> 세계 <0000002>")
+        # corrupt: stored text misses an original -> cannot be reused
+        records = {key: [{"source_text_hash": key, "translated_text": "안녕 A"}]}
+        self.assertIsNone(_reuse_unit(unit, records))
+
+    def test_translate_passage_unit_reuse_skips_api(self) -> None:
+        # A passage whose units all exist in the unit store translates with
+        # zero API calls (batch and non-batch paths) and records the count.
+        from pretranslation_cst.chunking import chunk_passage
+        from pretranslation_cst.masking import mask_passage
+        from translation.translate_passages import _restore_unit_text
+
+        long_body = (
+            "Intro text that is long enough to split. "
+            "<<if $x>>Branch one with prose and a bit more text.<</if>> "
+            "<<switch $y>><<case 1>>Case one<<case 2>>Case two<</switch>> "
+            "Trailing text here to push the size up a little. "
+        ) * 10
+        self.file.write_text(":: One\n\n" + long_body + "\n\n", encoding="utf-8")
+        data = self.file.read_bytes()
+        source = parse_file(data, str(self.file), DEFAULT_VALUE_KIND_PATH)
+        passage = next(p for p in source.passages if p.name == "One")
+        artifact = mask_passage(data, passage)
+        units = chunk_passage(passage, artifact, data)
+        self.assertGreater(len(units), 1)
+        units_records: dict[str, list[dict]] = {}
+        for unit in units:
+            key = source_hash(_restore_unit_text(unit))
+            units_records[key] = [{
+                "source_text_hash": key,
+                "translated_text": _restore_unit_text(unit),
+                "placeholder_ok": True,
+                "source": "gemini",
+                "level": "unit",
+            }]
+        for batch_size in (1, 2):
+            with mock.patch(
+                "translation.translate_passages.translate_units_batch",
+                side_effect=AssertionError("reuse must skip the batch API"),
+            ), mock.patch(
+                "translation.translate_passages.translate_unit",
+                side_effect=AssertionError("reuse must skip per-unit API"),
+            ):
+                record, reason = translate_passage(
+                    self.file, passage, request_id="req_test", store_records={},
+                    batch_size=batch_size, units_records=units_records,
+                )
+            self.assertEqual(reason, "ok")
+            assert record is not None
+            # no-merge chunking: units = stored reuse + verbatim glue
+            self.assertEqual(
+                record["reused_units"] + record.get("glue_units", 0), len(units))
+            self.assertGreater(record["reused_units"], 0)
 
     def test_boundary_prose_drops_detects_merged_boundary(self) -> None:
         from translation.translate_passages import boundary_prose_drops

@@ -1,5 +1,6 @@
 """Assemble a ``game_ko/`` tree from the English ``game/`` tree and
-passage-level translation records (``work/translations/ko-reuse.jsonl``).
+passage-level translation records (``work/translations/ko-reuse.jsonl``
+plus ``work/translations/gemini-passages.jsonl``).
 
 The tree is copied verbatim into a staging directory, then every translated
 passage body is spliced into its ``.twee`` file at the byte span the parser
@@ -16,6 +17,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import shutil
@@ -23,15 +25,24 @@ import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from typing import Sequence
 
 from pretranslation_cst.corpus_verify import collect_known_macro_names
 from pretranslation_cst.parser import parse_file
 from pretranslation_cst.paths import DEFAULT_VALUE_KIND_PATH
-from translation.store import load_translations, passage_placeholder_signature
+from translation.store import (
+    load_translations_many,
+    passage_placeholder_signature,
+    signatures_equal,
+)
 
 GAME_ROOT = Path("game")
 GAME_KO_ROOT = Path("game_ko")
 DEFAULT_STORE = Path("work/translations/ko-reuse.jsonl")
+DEFAULT_STORES = [
+    Path("work/translations/ko-reuse.jsonl"),
+    Path("work/translations/gemini-passages.jsonl"),
+]
 
 _SEQ_RE = re.compile(r"<<\s*/?\s*[A-Za-z_]\w*|\[\[|]]|</?[a-z][^>]*>")
 
@@ -53,10 +64,14 @@ def korean_fragment(text: str) -> str:
 
 
 def pick_passage_records(
-    store_path: str | Path,
+    store_paths: Sequence[str | Path],
 ) -> tuple[dict[tuple[str, str], dict], dict[str, int]]:
-    """(source_path, passage_name) -> newest usable passage-level record."""
-    records = load_translations(store_path)
+    """(source_path, passage_name) -> newest usable passage-level record.
+
+    ``store_paths`` are merged in order — a record in a later file wins
+    over an earlier one for the same passage (latest-wins, matching the
+    append order of the previous single file)."""
+    records = load_translations_many(store_paths)
     chosen: dict[tuple[str, str], dict] = {}
     skipped = {"non_passage_level": 0, "unusable": 0}
     for group in records.values():
@@ -97,6 +112,7 @@ def _process_file(
         "parse_error": 0,
         "verify_failed": 0,
         "diagnostics": {},
+        "rejected": [],
         "spliced_records": [],
     }
     src = game_root / rel
@@ -156,13 +172,29 @@ def _process_file(
     ]
 
     if verify:
-        problems = _verify_assembled(
-            dst, spliced_names, known_names, original=original_data, original_source=source
+        gemini_names = frozenset(
+            name for name, record in spliced_items if record.get("source") == "gemini"
         )
-        if problems:
-            stats["verify_failed"] += len(problems)
-            for code in problems:
+        problems = _verify_assembled(
+            dst, spliced_names, known_names, original=original_data,
+            original_source=source, canonical_names=gemini_names,
+        )
+        by_name = {name: codes for name, codes in problems.items() if codes}
+        for name, codes in by_name.items():
+            stats["verify_failed"] += len(codes)
+            for code in codes:
                 stats["diagnostics"][code] = stats["diagnostics"].get(code, 0) + 1
+            record = next((rec for n, rec in spliced_items if n == name), None)
+            if record is not None:
+                # rejected at assembly: the runner must re-translate these
+                # (skip logic excludes rejected hashes), otherwise the
+                # passage silently stays English forever
+                stats["rejected"].append({
+                    "source_text_hash": record["source_text_hash"],
+                    "source_path": rel,
+                    "passage_name": name,
+                    "codes": codes,
+                })
     return stats
 
 
@@ -173,13 +205,21 @@ def _verify_assembled(
     *,
     original: bytes | None = None,
     original_source=None,
-) -> list[str]:
-    """Reparse a spliced file and validate every spliced passage:
+    canonical_names: frozenset[str] = frozenset(),
+) -> dict[str, list[str]]:
+    """Reparse a spliced file and validate every spliced passage.
+
+    Returns passage name -> failure codes (empty dict = everything passed).
 
     1. structural diagnostics (unclosed containers, malformed macros, ...)
-    2. macro-token sequence equality against the original body
+    2. macro-token sequence equality against the original body (skipped for
+       ``canonical_names`` — records produced by the runner, whose
+       protected-span verification already covers them)
     3. protected-span signature equality (mask both bodies and compare the
        original bytes of the protected spans — the strong skeleton check).
+       For ``canonical_names`` the Option E canonical comparison is used
+       (order-insensitive display spans may be reordered by Korean word
+       order — same rule the runner applies), everything else stays strict.
 
     When ``original``/``original_source`` are given the original parse is
     reused instead of reparsing the original file.
@@ -190,9 +230,11 @@ def _verify_assembled(
             data, path.as_posix(), DEFAULT_VALUE_KIND_PATH, _widget_names=known_names
         )
     except Exception:
-        return ["parse_error"]
+        return {name: ["parse_error"] for name in spliced_names}
     wanted = set(spliced_names)
-    codes: list[str] = []
+    problems: dict[str, list[str]] = {}
+    for name in wanted:
+        problems[name] = []
     if original is not None:
         if original_source is None:
             try:
@@ -200,7 +242,7 @@ def _verify_assembled(
                     original, path.as_posix(), DEFAULT_VALUE_KIND_PATH, _widget_names=known_names
                 )
             except Exception:
-                return ["parse_error"]
+                return {name: ["parse_error"] for name in spliced_names}
         original_passages = {p.name: p for p in original_source.passages}
         for passage in source.passages:
             if passage.name not in wanted:
@@ -212,18 +254,23 @@ def _verify_assembled(
                 original_passage.body_span.start : original_passage.body_span.end
             ]
             assembled_body = data[passage.body_span.start : passage.body_span.end]
-            if macro_sequence(original_body) != macro_sequence(assembled_body):
-                codes.append("macro_sequence_mismatch")
+            if passage.name not in canonical_names:
+                if macro_sequence(original_body) != macro_sequence(assembled_body):
+                    problems[passage.name].append("macro_sequence_mismatch")
             try:
-                src_sig = passage_placeholder_signature(
-                    _mask_passage(original, original_passage)
-                )
-                ko_sig = passage_placeholder_signature(_mask_passage(data, passage))
+                src_artifact = _mask_passage(original, original_passage)
+                ko_artifact = _mask_passage(data, passage)
             except Exception:
-                codes.append("mask_failed")
+                problems[passage.name].append("mask_failed")
                 continue
-            if src_sig != ko_sig:
-                codes.append("skeleton_mismatch")
+            if passage.name in canonical_names:
+                if not signatures_equal(src_artifact, ko_artifact):
+                    problems[passage.name].append("skeleton_mismatch")
+            else:
+                src_sig = passage_placeholder_signature(src_artifact)
+                ko_sig = passage_placeholder_signature(ko_artifact)
+                if src_sig != ko_sig:
+                    problems[passage.name].append("skeleton_mismatch")
     for passage in source.passages:
         if passage.name not in wanted:
             continue
@@ -235,8 +282,8 @@ def _verify_assembled(
                 "invalid_macro_name",
                 "unknown_macro",
             }:
-                codes.append(diagnostic.code)
-    return codes
+                problems[passage.name].append(diagnostic.code)
+    return problems
 
 
 def _mask_passage(data: bytes, passage):
@@ -258,6 +305,7 @@ def _empty_stats() -> dict:
         "parse_error": 0,
         "verify_failed": 0,
         "diagnostics": {},
+        "rejected": [],
         "spliced_records": [],
         "copy_seconds": 0.0,
         "splice_seconds": 0.0,
@@ -274,6 +322,7 @@ def _merge_stats(base: dict, add: dict) -> None:
     for code, count in add.get("diagnostics", {}).items():
         base["diagnostics"][code] = base["diagnostics"].get(code, 0) + count
     base["spliced_records"].extend(add.get("spliced_records", []))
+    base["rejected"].extend(add.get("rejected", []))
 
 
 def _worker(args: tuple) -> tuple[str, dict]:
@@ -364,7 +413,11 @@ def write_passage_list(stats: dict, path: str | Path) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Assemble game_ko/ from game/ + reuse store")
-    parser.add_argument("--store", type=str, default=str(DEFAULT_STORE))
+    parser.add_argument(
+        "--store", action="append", type=str, default=[],
+        help="passage store path (repeatable; default: ko-reuse.jsonl + "
+             "gemini-passages.jsonl)",
+    )
     parser.add_argument("--game-root", type=str, default=str(GAME_ROOT))
     parser.add_argument("--output", type=str, default=str(GAME_KO_ROOT))
     parser.add_argument("--no-verify", action="store_true")
@@ -375,7 +428,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    records, skipped = pick_passage_records(args.store)
+    stores = [Path(s) for s in args.store] or DEFAULT_STORES
+    records, skipped = pick_passage_records(stores)
+    print(f"stores: {[str(s) for s in stores]}")
     print(f"records picked: {len(records)} (skipped: {skipped})")
     known_names = collect_known_macro_names(Path(args.game_root))
     stats = assemble(
@@ -386,6 +441,30 @@ def main(argv: list[str] | None = None) -> int:
         known_names=known_names,
         workers=args.workers or None,
     )
+    rejected_path = Path("work/translations/assembler-rejected.jsonl")
+    rejected_path.parent.mkdir(parents=True, exist_ok=True)
+    existing_entries: list[dict] = []
+    if rejected_path.exists():
+        for line in rejected_path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                existing_entries.append(json.loads(line))
+    # keep only entries that failed again this run (a re-translated record
+    # that now passes must not keep blocking the runner)
+    current = {(e["source_path"], e["passage_name"]) for e in stats["rejected"]}
+    kept = [e for e in existing_entries
+            if (e.get("source_path"), e.get("passage_name")) in current]
+    merged = kept + [
+        e for e in stats["rejected"]
+        if not any(k.get("source_path") == e["source_path"]
+                   and k.get("passage_name") == e["passage_name"] for k in kept)
+    ]
+    with rejected_path.open("w", encoding="utf-8") as fh:
+        for entry in merged:
+            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    if stats["rejected"]:
+        print(f"  rejected: {len(stats['rejected'])} -> {rejected_path}")
+    elif existing_entries and not kept:
+        print(f"  rejected: {len(existing_entries)} entries cleared (all re-verified OK)")
     for key, value in stats.items():
         if key == "spliced_records":
             continue

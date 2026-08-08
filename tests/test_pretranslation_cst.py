@@ -267,6 +267,45 @@ class PretranslationCstTests(unittest.TestCase):
         self.assertIn("Next", artifact.masked_text)
         self.assertEqual(restore_mask(artifact), body[passage.body_span.start:passage.body_span.end])
 
+    def test_nested_macros_inside_macro_args_stay_protected(self) -> None:
+        # Regression (2026-08-08): <<He>>/<<his>> inside a quoted macro
+        # argument were exposed text, so the model could translate them
+        # (observed: <<He>> -> <그가>) and no L1/L2/skeleton check caught
+        # it — the game's runtime pronoun macros must survive as protected
+        # placeholders instead.
+        body = (
+            b":: Test\n<<hypnosisText \"<<He>> snaps <<his>> fingers, and you're no longer "
+            b"where you once were.\">>\n"
+        )
+        source = parse_file(body, "fixture.twee", VALUE_KINDS)
+        passage = source.passages[0]
+        artifact = mask_passage(body, passage)
+        # the nested macros are protected: their bytes appear only as
+        # placeholder originals, never as exposed prose
+        self.assertEqual(
+            restore_mask(artifact),
+            body[passage.body_span.start:passage.body_span.end],
+        )
+        originals = [ph.original_text for ph in artifact.placeholders]
+        self.assertTrue(any("<<He>>" in original for original in originals))
+        self.assertTrue(any(original == "<<his>>" for original in originals))
+        # the exposed prose stays translatable
+        self.assertIn("snaps", artifact.masked_text)
+        self.assertIn("fingers", artifact.masked_text)
+
+    def test_nested_macro_quote_skips_inner_gtgt(self) -> None:
+        # the nested-macro closer must skip quoted strings so a nested
+        # macro whose argument contains "a >> b" closes at its real >>
+        body = b":: Test\n<<hypnosisText \"<<npc 'a >> b'>> and text\">>\n"
+        source = parse_file(body, "fixture.twee", VALUE_KINDS)
+        passage = source.passages[0]
+        artifact = mask_passage(body, passage)
+        self.assertEqual(
+            restore_mask(artifact),
+            body[passage.body_span.start:passage.body_span.end],
+        )
+        self.assertIn("and text", artifact.masked_text)
+
 
 if __name__ == "__main__":
     unittest.main()

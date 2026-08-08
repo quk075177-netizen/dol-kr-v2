@@ -95,6 +95,54 @@ class ChunkingTests(unittest.TestCase):
         units = chunk_passage(passage, artifact, body)
         self.assertEqual(units, [])
 
+    def test_small_units_merge_only_within_same_context(self) -> None:
+        # Structure-aware minimal merge (F9): a tiny content unit merges
+        # with the next unit only when both share the same ancestor path —
+        # a tiny container must NOT merge into the following container's
+        # unit (which would couple unrelated text into one reuse key).
+        body = (
+            b":: Test\n"
+            + (b"<<if $x>>tiny<</if>> <<switch $y>><<case 1>>also small"
+               b"<</switch>> ") * 8
+            + b"\n"
+        )
+        source = parse_file(body, "chunk.twee", DEFAULT_VALUE_KIND_PATH)
+        passage = source.passages[0]
+        artifact = mask_passage(body, passage)
+        units = chunk_passage(passage, artifact, body, threshold=200, min_chars=200)
+        for unit in units:
+            if not unit.placeholders:
+                continue
+            names = set()
+            for ph in unit.placeholders:
+                text = ph.original_text
+                if "if" in text:
+                    names.add("if")
+                if "switch" in text:
+                    names.add("switch")
+            self.assertLessEqual(len(names), 1, unit.masked_text)
+        joined = "".join(unit.masked_text for unit in units)
+        self.assertEqual(joined, artifact.masked_text)
+
+    def test_tiny_slivers_merge_into_neighbour(self) -> None:
+        # "The " (5 chars, same branch) must merge into the next unit — a
+        # standalone sliver would otherwise be translated badly or dropped
+        # entirely (observed: "The " -> "\t")
+        body = (
+            b":: Test\n<<if $x>>"
+            + (b"The <<print 'word'>> is wide. " * 14)
+            + b"more trailing text here<</if>>\n"
+        )
+        source = parse_file(body, "chunk.twee", DEFAULT_VALUE_KIND_PATH)
+        passage = source.passages[0]
+        artifact = mask_passage(body, passage)
+        units = chunk_passage(passage, artifact, body, threshold=300, min_chars=100)
+        self.assertGreater(len(units), 1)
+        for unit in units:
+            self.assertNotEqual(unit.masked_text.strip(), "The")
+        joined = "".join(unit.masked_text for unit in units)
+        self.assertEqual(joined, artifact.masked_text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,9 +17,9 @@ from dataclasses import dataclass, field
 
 from .model import MaskArtifact, Passage, Placeholder, Segment, Span
 
-DEFAULT_THRESHOLD = 1000
+DEFAULT_THRESHOLD = 700
 DEFAULT_MAX_CHARS = 2000
-DEFAULT_MIN_CHARS = 200
+DEFAULT_MIN_CHARS = 100
 
 
 @dataclass
@@ -93,6 +93,13 @@ def chunk_passage(
     ``max_chars`` is a soft ceiling — units are split further only along
     container/branch boundaries, so a single leaf larger than ``max_chars``
     is kept as-is (no hard cap).
+
+    Units smaller than ``min_chars`` are merged with the next unit when
+    that does not couple unrelated text (structure-aware, F9): content
+    units only merge with a neighbour that shares the same ancestor
+    container/branch path, and content-free glue merges freely.  This
+    removes degenerate fragments (``"The "`` alone, mid-sentence slivers)
+    that otherwise translate badly or get silently dropped.
     """
     if passage.is_opaque or passage.root is None or not artifact.segments:
         # opaque passage (no exposed text) -> no units
@@ -110,7 +117,7 @@ def chunk_passage(
             if group_text_len <= threshold:
                 spans.append((group["span"], group["ancestors"]))
             else:
-                for unit in _split_group(passage, artifact, data, group, threshold, max_chars, min_chars):
+                for unit in _split_group(passage, artifact, data, group, threshold, max_chars):
                     spans.append((unit["span"], unit["ancestors"]))
 
     units = _build_units_from_spans(passage, artifact, data, spans)
@@ -232,7 +239,6 @@ def _split_group(
     group: dict,
     threshold: int,
     max_chars: int,
-    min_chars: int,
     _depth: int = 0,
 ) -> list[dict]:
     """Recursively split an over-threshold container into span boundaries.
@@ -265,7 +271,7 @@ def _split_group(
                 "end_override": end,
             }
             spans.extend(_split_group(passage, artifact, data, child_group,
-                                      threshold, max_chars, min_chars, _depth + 1))
+                                      threshold, max_chars, _depth + 1))
         else:
             # leaf macro/text that is itself over the limit: keep as-is
             spans.append({"span": span, "ancestors": _ancestor_path(passage, branch.node_id)})
@@ -273,8 +279,18 @@ def _split_group(
 
 
 def _merge_small_units(units: list[TranslateUnit], min_chars: int) -> list[TranslateUnit]:
-    """Merge units smaller than ``min_chars`` with a neighbour (repeat until
-    the merged unit clears the threshold or no neighbour remains)."""
+    """Merge units smaller than ``min_chars`` with the next unit (repeat
+    until the merged unit clears the threshold or no neighbour remains).
+
+    Structure-aware (F9): a unit with real content (a non-whitespace
+    segment) is only merged with the next unit when both share the same
+    ancestor container/branch path — a merged unit never spans two
+    containers, which would mislead the ``ancestors`` metadata and couple
+    unrelated text into one reuse key.  Content-free units (whitespace and
+    placeholder glue only) carry no content, so their ancestors are moot —
+    they merge across contexts harmlessly and never become standalone
+    fragments (``"The "``-style slivers would otherwise translate badly or
+    get silently dropped)."""
     if len(units) <= 1:
         return units
     merged: list[TranslateUnit] = []
@@ -283,6 +299,11 @@ def _merge_small_units(units: list[TranslateUnit], min_chars: int) -> list[Trans
         unit = units[i]
         while unit.char_count < min_chars and i + 1 < len(units):
             nxt = units[i + 1]
+            # whitespace/newlines are also plain_text segments — only a
+            # segment with non-whitespace text is real content
+            has_content = any(seg.text.strip() for seg in unit.segments)
+            if has_content and unit.ancestors != nxt.ancestors:
+                break
             unit = TranslateUnit(
                 unit_id=unit.unit_id,
                 source_path=unit.source_path,

@@ -90,8 +90,10 @@ try {
     const enterButton = ageDialog
       .getByRole("button", { name: /^(Enter|입장)$/ })
       .first();
-    await enterButton.click();
-    await ageDialog.waitFor({ state: "hidden", timeout: 30000 });
+    // the compiled story grows with the translation coverage — a 50MB+
+    // SugarCube story can keep the main thread busy for a while
+    await enterButton.click({ timeout: 120000 });
+    await ageDialog.waitFor({ state: "hidden", timeout: 120000 });
   }
   checks.ageGateAccepted = await page.evaluate(
     () => localStorage.getItem("verifiedAge") === "true",

@@ -43,7 +43,8 @@
    잔여: state=empty/excluded 595건 중 ko_body≈source_body(영어 그대로)
    90건은 find_passage_reuse 블로커 — 후순위 정리 대상.
 3. **전체 16,135 passage** — 비용 큰 마지막 단계. request_id 배치 추적,
-   R2 unit-level 재사용 연동 (배치 내 동일 문장 hit).
+   **R2 unit-level 재사용 연동 (완료 — 2026-08-08, 아래 2.5순위)**: 배치
+   내 동일 문장 hit 시 API 0회. `update_diff`로 변경분만 추려 실행 가능.
 4. **실패 관측 후 L2 결정 — 완료 (구현)**: 관측 데이터 확보 후 유닛
    단위 조기 검사(L2) + Option E(리오더 허용) + 배치/승격 에스컬레이션
    구현. placeholder_drop은 결정적(같은 유닛 재실패) — **lite의 지뢰
@@ -75,6 +76,30 @@
   종결 실패 추출 → `--passages-file` 재실행.
 - **유닛 스토어**: `work/translations/ko-units.jsonl` — 청킹 유닛 단위
   1줄씩 스트리밍 (부분 진행 보존, `source_text_hash` = R2 키).
+- **버그 3: 중첩 매크로 보호 (완료, 2026-08-08)** — 매크로 인자 내부의
+  `<<He>>` 같은 중첩 매크로가 노출 segment(macro_arg)로 남아, LLM이
+  `<그가>`로 변형해도 L1(placeholder)/L2(`<0\d+>`)/시그니처(보호 span만)
+  검사가 전부 못 잡던 갭. `masking._nested_macro_spans`로 노출 후보 내
+  매크로 재보호 (L1/L2/시그니처 커버). `register_ko_reuse --force` 추가
+  (마스커 변경 시 재검증·퇴출), corpus baseline 갱신.
+- **R2 유닛 재사용 연동 (완료, 2026-08-08)**: 번역 전 각 유닛
+  `ko-units.jsonl` 조회 → hit 시 복원형 `translated_text`를 현재 유닛
+  토큰으로 재토큰화(`_retokenize`) + L1/L2 재검증 → API 0회. 배치 경로는
+  재사용 유닛을 API 배치에서 제외. passage 레코드에 `reused_units` 기록.
+  **저장은 항상 원문 바이트 복원형** (토큰은 위치 기반 재번호 — 토큰
+  형태 저장 시 수정/교차 passage 재사용 불가).
+- **update_diff (완료, 2026-08-08)**: `translation/update_diff.py` —
+  game/ vs 스토어 비교로 passage를 unchanged/changed/new로 분류,
+  `--targets`로 재번역 타깃 생성 (러너 `--passages-file` 그대로 투입).
+- **청킹 튜닝 (완료, 2026-08-08)**: threshold 700, **구조 인식 최소
+  병합** (같은 ancestor 경로 안에서만 <100자 병합 — 무병합 시행에서
+  "The " 조각 유닛의 통째 삭제(검사 무감지) 문제가 확인돼 F9 버전으로
+  재도입). 유닛 179,160 → 74,039. 표:
+  `docs/chunking-strategy.md` §임계치.
+- **스토어 스플릿 (완료, 2026-08-08)**: `ko-reuse.jsonl`(ko_reuse) /
+  `gemini-passages.jsonl` / `ko-units.jsonl` 파일 분리
+  (`translation/split_stores.py` 멱등). 어셈블러/러너는 병합 로드
+  (`load_translations_many`, 뒤 파일 우선). 데드 파일은 `tmp/archive/`.
 - **뷰어**: `store_view` — `--lines`로 source/translated 줄 대응 표시.
 
 ## 3순위 — post 시스템 완성
@@ -99,8 +124,8 @@
 - H5 스모크 셀렉터 설정 분리, Q3 체크 카테고리(번역/회귀) 분리,
   Q5 store level 통일.
 - `_get_model` 캐시 개선 (다중 모델 혼용 시 캐시 우회).
-- F10 placeholder prefix 인플레이션, F9 `_merge_small_units` ancestors,
-  F11 TextSource 최적화.
+- F10 placeholder prefix 인플레이션, F11 TextSource 최적화.
+  (F9 병합 ancestors는 구조 인식 병합으로 해소)
 
 ## 실행 순서 근거
 

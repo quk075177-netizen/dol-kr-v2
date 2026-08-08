@@ -129,13 +129,21 @@ corpus-triple-match.jsonl (KO body, 【 】마커 포함)
 - `ko_body_preserves_skeleton(ko, signature)` → 보호 스팬 순서 보존 검사
 - 유닛 테스트: hash 매칭, superseded 처리, 중복 append, skeleton 검사
 
-### R2. 재사용 파이프라인 연결 — passage-level 완료, unit-level 보류
+### R2. 재사용 파이프라인 연결 — passage-level + unit-level 완료 (2026-08-08)
 
 - `pilot.py --store PATH`: passage body hash 매칭 시 API 호출 없이
   `ko_reuse` 기록 사용, 미스 시 기존대로 번역
 - 실측: "Adult Shop Lock" passage — REUSED, API 호출 0
-- unit-level(`translate_unit` store 파라미터)은 Gemini 레코드가 생기는
-  본번역 실행부터 연결 예정
+- unit-level (`_reuse_unit`): 러너가 번역 전 각 유닛을
+  `ko-units.jsonl`의 `source_text_hash`로 조회 — hit 시 저장된
+  **복원형**(원문 바이트) `translated_text`를 현재 유닛 토큰으로
+  재토큰화(`_retokenize`) 후 L1/L2 재검증, 통과 시 API 호출 없이 join.
+  배치 모드는 재사용 유닛을 API 배치에서 제외하고 저장 텍스트를
+  스플라이스. passage 레코드에 `reused_units` 필드 기록.
+  - 토큰은 passage 내 위치로 재번호되므로 **토큰 형태 저장은 재사용
+    불가** — 저장·재사용 모두 원문 바이트 기준 (수정/교차 passage hit).
+  - 변경 검출: `translation/update_diff.py` — passage 분류(unchanged/
+    changed/new) + 유닛별 재사용 가능 수 → `--targets`로 러너 입력 생성.
 
 ### R3. 3-match 등록 스크립트 (`translation/register_ko_reuse.py`) — 완료
 
@@ -152,17 +160,19 @@ corpus-triple-match.jsonl (KO body, 【 】마커 포함)
   실제는 100%). PO2 런타임 helper가 처리.
 - game/ 실제 파일과 passage body hash 일치: 샘플 100/100
 
-### R4. request_id — 부분 완료
+### R4. request_id — 완료
 
 - `register_ko_reuse`는 `req_ko_reuse` 상수 사용
-- 배치 실행 자동 발급(`req_<yyyymmdd>_<seq>`)은 본번역 CLI에서 연결 예정
+- 배치 실행 자동 발급(`req_<yyyymmdd>_<seq>`) — 러너 `next_request_id`
 
 ## 완료 기준
 
 - [x] 같은 유닛 2회 번역 시 2회째는 API 호출 0 (저장소 hit) — passage-level 실측
+- [x] 같은 유닛이 passage/수정을 넘어 재사용 — unit-level `_reuse_unit`
+      (복원형 hash + `_retokenize`, L1/L2 재검증, 배치 포함, 2026-08-08)
 - [x] 원문 변경 시 새 hash → 재번역
 - [x] 3-match 마커 없는 passage가 재사용으로 처리됨
-- [~] request_id로 배치별 번역 결과 추적 가능 (본번역 배치에서 연결 예정)
+- [x] request_id로 배치별 번역 결과 추적 가능 (러너 자동 발급)
 - [x] placeholder_ok=false 레코드는 재사용되지 않음
 
 ## 비용 효과 예상
