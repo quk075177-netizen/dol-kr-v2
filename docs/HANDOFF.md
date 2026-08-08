@@ -184,6 +184,7 @@ python3 build/verify.py                               # 어셈블→컴파일→
 uv run python -m translation.register_ko_reuse        # 3-match KO 재등록 (멱등, ~1.5분)
 uv run python -m translation.translate_passages --file <f> --passage-name <p> [--model <m>]
 uv run python -m translation.store_view --passage <p>   # 레코드 보기 (--last/--hash/--journal)
+uv run python -m translation.journal_rerun --journal tmp/journals/req_xxx.jsonl --out rerun.jsonl  # 재던지기 추출
 uv run python -m translation.pilot --batch --max-units 5        # 파일럿
 uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감사
 ```
@@ -203,8 +204,9 @@ uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감�
   L3 skeleton_mismatch는 **경계 검사(`boundary_prose_drops`)로 해당 유닛
   쌍만 flash 재번역** (전체 passage 재시도 없음) → 또 실패 시 실패 로그만
   (자동 재시도 종료, 데이터 모아 추후 재던지기). **저널 (기본 스트리밍)**:
-  유닛/패시지 결과를 응답마다 즉시 flush — 기본 경로
-  `tmp/journals/req_<request_id>.jsonl` (`--journal`로 변경 가능). 실측:
+  fail 이벤트(유닛 실패 + 회복 여부)와 passage 결과만 기록 — 기본 경로
+  `tmp/journals/req_<request_id>.jsonl`. 종결 실패는
+  `journal_rerun`으로 추출해 재던지기 배치 생성. 실측:
   Farm Work(100유닛) 배치 7회+승격 24회 ≈33회 호출로 성공 (per-unit 대비
   ~3배 절감, 드롭 0 수렴)
 - 설정: ADC는 `gcloud auth application-default login`

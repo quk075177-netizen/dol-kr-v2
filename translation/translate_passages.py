@@ -413,35 +413,33 @@ def _journal_write(journal: Path | None, payload: dict) -> None:
         fh.flush()
 
 
-def _journal_unit(
+def _journal_fail(
     journal: Path | None,
-    request_id: str,
     source_path: str,
     passage_name: str,
-    index: int,
-    total: int,
-    translated_text: str | None,
-    reason: str | None,
-    escalated: bool,
-    model: str,
+    unit_index: int,
+    unit_count: int,
+    reason: str,
+    failed_model: str,
+    recovered_by: str | None,
 ) -> None:
+    """One failure event — this is the re-run queue.  A terminal failure
+    (``recovered_by`` is None) is a re-run target: extract
+    (source_path, passage_name) and feed it back as a new batch."""
     _journal_write(journal, {
-        "kind": "unit",
-        "request_id": request_id,
+        "kind": "fail",
         "source_path": source_path,
         "passage_name": passage_name,
-        "unit_index": index + 1,
-        "unit_count": total,
-        "status": "ok" if reason is None else reason,
-        "escalated": escalated,
-        "model": model,
-        "translated_text": translated_text,
+        "unit_index": unit_index,
+        "unit_count": unit_count,
+        "reason": reason,
+        "model": failed_model,
+        "recovered_by": recovered_by,
     })
 
 
 def _journal_passage(
     journal: Path | None,
-    request_id: str,
     source_path: str,
     passage_name: str,
     status: str,
@@ -450,7 +448,6 @@ def _journal_passage(
 ) -> None:
     _journal_write(journal, {
         "kind": "passage",
-        "request_id": request_id,
         "source_path": source_path,
         "passage_name": passage_name,
         "status": status,
@@ -471,28 +468,48 @@ def _resolve_unit(
     debug_dir: Path | None,
     passage_name: str,
     units,
-) -> tuple[str | None, str | None, int, bool]:
+) -> tuple[str | None, str | None, int, bool, list[dict]]:
     """Run L1/L2 checks on one unit's first output, with hint retries and
     model escalation.  Returns (post-processed text, failure reason, l2
-    retries used, escalated).  On failure text is None and reason set.
+    retries used, escalated, fail events).
 
-    Escalation is skipped when ``escalation_model`` is None (the L3 retry
-    pass runs with escalation disabled — no further auto-escalation)."""
+    ``fail events`` are per-failure log lines (``kind: fail``) recording
+    every unit failure and whether the escalation recovered it — this is
+    the fail log the re-run workflow reads.  On failure text is None and
+    reason set.
+
+    Escalation is skipped when ``escalation_model`` is None (no further
+    auto-escalation)."""
     l2_retries_used = 0
     escalated = False
+    fail_events: list[dict] = []
+
+    def fail_event(reason: str, failed_model: str, recovered_by: str | None) -> dict:
+        return {
+            "kind": "fail",
+            "passage_name": passage_name,
+            "unit_index": index + 1,
+            "unit_count": total,
+            "reason": reason,
+            "model": failed_model,
+            "recovered_by": recovered_by,
+        }
+
     if verify_placeholders(unit, tu.translated_text):
         # placeholder drop: hint retries do not fix drops (observed) —
         # escalate to the stronger model directly
+        fail_events.append(fail_event("placeholder_drop", model, escalation_model))
         if escalation_model is None:
             _dump_failure(debug_dir, passage_name, "placeholder_drop", units,
                           _dump_texts(translated_units, tu, index, total))
-            return None, "placeholder_drop", l2_retries_used, escalated
+            return None, "placeholder_drop", l2_retries_used, escalated, fail_events
         tu = translate_unit(unit, index, total, model=escalation_model)
         escalated = True
         if verify_placeholders(unit, tu.translated_text):
+            fail_events.append(fail_event("placeholder_drop", escalation_model, None))
             _dump_failure(debug_dir, passage_name, "placeholder_drop", units,
                           _dump_texts(translated_units, tu, index, total))
-            return None, "placeholder_drop", l2_retries_used, escalated
+            return None, "placeholder_drop", l2_retries_used, escalated, fail_events
     problems = verify_unit_structure(unit, tu.translated_text)
     if problems:
         # L2: early unit-level structure check with targeted retries —
@@ -515,10 +532,11 @@ def _resolve_unit(
                 break
             last_reason = problems[0]
         if not recovered:
+            fail_events.append(fail_event(last_reason, model, escalation_model))
             if escalation_model is None:
                 _dump_failure(debug_dir, passage_name, last_reason, units,
                               _dump_texts(translated_units, tu, index, total))
-                return None, last_reason, l2_retries_used, escalated
+                return None, last_reason, l2_retries_used, escalated, fail_events
             # model escalation: the stronger model may avoid the structure
             # problem (or convert it into an L1/L2 checkable one)
             tu = translate_unit(
@@ -535,26 +553,29 @@ def _resolve_unit(
                 else:
                     recovered = True
             if not recovered:
+                fail_events.append(fail_event(last_reason, escalation_model, None))
                 _dump_failure(debug_dir, passage_name, last_reason, units,
                               _dump_texts(translated_units, tu, index, total))
-                return None, last_reason, l2_retries_used, escalated
+                return None, last_reason, l2_retries_used, escalated, fail_events
     processed = post_process(tu.translated_text)
     if verify_malformed_post_markers(processed):
         # the model typo'd a {{post:...}} marker (missing/dropped brace) —
         # escalate the unit; a malformed marker would otherwise surface only
         # at the joined check after every unit was translated
+        fail_events.append(fail_event("malformed_post_marker", model, escalation_model))
         if escalation_model is None:
             _dump_failure(debug_dir, passage_name, "malformed_post_marker", units,
                           _dump_texts(translated_units, tu, index, total))
-            return None, "malformed_post_marker", l2_retries_used, escalated
+            return None, "malformed_post_marker", l2_retries_used, escalated, fail_events
         tu = translate_unit(unit, index, total, model=escalation_model)
         escalated = True
         processed = post_process(tu.translated_text)
         if verify_placeholders(unit, tu.translated_text) or verify_malformed_post_markers(processed):
+            fail_events.append(fail_event("malformed_post_marker", escalation_model, None))
             _dump_failure(debug_dir, passage_name, "malformed_post_marker", units,
                           _dump_texts(translated_units, tu, index, total))
-            return None, "malformed_post_marker", l2_retries_used, escalated
-    return processed, None, l2_retries_used, escalated
+            return None, "malformed_post_marker", l2_retries_used, escalated, fail_events
+    return processed, None, l2_retries_used, escalated, fail_events
 
 
 def translate_passage(
@@ -607,7 +628,7 @@ def translate_passage(
     if batch_size <= 1:
         for index, unit in enumerate(units):
             tu = translate_unit(unit, index, len(units), model=base_model)
-            text, reason, used, esc = _resolve_unit(
+            text, reason, used, esc, fail_events = _resolve_unit(
                 unit, index, len(units), tu,
                 model=base_model, escalation_model=escalation_model,
                 translated_units=translated_units, debug_dir=debug_dir,
@@ -615,9 +636,10 @@ def translate_passage(
             )
             l2_retries += used
             escalated += esc
-            _journal_unit(journal, request_id, source_path, passage.name,
-                          index, len(units), text if reason is None else None,
-                          reason, esc, base_model)
+            for event in fail_events:
+                _journal_fail(journal, source_path, passage.name,
+                              event["unit_index"], event["unit_count"],
+                              event["reason"], event["model"], event["recovered_by"])
             if reason is not None:
                 return None, reason
             translated_units.append(TranslatedUnit(unit, text if text is not None else ""))
@@ -637,7 +659,7 @@ def translate_passage(
             for i, (unit, text) in enumerate(zip(batch, texts)):
                 index = start + i
                 tu = TranslatedUnit(unit, text)
-                resolved, reason, used, esc = _resolve_unit(
+                resolved, reason, used, esc, fail_events = _resolve_unit(
                     unit, index, len(units), tu,
                     model=base_model, escalation_model=escalation_model,
                     translated_units=translated_units, debug_dir=debug_dir,
@@ -645,9 +667,10 @@ def translate_passage(
                 )
                 l2_retries += used
                 escalated += esc
-                _journal_unit(journal, request_id, source_path, passage.name,
-                              index, len(units), resolved if reason is None else None,
-                              reason, esc, base_model)
+                for event in fail_events:
+                    _journal_fail(journal, source_path, passage.name,
+                                  event["unit_index"], event["unit_count"],
+                                  event["reason"], event["model"], event["recovered_by"])
                 if reason is not None:
                     return None, reason
                 translated_units.append(TranslatedUnit(unit, resolved if resolved is not None else ""))
@@ -714,7 +737,7 @@ def translate_passage(
         body_text, source_path, passage, request_id, model, translated_text,
         repaired, l2_retries, escalated, len(units),
     )
-    _journal_passage(journal, request_id, source_path, passage.name,
+    _journal_passage(journal, source_path, passage.name,
                      "ok", None, record["record_id"])
     return record, "ok"
 
@@ -913,7 +936,7 @@ def main(argv: list[str] | None = None) -> int:
             # an unexpected failure (network/quota/... ) must not abort the
             # whole batch — record it and move to the next passage
             stats["failed"].append({"passage": passage_name, "reason": f"exception: {exc}"})
-            _journal_passage(journal, request_id, path.as_posix(), passage_name,
+            _journal_passage(journal, path.as_posix(), passage_name,
                              "failed", f"exception: {exc}", None)
             print(f"EXCEPTION: {passage_name} ({type(exc).__name__}: {exc})")
             continue
@@ -923,7 +946,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"skip (already stored): {passage_name}")
             else:
                 stats["failed"].append({"passage": passage_name, "reason": reason})
-                _journal_passage(journal, request_id, path.as_posix(), passage_name,
+                _journal_passage(journal, path.as_posix(), passage_name,
                                  "failed", reason, None)
                 print(f"FAILED: {passage_name} ({reason})")
             continue

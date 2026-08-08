@@ -103,35 +103,47 @@
 
 ## 저널 스키마 (`tmp/journals/req_<id>.jsonl`)
 
-### unit 줄
+fail 이벤트 + passage 결과만 기록 (성공 유닛 줄 없음, request_id 없음).
+
+### fail 줄 — 재던지기 큐
 
 ```json
 {
-  "kind": "unit",
-  "request_id": "req_...",
-  "source_path": "...",
-  "passage_name": "...",
-  "unit_index": 5,
-  "unit_count": 100,
-  "status": "ok | placeholder_drop | reorder | foreign_token | format_hallucination | prose_drop | malformed_post_marker",
-  "escalated": false,
+  "kind": "fail",
+  "source_path": "overworld-town/loc-school/detention.twee",
+  "passage_name": "School Detention",
+  "unit_index": 3,
+  "unit_count": 53,
+  "reason": "placeholder_drop",
   "model": "gemini-2.5-flash-lite",
-  "translated_text": "..."   // ok일 때만
+  "recovered_by": "gemini-2.5-flash"
 }
 ```
+
+- `recovered_by`가 null이면 **종결 실패 = 재던지기 대상**
+- `source_path`+`passage_name`이 재던지기 입력 (`journal_rerun`으로 추출)
 
 ### passage 줄
 
 ```json
 {
   "kind": "passage",
-  "request_id": "req_...",
   "source_path": "...",
   "passage_name": "...",
   "status": "ok | failed",
   "reason": null | "skeleton_mismatch | ...",
-  "record_id": "tr_..._gemini"   // ok일 때만
+  "record_id": "tr_..._gemini"
 }
+```
+
+### 재던지기 워크플로
+
+```bash
+# 1) 종결 실패 passage 추출 → 재던지기 배치 파일
+uv run python -m translation.journal_rerun \
+    --journal tmp/journals/req_xxx.jsonl --out /tmp/opencode/rerun.jsonl
+# 2) 그대로 다시 실행 (새 request_id 자동)
+uv run python -m translation.translate_passages --passages-file /tmp/opencode/rerun.jsonl
 ```
 
 ## 보는 법

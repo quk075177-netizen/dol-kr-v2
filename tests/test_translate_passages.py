@@ -606,7 +606,7 @@ class TranslatePassagesTests(unittest.TestCase):
         self.assertIsNone(record)
         self.assertEqual(reason, "skeleton_mismatch")
 
-    def test_translate_passage_journal_streams_per_unit(self) -> None:
+    def test_translate_passage_journal_streams_passage_and_fails(self) -> None:
         from translation.client import TranslatedUnit
         import tempfile
 
@@ -623,15 +623,44 @@ class TranslatePassagesTests(unittest.TestCase):
             self.assertEqual(reason, "ok")
             lines = [json.loads(l) for l in journal_path.read_text(encoding="utf-8").splitlines()]
             kinds = [l["kind"] for l in lines]
-            self.assertIn("unit", kinds)
-            self.assertIn("passage", kinds)
-            unit_lines = [l for l in lines if l["kind"] == "unit"]
-            self.assertEqual(unit_lines[0]["status"], "ok")
-            self.assertIn("translated_text", unit_lines[0])
+            # no per-unit ok noise — only the passage outcome
+            self.assertEqual(kinds, ["passage"])
+            self.assertEqual(lines[0]["status"], "ok")
+            assert record is not None
+            self.assertEqual(lines[0]["record_id"], record["record_id"])
+            self.assertNotIn("request_id", lines[0])
+        finally:
+            journal_path.unlink(missing_ok=True)
+
+    def test_translate_passage_journal_records_fail_events(self) -> None:
+        # a unit that fails L1 and is recovered by escalation logs a fail
+        # event with the recovery info — the re-run queue
+        from translation.client import TranslatedUnit
+        import tempfile
+
+        def fake_translate(unit, index=0, total=1, hint=None, model=None):
+            if model == "gemini-2.5-flash":
+                return TranslatedUnit(unit=unit, translated_text=unit.masked_text)
+            return TranslatedUnit(unit=unit, translated_text="<0000000> 안녕")
+
+        journal_path = Path(tempfile.mktemp(suffix=".jsonl"))
+        try:
+            with mock.patch("translation.translate_passages.translate_unit", fake_translate):
+                record, reason = translate_passage(
+                    self.file, self._passage_with_vars(), request_id="req_test",
+                    store_records={}, journal=journal_path,
+                )
+            self.assertEqual(reason, "ok")
+            lines = [json.loads(l) for l in journal_path.read_text(encoding="utf-8").splitlines()]
+            fails = [l for l in lines if l["kind"] == "fail"]
+            self.assertGreaterEqual(len(fails), 1)
+            self.assertEqual(fails[0]["reason"], "placeholder_drop")
+            self.assertEqual(fails[0]["recovered_by"], "gemini-2.5-flash")
+            self.assertIn("source_path", fails[0])
+            self.assertIn("passage_name", fails[0])
+            self.assertNotIn("request_id", fails[0])
             passage_line = [l for l in lines if l["kind"] == "passage"][0]
             self.assertEqual(passage_line["status"], "ok")
-            assert record is not None
-            self.assertEqual(passage_line["record_id"], record["record_id"])
         finally:
             journal_path.unlink(missing_ok=True)
 
