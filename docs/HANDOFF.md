@@ -7,19 +7,27 @@
 ```text
 CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿 확대 (완료, 99.0%)
   → post PO1 (통합 완료) → 3-match 재사용 (3,151건 등록)
+  → 마커 있는 3-match 등록 (완료, +3,978건 — 커버리지 43.5%)
   → 빌드/스모크 체인 (verify.py, 전 구간 통과)
-  → Gemini 풀패시지 러너 (구현 + 리뷰 반영 완료, 실측 1 passage)
+  → Gemini 풀패시지 러너 (구현 + 리뷰 반영 완료, 배치 관측 2회차)
+  → L2 유닛 구조 조기 검사 (구현 완료, 쌍체 비교 실측)
+  → L2 2차 수정 (사유 버그/덤프 보강/토큰 일반화/프롬프트/추적 필드/
+      prose_drop) + 지뢰 분석 (구조적 특징 기각)
+  → 모델 티어 대조 실험 (결정적 유닛 3개: 티어 문제 1 + 승격+L2 해결 1
+      + 콘텐츠 난이도 1 — 3단계 에스컬레이션 근거)
 ```
 
 - 전체 corpus: 642 files / 16,135 passages, round-trip 0, tree invariants 0
 - diagnostics: unclassified 0, unknown_macro 6 (게임 오타 1 + ModLI 미정의 5)
 - 노출: link_label 39,157 / macro_arg 1,768 / plain_text 759,058
 - placeholder 형식: `<000000>` XML 태그 (restore = 순서 치환, 토큰 1회 필수)
-- 테스트: **167개 통과**, corpus_verify baseline matched
+- 테스트: **192개 통과** (L2 8개 + L2 2차 6개 + 캐시 1개 포함), corpus_verify baseline matched
+- 스모크 한국어 커버리지: **7,013/16,133 = 43.5%** (마커 등록 전 18.8%)
 
 ## 스토어 (번역 레코드, Git 제외)
 
-`work/translations/ko-reuse.jsonl` — 3,152 레코드 (ko_reuse 3,151 + gemini 1):
+`work/translations/ko-reuse.jsonl` — **7,140 레코드** (ko_reuse 7,137
+= 마커 없음 3,157 + 마커 있음 3,978 + 선존 2, gemini 3):
 
 ```json
 {
@@ -37,6 +45,14 @@ CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿
 }
 ```
 
+- 마커 있는 3-match 등록 (2026-08-08): 4,037 passage 중 3,978 등록
+  (post_status=runtime_remaining 3,983 전체 — 레거시 마커 전량이 런타임
+  값 앞, 정적 치환 0건), 퇴출: skeleton_mismatch 58 + macro_sequence_mismatch 9
+- 등록 검증 보강: `macro_sequence` 검사 (링크 라벨 내부 매크로 드롭 감지 —
+  파서 시그니처 검사 갭), 멱등성 (already_registered), post_status 정확화
+  (마커 잔존 = runtime_remaining)
+- 잔여 이슈: state=empty/excluded 595건 중 ko_body≈source_body(영어
+  그대로) 90건 — find_passage_reuse 블로커. 후순위 정리.
 - 스키마 정본: `docs/implementation-feedback.md` §3.1, `docs/translation-reuse-design.md`
 - 어셈블러/러너/스모크는 이 파일만 읽음. **다른 소스(JS 등) 레코드는
   같은 스키마로 추가하면 자동 반영.**
@@ -69,33 +85,57 @@ work/translations/ko-reuse.jsonl → translation/assemble_game_ko.py → game_ko
 ```bash
 uv run python -m translation.translate_passages \
   --file game/overworld-town/loc-cafe/main.twee --passage-name "Ocean Breeze"
-# 배치: --passages-file targets.jsonl  ({"source_path","passage_name"} 행)
+# 배치: --passages-file targets.jsonl  ({"source_path","passage_name"} 행,
+#   source_path는 game/ 접두어 포함 — 러너가 game-root 상대경로로 저장)
 # 옵션: --force 재번역, --request-id, --debug-dir 실패 덤프, --game-root
 ```
 
-- 흐름: 유닛 번역(placeholder 재시도 3회 내장) → post_process →
+- 흐름: 유닛 번역(placeholder 재시도 3회 내장) → **L2 검사
+  (verify_unit_structure: reorder/foreign_token/format_hallucination —
+  힌트 재시도 최대 2회, 실패 시 유닛 즉시 폐기)** → post_process →
   `repair_separator_newlines`(스팬 분리자 갭 결정적 복구) →
   `verify_malformed_post_markers` → restore → 시그니처 검증 → 레코드 저장
-- 실패 사유: skipped / placeholder_drop / malformed_post_marker /
-  restore_failed / skeleton_mismatch / exception:<...>
+- 실패 사유: skipped / placeholder_drop / **reorder / foreign_token /
+  format_hallucination** / malformed_post_marker / restore_failed /
+  skeleton_mismatch / exception:<...>
 - `--debug-dir`: 실패 시 유닛별 masked/translated 덤프 (재번역 없이 분석)
 - API 재시도 3회+backoff (client._generate), 배치 per-passage 예외 격리
 - 실측: Ocean Breeze(22유닛) → 스토어 → 어셈블 → 컴파일 → 스모크 전 구간
   통과, repaired=True (갭 복구 발생)
+- **배치 관측 (2026-08-08, 2회차 21 passage/~1,325 유닛)**: 성공 2/21
+  (9.5%). 실패 모드 4종 — placeholder_drop(결정성: 같은 유닛 재실패),
+  reorder(skeleton_mismatch), 타 유닛 토큰 환각(restore_failed),
+  placeholder 형식 환각(프롬프트 예시 `<000000>`이 7자리 토큰 passage에서
+  유발). 관측 리포트: `/tmp/opencode/batch-p2-1-report.md`,
+  덤프 `/tmp/opencode/batch-debug/`
+- **L2 쌍체 비교 (2026-08-08)**: 기존 실패 passage 5개 재실행 — Farm
+  Work(100유닛, reorder) **성공 회복**, Temple Test는 사유 세분화
+  (reorder)로 유닛 레벨 적발. 신규 발견: 산문 이동(스팬 병합) —
+  토큰 사이 산문을 옮겨 인접화 → L3에서만 적발 (L2 `prose_drop` 확장
+  후보, `docs/translate-runner-feedback2.md` H5/Q8)
 - request_id 자동: `req_<yyyymmdd>_<seq>` (KST, 스토어 최대 seq + 1)
 
 ## 이관 전 확인 사항 (미해결)
 
 ### 기능 (다음 단계, docs/followup-work.md)
 
-- [ ] **유형별 배치 번역** — `--passages-file`로 대표 passage 묶음.
-  전투(561유닛)·설정(331유닛) 대형 passage 성능/실패율 관측 (L2 도입 판단
-  데이터). 마커 있는 56% 등록 → 전체 corpus 순으로 확장.
+- [x] **유형별 배치 번역** — 2회차 관측 완료 (21 passage, 성공 2/21,
+      실패 모드 4종 분류). 전투(561유닛)·설정(331유닛)은 [widget] 코드
+      passage라 러너가 거절 — 비-위젯 최대 passage로 측정.
+- [x] **L2 유닛 구조 조기 검사** — 구현 완료 (verify_unit_structure:
+      reorder/foreign_token/format_hallucination/prose_drop, 힌트 재시도
+      2회, l2_retries/api_calls 기록). 2차 수정 반영: 재시도 사유 오염
+      버그, 덤프 컨텍스트 보강, 토큰 정규식 일반화, 프롬프트 예시 제거.
+      **지뢰 분석: 구조적 특징 기각** — 크기 외 예측 변수 없음. 전략
+      전환: 실패 passage 재실행 회복 측정 (docs/observation-analysis-plan.md
+      §5b, API 승인 대기).
 - [ ] **post 런타임 helper (PO2)** — `{{post:...}}` 동적 마커 치환 (게임
   사이드). 표 외 마커(`이`/`아`/`의`/`한` 등) 처리를 위해 `trPostsList`
   전체 26개 조사 테이블 필요. (`docs/post-system-design.md` PO2)
-- [ ] **마커 있는 3-match 4,037 passage 등록** — `【 】`→`{{post:...}}`
-  정규화 후 정적 치환분 resolve, 동적분은 런타임 대상으로 등록
+  **주의: 마커 있는 3-match 3,978건이 runtime_remaining으로 등록됨 —
+  게임에 `{{post:...}}` 리터럴 표시 중. PO2가 빌드에 들어가기 전까지
+  마커 passage는 게임에서 원문 그대로 노출되는 상태.**
+- [x] **마커 있는 3-match passage 등록** — 완료 (3,978건 + 검증 보강)
 - [ ] **단일 추측 조사 검출** — placeholder 뒤 단일 조사(combat 78건/
   gwylan 110건 관찰). 검출 → 리뷰 플래그 (자동 재번역 아님).
 - [ ] **R2 unit-level 재사용 연동** — 번역 배치 내 동일 문장 hash hit
@@ -119,18 +159,22 @@ uv run python -m translation.translate_passages \
 
 ```bash
 uv sync --extra dev                                   # 환경
-uv run python -m unittest discover -s tests           # 테스트 (167개)
+uv run python -m unittest discover -s tests           # 테스트 (196개)
 uv run python -m pretranslation_cst.corpus_verify --root game   # corpus 검증
 python3 build/verify.py                               # 어셈블→컴파일→스모크 (~2분)
-uv run python -m translation.register_ko_reuse        # 3-match KO 재등록 (43s)
-uv run python -m translation.translate_passages --file <f> --passage-name <p>
+uv run python -m translation.register_ko_reuse        # 3-match KO 재등록 (멱등, ~1.5분)
+uv run python -m translation.translate_passages --file <f> --passage-name <p> [--model <m>]
 uv run python -m translation.pilot --batch --max-units 5        # 파일럿
 uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감사
 ```
 
-- 프로젝트: `adept-elevator-503122-h0`, 모델 `gemini-2.5-flash-lite`
-  (`translation/client.py` 상수)
-- ADC: `gcloud auth application-default login`
+- 프로젝트/인증: **Vertex 백엔드 (genai SDK, `vertexai=True`)** — ADC 사용,
+  API 키 불필요. 프로젝트 `GOOGLE_CLOUD_PROJECT` (env), 리전
+  `GOOGLE_CLOUD_LOCATION` 기본 **`global`** (gemini-3.x 계열은 이 리전에서만
+  가용 — us-central1은 404). 모델 기본 `gemini-2.5-flash-lite` (상수),
+  temperature 0.7, 안전 필터: 기본은 미설정(프로바이더 기본) — 명시 시
+  `--safety-threshold block-none` 등 (`translation/client.py` SAFETY_THRESHOLDS)
+- 설정: ADC는 `gcloud auth application-default login`
 - 모든 산출물은 `/tmp/opencode/`에 저장 (repo Git 제외)
 
 ## 문서 구조
@@ -140,7 +184,9 @@ uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감�
 - **현행** (`docs/`): post-system-design, translation-pipeline-roadmap,
   g-l-macro-investigation, chunking-strategy
 - **피드백/제안** (`docs/`): implementation-feedback.md (빌드 체인),
-  translate-runner-feedback.md (러너), followup-work.md (후속 제안)
+  translate-runner-feedback.md (러너 1차), translate-runner-feedback2.md
+  (L2 + 배치 관측 2차), **observation-analysis-plan.md (리뷰 판정 + 지뢰
+  분석/수정 계획 — 다음 세션 실행 순서 §7)**
 - **아카이브** (`docs/archive/`): 완료 기록 (파일럿 보고, 트리아지 등)
 - **조사 자료** (`research/`): 근거·데이터셋 (Git 제외)
 
