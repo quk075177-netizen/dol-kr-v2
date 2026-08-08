@@ -216,7 +216,7 @@ passage 1회 실패 → 재실행 시 성공 확률 ≈ (1 - q), q = 지뢰 유�
 대부분을 해결하는 구조. 예상 효과: 지뢰 유닛의 실패율이 (0.7~1.0) →
 (L2 재시도 포함 시 ~0.2 이하)로 하락 → passage 성공률 상승 폭 큼.
 
-실행 로그/스크립트: `/tmp/opencode/model-tier-experiment.py`
+실행 로그/스크립트: `tmp/scripts/model-tier-experiment.py`
 
 ## 6. Q1~Q8 판정 반영 요약
 

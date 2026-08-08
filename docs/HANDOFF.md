@@ -18,13 +18,17 @@ CST 파서 (완료) → value-kind (완료) → 청킹 (완료) → P1 파일럿
   → 리오더 원인 규명 (한국어 어순 자연화 — 표시 전용 매크로의 재배치)
   → Option E 구현 (순서 민감도 화이트리스트 — ProtectedSpan(kinds) +
       order_sensitive, L2/L3 완화, 등록/어셈블러 엄격 유지)
+  → 배치 번역 + 유닛 승격 에스컬레이션 (lite 베이스 + flash 승격,
+      Farm Work 100유닛 성공 실측)
+  → 2티어 실패 정책 (L3 = 경계 검사로 유닛 승격, 전체 재시도 없음)
+      + 스트리밍 저널 (--journal)
 ```
 
 - 전체 corpus: 642 files / 16,135 passages, round-trip 0, tree invariants 0
 - diagnostics: unclassified 0, unknown_macro 6 (게임 오타 1 + ModLI 미정의 5)
 - 노출: link_label 39,157 / macro_arg 1,768 / plain_text 759,058
 - placeholder 형식: `<000000>` XML 태그 (restore = 순서 치환, 토큰 1회 필수)
-- 테스트: **206개 통과** (배치+승격 3개 추가), corpus_verify baseline matched
+- 테스트: **210개 통과**, corpus_verify baseline matched
 - 스모크 한국어 커버리지: **7,013/16,133 = 43.5%** (마커 등록 전 18.8%)
 
 ## 스토어 (번역 레코드, Git 제외)
@@ -80,7 +84,7 @@ work/translations/ko-reuse.jsonl → translation/assemble_game_ko.py → game_ko
 - passage-list: 어셈블러 `--emit-passage-list` 자동 생성
   (`build/browser-smoke/passage-list.tsv`)
 - 스모크: UI 7종 + passage-list 전수(textMatch) + 한국어 포함 비율
-  (실측 3,033/16,133 = 18.8% — 번역 커버리지 반영) + pageerror/console 검사
+  (실측 7,013/16,133 = 43.5% — 번역 커버리지 반영) + pageerror/console 검사
 - 실측: 3,152 passage 어셈블(1:50) → 컴파일(~2s) → 스모크(~6s) 통과
   (pageErrors 0, text mismatch 0)
 - 주의: 위젯 passage는 컴파일 후 Story에 없음 (passage-list에서
@@ -97,44 +101,52 @@ uv run python -m translation.translate_passages \
 ```
 
 - 흐름: 유닛 번역(placeholder 재시도 3회 내장) → **L2 검사
-  (verify_unit_structure: reorder/foreign_token/format_hallucination —
-  힌트 재시도 최대 2회, 실패 시 유닛 즉시 폐기)** → post_process →
-  `repair_separator_newlines`(스팬 분리자 갭 결정적 복구) →
-  `verify_malformed_post_markers` → restore → 시그니처 검증 → 레코드 저장
-- 실패 사유: skipped / placeholder_drop / **reorder / foreign_token /
-  format_hallucination** / malformed_post_marker / restore_failed /
-  skeleton_mismatch / exception:<...>
+  (verify_unit_structure: reorder/foreign_token/format_hallucination/
+  prose_drop — 힌트 재시도 최대 2회, 실패 시 유닛 즉시 폐기)** →
+  post_process → `repair_separator_newlines`(스팬 분리자 갭 결정적 복구) →
+  `verify_malformed_post_markers` → restore → 시그니처 검증(L3, Option E
+  완화) → 레코드 저장. L3 실패 시 `boundary_prose_drops`로 경계 유닛 쌍만
+  flash 재번역 (전체 재시도 없음 — 2티어 정책, 실패 시 로그만)
+- 실패 사유: skipped / placeholder_drop / reorder / foreign_token /
+  format_hallucination / prose_drop / malformed_post_marker /
+  restore_failed / skeleton_mismatch / exception:<...>
 - `--debug-dir`: 실패 시 유닛별 masked/translated 덤프 (재번역 없이 분석)
 - API 재시도 3회+backoff (client._generate), 배치 per-passage 예외 격리
 - 실측: Ocean Breeze(22유닛) → 스토어 → 어셈블 → 컴파일 → 스모크 전 구간
   통과, repaired=True (갭 복구 발생)
-- **배치 관측 (2026-08-08, 2회차 21 passage/~1,325 유닛)**: 성공 2/21
-  (9.5%). 실패 모드 4종 — placeholder_drop(결정성: 같은 유닛 재실패),
-  reorder(skeleton_mismatch), 타 유닛 토큰 환각(restore_failed),
+- **배치 관측 (2026-08-08, 유니크 20 passage / 21 runs / 1,317 유닛)**:
+  성공 2/21 (9.5%). 실패 모드 4종 — placeholder_drop(결정성: 같은 유닛
+  재실패), reorder(skeleton_mismatch), 타 유닛 토큰 환각(restore_failed),
   placeholder 형식 환각(프롬프트 예시 `<000000>`이 7자리 토큰 passage에서
-  유발). 관측 리포트: `/tmp/opencode/batch-p2-1-report.md`,
-  덤프 `/tmp/opencode/batch-debug/`
+  유발). 관측 리포트: `tmp/reports/batch-p2-1-report.md`,
+  덤프 `tmp/debug-dumps/batch-debug/`
 - **L2 쌍체 비교 (2026-08-08)**: 기존 실패 passage 5개 재실행 — Farm
   Work(100유닛, reorder) **성공 회복**, Temple Test는 사유 세분화
-  (reorder)로 유닛 레벨 적발. 신규 발견: 산문 이동(스팬 병합) —
-  토큰 사이 산문을 옮겨 인접화 → L3에서만 적발 (L2 `prose_drop` 확장
-  후보, `docs/translate-runner-feedback2.md` H5/Q8)
+  (reorder)로 유닛 레벨 적발. 신규 발견: 산문 이동(스팬 병합) — 이후
+  `prose_drop`(L2) + `boundary_prose_drops`(L3 경계 승격)로 처리
 - request_id 자동: `req_<yyyymmdd>_<seq>` (KST, 스토어 최대 seq + 1)
 
 ## 이관 전 확인 사항 (미해결)
 
 ### 기능 (다음 단계, docs/followup-work.md)
 
-- [x] **유형별 배치 번역** — 2회차 관측 완료 (21 passage, 성공 2/21,
+- [x] **유형별 배치 번역** — 2회차 관측 완료 (유니크 20, 성공 2/21,
       실패 모드 4종 분류). 전투(561유닛)·설정(331유닛)은 [widget] 코드
       passage라 러너가 거절 — 비-위젯 최대 passage로 측정.
 - [x] **L2 유닛 구조 조기 검사** — 구현 완료 (verify_unit_structure:
       reorder/foreign_token/format_hallucination/prose_drop, 힌트 재시도
       2회, l2_retries/api_calls 기록). 2차 수정 반영: 재시도 사유 오염
       버그, 덤프 컨텍스트 보강, 토큰 정규식 일반화, 프롬프트 예시 제거.
-      **지뢰 분석: 구조적 특징 기각** — 크기 외 예측 변수 없음. 전략
-      전환: 실패 passage 재실행 회복 측정 (docs/observation-analysis-plan.md
-      §5b, API 승인 대기).
+      **지뢰 분석: 구조적 특징 기각** — 크기 외 예측 변수 없음 (콘텐츠
+      난이도). 이후 배치+승격 에스컬레이션으로 전환.
+- [x] **Option E (리오더 허용)** — 순서 민감도 화이트리스트
+      (`order_sensitivity.py`): 표시 전용 매크로/변수/HTML만 무관,
+      미등록은 전부 민감. 실측 5건 전부 허용 분류. 등록/어셈블러는
+      엄격 유지.
+- [x] **배치 번역 + 승격 에스컬레이션** — `--batch-size 16`(기본),
+      L1/L2 실패 유닛 flash 승격, L3는 경계 검사로 유닛 승격.
+      2티어 정책 (자동 재시도 종료). 실측: Farm Work(100유닛) 성공
+      (배치 7회+승격 24회 ≈33회 호출).
 - [ ] **post 런타임 helper (PO2)** — `{{post:...}}` 동적 마커 치환 (게임
   사이드). 표 외 마커(`이`/`아`/`의`/`한` 등) 처리를 위해 `trPostsList`
   전체 26개 조사 테이블 필요. (`docs/post-system-design.md` PO2)
@@ -153,7 +165,8 @@ uv run python -m translation.translate_passages \
 - [ ] JS 문자열 번역 (기존 KO JS 9,373건 대조 — 빌드 체인에 JS 치환 단계)
 - [ ] H5 스모크 셀렉터 분리, Q3 체크 카테고리(번역/회귀) 분리, Q5 store
   level 통일 (docs/implementation-feedback.md §8 미반영분)
-- [ ] `_get_model` 캐시 개선 (다중 모델 혼용 시) (docs/translate-runner-feedback.md §9)
+- [x] `_get_model` 캐시 개선 — genai SDK 전환으로 해소 (get_client 싱글턴,
+  모델은 요청별 파라미터)
 
 ### 유지보수 체크 (우선순위 낮음)
 
@@ -165,7 +178,7 @@ uv run python -m translation.translate_passages \
 
 ```bash
 uv sync --extra dev                                   # 환경
-uv run python -m unittest discover -s tests           # 테스트 (206개)
+uv run python -m unittest discover -s tests           # 테스트 (210개)
 uv run python -m pretranslation_cst.corpus_verify --root game   # corpus 검증
 python3 build/verify.py                               # 어셈블→컴파일→스모크 (~2분)
 uv run python -m translation.register_ko_reuse        # 3-match KO 재등록 (멱등, ~1.5분)
@@ -193,7 +206,7 @@ uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감�
   Farm Work(100유닛) 배치 7회+승격 24회 ≈33회 호출로 성공 (per-unit 대비
   ~3배 절감, 드롭 0 수렴)
 - 설정: ADC는 `gcloud auth application-default login`
-- 모든 산출물은 `/tmp/opencode/`에 저장 (repo Git 제외)
+- 관측 산출물은 `tmp/` (README 참조, Git 제외). 원본 백업은 `/tmp/opencode/`
 
 ## 문서 구조
 
@@ -203,8 +216,9 @@ uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감�
   g-l-macro-investigation, chunking-strategy
 - **피드백/제안** (`docs/`): implementation-feedback.md (빌드 체인),
   translate-runner-feedback.md (러너 1차), translate-runner-feedback2.md
-  (L2 + 배치 관측 2차), **observation-analysis-plan.md (리뷰 판정 + 지뢰
-  분석/수정 계획 — 다음 세션 실행 순서 §7)**
+  (L2 + 배치 관측 2차), observation-analysis-plan.md (리뷰 판정 +
+  지뢰 분석 + Option E/배치 승격 실행 기록)
+- **분석** (루트): `reorder-analysis.md` (리오더 원인 규명 + Option E 설계/실측)
 - **아카이브** (`docs/archive/`): 완료 기록 (파일럿 보고, 트리아지 등)
 - **조사 자료** (`research/`): 근거·데이터셋 (Git 제외)
 
@@ -212,7 +226,8 @@ uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감�
 
 - Git 제외: `research/`, `game/`, `ref/`, `game_ko/`, `build/*.html`,
   `build/*.build.json`, `build/browser-smoke/`, `.cache/`, `work/`
-  (레코드 스토어 포함 — 재등록/재번역으로 재생성 가능)
+  (레코드 스토어 포함 — 재등록/재번역으로 재생성 가능), `tmp/`
+  (관측 산출물 — README 참조)
 - 커밋 대상 도구: `build/dol_build.py`, `build/verify.py`,
   `build-tools.lock.json`, `browser_smoke.*`, `translation/*.py`
 - `config/glossary.yml` — clothing glossary (1,459 approved, post 계산됨)

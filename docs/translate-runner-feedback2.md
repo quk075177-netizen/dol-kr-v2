@@ -206,7 +206,7 @@ uv run python -m unittest discover -s tests           # 185개 (L2 8개 추가)
 
 # L2 쌍체 비교 배치 (기존 실패 passage 재실행)
 uv run python -m translation.translate_passages \
-  --passages-file /tmp/opencode/batch-l2-paired.jsonl --debug-dir /tmp/opencode/batch-debug
+  --passages-file tmp/batches/batch-l2-paired.jsonl --debug-dir tmp/debug-dumps/batch-debug
 
 # 전체 체인 검증 (~2분)
 python3 build/verify.py
@@ -214,8 +214,8 @@ python3 build/verify.py
 
 ## 8. 참고
 
-- 관측 리포트: `/tmp/opencode/batch-p2-1-report.md`
-- 실패 덤프: `/tmp/opencode/batch-debug/` (append — 재실행 비교 가능)
-- 배치 로그: `/tmp/opencode/batch-p2-1.log`, `batch-p2-2.log`
+- 관측 리포트: `tmp/reports/batch-p2-1-report.md`
+- 실패 덤프: `tmp/debug-dumps/batch-debug/` (append — 재실행 비교 가능)
+- 배치 로그: `tmp/batches/batch-p2-1.log`, `batch-p2-2.log`
 - 선행 피드백: `docs/translate-runner-feedback.md` (H3·Q1이 이번 해소)
 - 마커 3-match 등록 + macro_sequence 검증 보강은 `docs/HANDOFF.md`에 기록

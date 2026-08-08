@@ -25,4 +25,5 @@ build/*.build.json
 build/browser-smoke/
 work/
 
-# 작업 산출물 (분석 문서/실험 데이터 — Git 제외)
+# 관측/실험 산출물 (배치·덤프·레포트·스토어 — Git 제외)
+tmp/

@@ -186,13 +186,13 @@ L2 재시도 힌트는 "토큰 순서를 그대로 유지하라"고 지시한다
 
 | 사례 | 덤프 |
 |---|---|
-| Farm Work u92 | `/tmp/opencode/batch-debug/Farm Work.jsonl` |
-| Temple Test u3 | `/tmp/opencode/batch-debug/Temple Test.jsonl` (2번째 dump) |
-| Sydney Chat u22 | `/tmp/opencode/model-cmp/gemini-2.5-flash/Sydney Chat.jsonl` |
-| Children u4 | `/tmp/opencode/model-cmp/gemini-2.5-flash/Children Activity Events.jsonl` |
-| School Detention u1 | `/tmp/opencode/model-cmp/gemini-2.5-flash/School Detention.jsonl` |
+| Farm Work u92 | `tmp/debug-dumps/batch-debug/Farm Work.jsonl` |
+| Temple Test u3 | `tmp/debug-dumps/batch-debug/Temple Test.jsonl` (2번째 dump) |
+| Sydney Chat u22 | `tmp/debug-dumps/model-cmp/gemini-2.5-flash/Sydney Chat.jsonl` |
+| Children u4 | `tmp/debug-dumps/model-cmp/gemini-2.5-flash/Children Activity Events.jsonl` |
+| School Detention u1 | `tmp/debug-dumps/model-cmp/gemini-2.5-flash/School Detention.jsonl` |
 
-분석 스크립트: `/tmp/opencode/reorder_analyze.py`, `reorder_analyze2.py`
+분석 스크립트: `tmp/scripts/reorder_analyze.py`, `reorder_analyze2.py`
 
 ## 7. 영향 범위 — 어순 변경 처리를 건드릴 경우
 
