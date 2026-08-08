@@ -183,6 +183,7 @@ uv run python -m pretranslation_cst.corpus_verify --root game   # corpus 검증
 python3 build/verify.py                               # 어셈블→컴파일→스모크 (~2분)
 uv run python -m translation.register_ko_reuse        # 3-match KO 재등록 (멱등, ~1.5분)
 uv run python -m translation.translate_passages --file <f> --passage-name <p> [--model <m>]
+uv run python -m translation.store_view --passage <p>   # 레코드 보기 (--last/--hash/--journal)
 uv run python -m translation.pilot --batch --max-units 5        # 파일럿
 uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감사
 ```
@@ -218,7 +219,8 @@ uv run python -m pretranslation_cst.macro_audit audit           # 매크로 감�
 - **피드백/제안** (`docs/`): implementation-feedback.md (빌드 체인),
   translate-runner-feedback.md (러너 1차), translate-runner-feedback2.md
   (L2 + 배치 관측 2차), observation-analysis-plan.md (리뷰 판정 +
-  지뢰 분석 + Option E/배치 승격 실행 기록)
+  지뢰 분석 + Option E/배치 승격 실행 기록), **store-schema.md (레코드
+  필드 참조 정본)**
 - **분석** (루트): `reorder-analysis.md` (리오더 원인 규명 + Option E 설계/실측)
 - **아카이브** (`docs/archive/`): 완료 기록 (파일럿 보고, 트리아지 등)
 - **조사 자료** (`research/`): 근거·데이터셋 (Git 제외)
